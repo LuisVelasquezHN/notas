@@ -5,6 +5,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui';
 import { openDatabase, type Database } from '@/db';
+import { ensureSearchIndex } from '@/db/search-index';
+import { purgeExpiredTrash } from '@/features/notes/repository';
 import { warmUpKvStorage } from '@/lib/kv-storage';
 import { useSettingsStore } from '@/stores/settings-store';
 import { spacing, useTheme } from '@/theme';
@@ -15,7 +17,8 @@ import migrations from '../../drizzle/migrations';
  * Prepara todo lo necesario antes de renderizar la app:
  * 1. abre el almacén de preferencias e hidrata los ajustes,
  * 2. abre la base de datos,
- * 3. aplica las migraciones pendientes.
+ * 3. aplica las migraciones pendientes,
+ * 4. prepara el índice de búsqueda (solo nativo) y purga la papelera caducada.
  */
 export function AppBootstrap({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<Database | null>(null);
@@ -36,13 +39,25 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
 
 function Migrations({ db, children }: { db: Database; children: ReactNode }) {
   const { success, error } = useMigrations(db, migrations);
+  const [ready, setReady] = useState(false);
+  const [startupError, setStartupError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (success || error) SplashScreen.hideAsync();
-  }, [success, error]);
+    if (!success) return;
+    (async () => {
+      await ensureSearchIndex(db);
+      await purgeExpiredTrash();
+      setReady(true);
+    })().catch((e: unknown) => setStartupError(e instanceof Error ? e : new Error(String(e))));
+  }, [db, success]);
 
-  if (error) return <BootError error={error} />;
-  if (!success) return <BootLoading />;
+  const failure = error ?? startupError;
+  useEffect(() => {
+    if (ready || failure) SplashScreen.hideAsync();
+  }, [ready, failure]);
+
+  if (failure) return <BootError error={failure} />;
+  if (!ready) return <BootLoading />;
   return children;
 }
 

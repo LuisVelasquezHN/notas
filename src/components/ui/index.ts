@@ -6,4 +6,7 @@ export * from './fab';
 export * from './icon';
 export * from './icon-button';
 export * from './screen';
+export * from './sheet';
+export * from './snackbar';
 export * from './text';
+export * from './text-field';

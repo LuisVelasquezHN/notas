@@ -226,7 +226,7 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 | Fase                      | Contenido                                                                                                                                | Duración    | Estado   |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------- | -------- |
 | **0. Fundaciones**        | Expo + TypeScript, lint y formato, tema y tokens, Drizzle y migraciones, rutas y tabs, UI base, Jest, EAS y CI                           | 1 semana    | ✅ hecha |
-| **1. Núcleo (MVP)**       | CRUD de texto y checklist, carpetas, colores, anclar, archivar, papelera, lista/cuadrícula, ordenación, búsqueda, autoguardado, deshacer | 3–4 semanas | ⏳       |
+| **1. Núcleo (MVP)**       | CRUD de texto y checklist, carpetas, colores, anclar, archivar, papelera, lista/cuadrícula, ordenación, búsqueda, autoguardado, deshacer | 3–4 semanas | ✅ hecha |
 | **2. Organización**       | Etiquetas, filtros, carpetas inteligentes, selección múltiple, drag & drop, favoritos                                                    | 2 semanas   |          |
 | **3. Recordatorios**      | Selector, scheduler con ventana, RRULE, acciones, pantalla de próximos, badge                                                            | 2 semanas   |          |
 | **4. Contenido rico**     | Editor TipTap, imágenes, voz, plantillas, quick actions                                                                                  | 2–3 semanas |          |
@@ -248,7 +248,22 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 - [x] `eas.json` (development, preview, production) + GitHub Actions (lint, formato, typecheck, tests, migraciones al día, expo-doctor)
 - [x] Web verificada en el navegador: arranque, crear nota, persistencia tras recargar, cambio de tema, barra de tabs adaptativa (arriba en escritorio, abajo en móvil)
 - [ ] **Pendiente:** probar en iOS y Android (development build), ejecutar `eas init` (requiere cuenta Expo) y revisar el bundle id `com.novotechn.notas`
-- [ ] **Movido a la fase 1:** tabla `notes_fts` con sus triggers. Solo nativo, porque una migración con FTS5 fallaría en web; se creará en un paso de arranque aparte.
+- [x] **Movido a la fase 1:** tabla `notes_fts` con sus triggers (hecho en la fase 1, ver abajo).
+
+### Fase 1: checklist
+
+- [x] Notas de texto: editor de texto plano tras `EditorAdapter` (`src/features/editor`), contenido guardado como documento TipTap + `content_text`
+- [x] Autoguardado con debounce (también al pasar a segundo plano y al salir); las notas nuevas que se dejan vacías se descartan
+- [x] Deshacer/rehacer en el editor (historial con agrupación) y snackbar "Deshacer" para archivar, papelera, mover, borrar ítems y carpetas
+- [x] Checklists: marcar, completados agrupados al final (plegables), Intro crea el siguiente ítem, retroceso en vacío lo borra, sangría de subtareas, reordenar arrastrando el asa (react-native-sortables), desmarcar/borrar completados
+- [x] Convertir texto ↔ checklist sin perder contenido; duplicar nota
+- [x] Colores (11 tokens), anclar, archivar/desarchivar, papelera con restauración, borrado definitivo, vaciado y purga automática a los 30 días al arrancar
+- [x] Carpetas anidadas (hasta 3 niveles) con color e icono; crear, editar, borrar (sus notas pasan a "Sin carpeta", con deshacer); mover notas entre carpetas
+- [x] Lista o cuadrícula masonry (FlashList v2, 2–3 columnas según ancho); orden por modificación, creación o título, ancladas primero
+- [x] Búsqueda: FTS5 con prefijos y sin acentos en nativo (tabla `notes_fts` + triggers creados al arrancar, fuera de las migraciones); `LIKE` en web. Incluye el texto de los ítems de checklist
+- [x] Web verificada en el navegador: crear/editar texto y checklist, deshacer, color, archivar con snackbar, búsqueda, carpetas, nota en carpeta, descarte de nota vacía, papelera
+- [ ] **Pendiente:** verificar en iOS y Android (teclado, `KeyboardAvoidingView`, arrastre de ítems; el arrastre no se pudo comprobar en web con eventos sintéticos)
+- [ ] **Pasa a la fase 2:** orden manual de notas (drag & drop), selección múltiple
 
 ---
 

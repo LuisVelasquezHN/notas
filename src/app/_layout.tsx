@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AppBootstrap } from '@/components/app-bootstrap';
+import { SnackbarHost } from '@/components/ui';
 import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -31,11 +32,12 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="note/[id]" options={{ title: '' }} />
-            <Stack.Screen name="folder/[id]" options={{ title: 'Carpeta' }} />
+            <Stack.Screen name="folder/[id]" options={{ title: '' }} />
             <Stack.Screen name="search" options={{ title: 'Buscar' }} />
             <Stack.Screen name="archive" options={{ title: 'Archivo' }} />
             <Stack.Screen name="trash" options={{ title: 'Papelera' }} />
           </Stack>
+          <SnackbarHost />
         </AppBootstrap>
       </ThemeProvider>
     </GestureHandlerRootView>
