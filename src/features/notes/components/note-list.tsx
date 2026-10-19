@@ -5,6 +5,11 @@ import { useCallback, useEffect, useMemo, useState, type ReactElement } from 're
 import { BackHandler, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import type { Note, Tag } from '@/db/schema';
+import {
+  attachmentCountsQuery,
+  firstImagesQuery,
+  type AttachmentCounts,
+} from '@/features/attachments/repository';
 import { allChecklistItemsQuery, type ChecklistPreviewItem } from '@/features/checklist/repository';
 import { activeRemindersQuery } from '@/features/reminders/repository';
 import { noteTagsQuery, tagsQuery } from '@/features/tags/repository';
@@ -14,7 +19,7 @@ import { useUiStore } from '@/stores/ui-store';
 import { MAX_CONTENT_WIDTH, spacing } from '@/theme';
 
 import { NoteActionsSheet } from './note-actions-sheet';
-import { NoteCard } from './note-card';
+import { NoteCard, type CardImage } from './note-card';
 import { SelectionBar } from './selection-bar';
 import { SortableNoteGrid } from './sortable-note-grid';
 
@@ -128,6 +133,20 @@ export function NoteList({
   }, [activeReminders]);
   const now = useNow(60_000);
 
+  const { data: firstImages } = useLiveQuery(firstImagesQuery());
+  const imagesByNote = useMemo(
+    () => new Map<string, CardImage>(firstImages.map((i) => [i.noteId, i])),
+    [firstImages],
+  );
+  const { data: counts } = useLiveQuery(attachmentCountsQuery());
+  const attachmentsByNote = useMemo(() => {
+    const map = new Map<string, AttachmentCounts>();
+    for (const { noteId, kind, count } of counts) {
+      map.set(noteId, { ...map.get(noteId), [kind]: count });
+    }
+    return map;
+  }, [counts]);
+
   const open = (note: Note) => router.push({ pathname: '/note/[id]', params: { id: note.id } });
   const tap = (note: Note) => (selecting ? toggleSelection(note.id) : open(note));
 
@@ -136,6 +155,8 @@ export function NoteList({
       note={note}
       items={itemsByNote.get(note.id)}
       tags={tagsByNote.get(note.id)}
+      image={imagesByNote.get(note.id)}
+      attachments={attachmentsByNote.get(note.id)}
       reminder={remindersByNote.get(note.id)}
       now={now}
       meta={meta?.(note)}
@@ -177,8 +198,16 @@ export function NoteList({
         keyExtractor={(note) => note.id}
         numColumns={grid ? columns : 1}
         masonry={grid}
-        // Las tarjetas dependen también de los ítems, etiquetas, recordatorios y la selección.
-        extraData={[itemsByNote, tagsByNote, remindersByNote, now, selectedIds]}
+        // Las tarjetas dependen también de ítems, etiquetas, recordatorios, adjuntos y selección.
+        extraData={[
+          itemsByNote,
+          tagsByNote,
+          remindersByNote,
+          imagesByNote,
+          attachmentsByNote,
+          now,
+          selectedIds,
+        ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         contentContainerStyle={styles.content}

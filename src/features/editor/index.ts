@@ -1,8 +1,13 @@
-import { PlainTextEditor } from './plain-text-editor';
-import type { EditorAdapter } from './types';
+import { RichTextEditor } from './rich-text-editor';
+import type { EditorAdapter, EditorCapabilities } from './types';
 
 export * from './doc';
-export type { EditorAdapter, EditorAdapterProps } from './types';
+export * from './format';
+export type { EditorAdapter, EditorAdapterProps, EditorHandle } from './types';
 
-/** Editor activo. En la fase 4 se sustituye por el adaptador de TipTap sin tocar las pantallas. */
-export const Editor: EditorAdapter = PlainTextEditor;
+/**
+ * Editor activo: TipTap (fase 4). El de texto plano (`PlainTextEditor`) sigue disponible tras la
+ * misma interfaz por si hubiera que volver a él en alguna plataforma.
+ */
+export const Editor: EditorAdapter = RichTextEditor;
+export const editorCapabilities: EditorCapabilities = { richText: true };

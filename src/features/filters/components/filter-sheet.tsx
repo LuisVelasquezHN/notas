@@ -2,7 +2,7 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Button, Chip, ColorSwatch, Sheet, Text } from '@/components/ui';
+import { Button, Chip, ColorSwatch, Sheet, Text, type IconName } from '@/components/ui';
 import type { NoteType } from '@/db/schema';
 import { foldersQuery } from '@/features/folders/repository';
 import { buildFolderTree, flattenFolderTree } from '@/features/folders/tree';
@@ -17,10 +17,13 @@ import {
   type NoteFilter,
 } from '../filter';
 
-/** Tipos que se pueden filtrar hoy (imágenes y voz llegan en la fase 4). */
-export const FILTERABLE_TYPES: { value: NoteType; label: string }[] = [
-  { value: 'text', label: 'Texto' },
-  { value: 'checklist', label: 'Lista' },
+/** Tipos que se pueden filtrar. */
+export const FILTERABLE_TYPES: { value: NoteType; label: string; icon: IconName }[] = [
+  { value: 'text', label: 'Texto', icon: 'text' },
+  { value: 'checklist', label: 'Lista', icon: 'checklist' },
+  // Imagen y voz: notas con imágenes o audios adjuntos (ver `typesCondition`).
+  { value: 'image', label: 'Imagen', icon: 'image' },
+  { value: 'audio', label: 'Voz', icon: 'mic' },
 ];
 
 type FilterSheetProps = {
@@ -43,11 +46,11 @@ export function FilterSheet({ visible, filter, onChange, onClose, resultCount }:
     <Sheet visible={visible} onClose={onClose} title="Filtros">
       <View style={styles.body}>
         <Section title="TIPO">
-          {FILTERABLE_TYPES.map(({ value, label }) => (
+          {FILTERABLE_TYPES.map(({ value, label, icon }) => (
             <Chip
               key={value}
               label={label}
-              icon={value === 'checklist' ? 'checklist' : 'text'}
+              icon={icon}
               selected={filter.types?.includes(value) ?? false}
               onPress={() => set({ types: toggleValue(filter.types, value) })}
             />

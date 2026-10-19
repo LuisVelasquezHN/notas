@@ -15,7 +15,7 @@ App de notas **local-first** en React Native (Expo) para **iOS, Android y web**:
 
 1. **MVP (fases 1–3): editor de texto plano**, basado en `TextInput` multilinea y aislado tras una interfaz `EditorAdapter`.
 2. **El contenido se guarda desde el primer día como JSON de ProseMirror/TipTap** (`{ type: 'doc', content: [...] }`), aunque solo tenga párrafos. También se guarda `content_text` (texto plano) para la vista previa y la búsqueda.
-3. **Fase 4: editor enriquecido** con **10tap-editor** (TipTap) en iOS y Android, y TipTap directamente en web. Como el formato ya es el de TipTap, **no hay migración de datos**: solo se cambia la implementación del adapter.
+3. **Fase 4: editor enriquecido** con **TipTap**. Se planeó 10tap-editor en nativo, pero se usa TipTap en un **DOM component** de Expo (`'use dom'`): el mismo código corre en una webview (`@expo/dom-webview`, incluida en el SDK) en iOS y Android, y como componente normal en web, sin módulos nativos extra. Como el formato ya era el de TipTap, **no hubo migración de datos**: solo cambió la implementación del adapter.
 
 **Por qué:** el editor enriquecido es la pieza más inestable de cualquier app de notas en React Native (teclado, foco, scroll y webview). Separarlo del núcleo permite lanzar antes un MVP sólido sin quedar atados a una librería, y el formato de almacenamiento ya es el definitivo.
 
@@ -110,7 +110,9 @@ App de notas **local-first** en React Native (Expo) para **iOS, Android y web**:
 | Drag & drop             | react-native-sortables                                                                                       |
 | Bottom sheets           | @gorhom/bottom-sheet                                                                                         |
 | Notificaciones          | **expo-notifications** + **rrule**; reprogramación con **expo-background-task**                              |
+| Editor                  | **TipTap 3** (StarterKit + listas de tareas) en un DOM component de Expo                                     |
 | Multimedia              | expo-image, expo-image-picker, expo-audio, expo-file-system                                                  |
+| Acciones rápidas        | expo-quick-actions (no es del SDK oficial)                                                                   |
 | Seguridad               | expo-local-authentication, expo-secure-store                                                                 |
 | Exportación             | expo-print, expo-sharing                                                                                     |
 | i18n                    | i18next + expo-localization                                                                                  |
@@ -127,6 +129,7 @@ App de notas **local-first** en React Native (Expo) para **iOS, Android y web**:
   - **Arranque:** la base de datos y el kv-store se abren primero de forma **asíncrona** (`AppBootstrap`), porque la primera operación síncrona falla si el worker de SQLite aún no ha cargado.
   - **Salida web:** `output: "single"` (SPA). El renderizado estático o en servidor ejecutaría SQLite en Node.
 - **FTS5 en web:** el WASM por defecto **no incluye FTS**. En web, la búsqueda usa `LIKE` sobre `content_text`. Si hiciera falta más adelante, se compila un `wa-sqlite` con FTS y se carga con `SQLite.configureWeb({ wasmURL })`.
+- **Adjuntos:** sin sistema de ficheros, las imágenes (reducidas a 1600 px, JPEG) y los audios (WebM) se guardan como data URI en la propia base de datos. Las grabaciones WebM de Chrome no traen duración: se usa la medida al grabar. El micrófono exige contexto seguro (HTTPS o localhost).
 - **Notificaciones:** expo-notifications no programa notificaciones locales en web. Allí los recordatorios se muestran en la app (pantalla y badge), sin aviso del sistema.
 - **No disponibles en web:** biometría, widgets, share extension y quick actions. Las funciones se ocultan con `Platform.OS` o con capacidades (`capabilities.ts`).
 - **Despliegue:** EAS Hosting.
@@ -229,7 +232,7 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 | **1. Núcleo (MVP)**       | CRUD de texto y checklist, carpetas, colores, anclar, archivar, papelera, lista/cuadrícula, ordenación, búsqueda, autoguardado, deshacer | 3–4 semanas | ✅ hecha |
 | **2. Organización**       | Etiquetas, filtros, carpetas inteligentes, selección múltiple, drag & drop, favoritos                                                    | 2 semanas   | ✅ hecha |
 | **3. Recordatorios**      | Selector, scheduler con ventana, RRULE, acciones, pantalla de próximos, badge                                                            | 2 semanas   | ✅ hecha |
-| **4. Contenido rico**     | Editor TipTap, imágenes, voz, plantillas, quick actions                                                                                  | 2–3 semanas |          |
+| **4. Contenido rico**     | Editor TipTap, imágenes, voz, plantillas, quick actions                                                                                  | 2–3 semanas | ✅ hecha |
 | **5. Seguridad y pulido** | Biometría, export/import y backup, i18n, accesibilidad, onboarding                                                                       | 2 semanas   |          |
 | **6. Lanzamiento**        | E2E, Sentry, betas, fichas de las tiendas, privacidad, despliegue web                                                                    | 1–2 semanas |          |
 | **7. Post-lanzamiento**   | Sincronización, pagos, widgets, share extension, versiones, IA                                                                           | continuo    |          |
@@ -294,6 +297,23 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 - [x] Web verificada en el navegador: crear recordatorio recurrente desde el editor, chip en editor y tarjeta, pantalla con grupos, vencido + badge (adelantando el reloj), hecho y deshacer, fecha límite de un ítem y marcarlo como hecho desde la lista
 - [ ] **Pendiente:** probar en iOS y Android con un development build (nuevos módulos nativos: expo-notifications, expo-task-manager, expo-background-task): permisos, entrega a la hora, acciones con la app cerrada (en iOS "Hecho"/"Posponer" con la app terminada solo se garantiza al volver a abrirla), canal y alarmas exactas en Android 12–14, badge del icono
 - [ ] **No incluido (P2):** resumen diario y recordatorios por ubicación; recurrencias personalizadas (cada N días, días concretos)
+
+### Fase 4: checklist
+
+- [x] Editor enriquecido (`src/features/editor`): TipTap 3 en un DOM component (`rich-text/tiptap-dom.tsx`) tras el mismo `EditorAdapter`. Títulos H1/H2, negrita, cursiva, subrayado, tachado, listas con viñetas y numeradas, casillas, citas, código y quitar formato; atajos de Markdown de TipTap. Barra de formato nativa en la parte inferior que resalta los formatos activos. Deshacer/rehacer sigue en la pantalla (historial de título + contenido; el de TipTap está desactivado). En nativo la webview crece con el contenido (`matchContents`), los cambios se agrupan 150 ms antes de cruzar el puente y la pantalla hace scroll para seguir el cursor. Las notas antiguas (solo párrafos) se abren sin migrar
+- [x] Adjuntos (`src/features/attachments`, tabla `attachments` ya existente, sin migración): imágenes desde la cámara o la galería (varias a la vez) y notas de voz, en cualquier nota (texto o lista). En nativo, ficheros en `Documents/attachments/` con ruta **relativa** en la base de datos; en web, data URI (ver §3.1)
+- [x] Imágenes: encima del título (una grande o cuadrícula), visor a pantalla completa con deslizamiento y borrar con deshacer. Las tarjetas muestran la primera imagen y "+N"
+- [x] Voz (expo-audio): grabadora en una hoja (AAC mono 64 kbps; permiso con aviso para abrir Ajustes), lista de audios con reproducir/pausar, progreso y borrar con deshacer. Indicador "Nota de voz" en las tarjetas
+- [x] Una nota nueva que solo tiene adjuntos no se descarta; duplicar copia los adjuntos (comparten fichero); los ficheros sin referencia se borran tras un borrado definitivo y al arrancar (los adjuntos quitados se purgan al día siguiente)
+- [x] Filtros: "Imagen" y "Voz" en Tipo = notas con imágenes o audios adjuntos; "Con adjuntos" ya da resultados
+- [x] Plantillas integradas (`src/features/templates`): Reunión, Lista de la compra, Diario (con la fecha), Proyecto o idea, Receta y Equipaje; botón propio junto a "Nueva lista"
+- [x] Acciones rápidas del icono (expo-quick-actions): Nueva nota, Nueva lista, Nota de voz y Buscar. Pasan por la ruta `/new` (`notas://new?kind=text|checklist|voice&template=…`), que también sirve como enlace profundo; `unstable_settings.anchor` deja las pestañas debajo para poder volver
+- [x] Permisos en `app.json` (cámara, fotos, micrófono) con textos en español; `expo-doctor` sin avisos
+- [x] Tests: plantillas (documentos válidos, texto plano, fecha del diario), extensión por MIME y formato de duraciones, estado de formato
+- [x] Web verificada en el navegador: escribir, negrita, H1, lista, deshacer/rehacer con el editor TipTap; abrir una nota antigua; adjuntar imágenes (reducidas a 1600 px), cuadrícula, visor, borrar y deshacer; miniatura en la tarjeta; plantilla "Reunión"; `/new?kind=voice` abre la grabadora y "Cancelar" la cierra; filtro "Imagen"
+- [ ] **Pendiente:** probar en iOS y Android con un development build (nuevos módulos nativos: expo-image-picker, expo-audio, expo-file-system, expo-quick-actions): teclado y foco del editor en la webview, seguir el cursor, fondo transparente de la webview, grabar y reproducir, permisos, acciones rápidas (en Android, sin icono propio todavía). En web no se pudo grabar audio (requiere conceder el micrófono) ni comprobar las reglas de Markdown al teclear (los eventos sintéticos no las disparan)
+- [ ] **Conocido (anterior a esta fase):** en orden manual, una nota creada mientras la lista está montada no aparece en la rejilla (react-native-sortables) hasta volver a cargar la pantalla
+- [ ] **No incluido:** plantillas propias del usuario, enlaces dentro del texto con diálogo, transcripción de voz, recortar/anotar imágenes
 
 ---
 

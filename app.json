@@ -45,7 +45,12 @@
           "imageWidth": 76
         }
       ],
-      ["expo-sqlite", { "enableFTS": true }],
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true
+        }
+      ],
       [
         "expo-notifications",
         {
@@ -53,7 +58,24 @@
           "enableBackgroundRemoteNotifications": false
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Notas usa tus fotos para adjuntar imágenes a las notas.",
+          "cameraPermission": "Notas usa la cámara para adjuntar fotos a las notas."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Notas usa el micrófono para grabar notas de voz.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-quick-actions",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

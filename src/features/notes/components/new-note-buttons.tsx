@@ -1,9 +1,13 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Fab, Icon } from '@/components/ui';
-import type { NoteType } from '@/db/schema';
+import { Fab, Icon, afterSheetClose, type IconName } from '@/components/ui';
+import type { Note, NoteType } from '@/db/schema';
+import { createNoteFromTemplate } from '@/features/templates/repository';
+import { TemplateSheet } from '@/features/templates/components/template-sheet';
+import type { NoteTemplate } from '@/features/templates/templates';
 import { setTagOnNotes } from '@/features/tags/repository';
 import { useIsSelecting } from '@/stores/ui-store';
 import { radius, spacing, useTheme } from '@/theme';
@@ -19,39 +23,62 @@ type NewNoteButtonsProps = {
   favorite?: boolean;
 };
 
-/** Botones flotantes para crear una nota de texto (principal) o una checklist. */
+/** Botones flotantes: nota de texto (principal), checklist o desde plantilla. */
 export function NewNoteButtons({ folderId = null, tagId, favorite = false }: NewNoteButtonsProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   // En selección múltiple la barra de acciones ocupa su sitio.
   const selecting = useIsSelecting();
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
-  async function create(type: NoteType) {
-    const note = await createNote(type, { folderId, isFavorite: favorite });
+  async function open(note: Note) {
     if (tagId) await setTagOnNotes(tagId, [note.id], true);
     router.push({ pathname: '/note/[id]', params: { id: note.id } });
   }
 
+  const create = async (type: NoteType) =>
+    open(await createNote(type, { folderId, isFavorite: favorite }));
+
+  const createFromTemplate = (template: NoteTemplate) => {
+    setTemplatesOpen(false);
+    afterSheetClose(
+      () => void createNoteFromTemplate(template, { folderId, isFavorite: favorite }).then(open),
+    );
+  };
+
   if (selecting) return null;
+
+  const secondary: { icon: IconName; label: string; onPress: () => void }[] = [
+    { icon: 'checklist', label: 'Nueva lista', onPress: () => void create('checklist') },
+    { icon: 'template', label: 'Nueva desde plantilla', onPress: () => setTemplatesOpen(true) },
+  ];
 
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Nueva lista"
-        onPress={() => void create('checklist')}
-        style={({ pressed }) => [
-          styles.secondary,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            bottom: insets.bottom + spacing.lg + 56 + spacing.md,
-            transform: [{ scale: pressed ? 0.95 : 1 }],
-          },
-        ]}>
-        <Icon name="checklist" size={22} color={colors.text} />
-      </Pressable>
+      {secondary.map((button, i) => (
+        <Pressable
+          key={button.icon}
+          accessibilityRole="button"
+          accessibilityLabel={button.label}
+          onPress={button.onPress}
+          style={({ pressed }) => [
+            styles.secondary,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              bottom: insets.bottom + spacing.lg + 56 + spacing.md + i * (44 + spacing.sm),
+              transform: [{ scale: pressed ? 0.95 : 1 }],
+            },
+          ]}>
+          <Icon name={button.icon} size={22} color={colors.text} />
+        </Pressable>
+      ))}
       <Fab accessibilityLabel="Nueva nota" onPress={() => void create('text')} />
+      <TemplateSheet
+        visible={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        onPick={createFromTemplate}
+      />
     </>
   );
 }

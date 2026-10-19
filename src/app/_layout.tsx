@@ -7,10 +7,15 @@ import { AppBootstrap } from '@/components/app-bootstrap';
 import { SnackbarHost } from '@/components/ui';
 // Define las tareas en segundo plano al cargar el bundle (también con la app cerrada).
 import '@/features/reminders/background';
+import { QuickActionsRuntime } from '@/features/quick-actions/quick-actions-runtime';
 import { ReminderRuntime } from '@/features/reminders/components/reminder-runtime';
 import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
+
+// Los enlaces que entran directamente en una pantalla (p. ej. `notas://new`) tienen las pestañas
+// debajo, para poder volver.
+export const unstable_settings = { anchor: '(tabs)' };
 
 export default function RootLayout() {
   const { scheme, colors } = useTheme();
@@ -42,8 +47,10 @@ export default function RootLayout() {
             <Stack.Screen name="search" options={{ title: 'Buscar' }} />
             <Stack.Screen name="archive" options={{ title: 'Archivo' }} />
             <Stack.Screen name="trash" options={{ title: 'Papelera' }} />
+            <Stack.Screen name="new" options={{ title: '', animation: 'none' }} />
           </Stack>
           <ReminderRuntime />
+          <QuickActionsRuntime />
           <SnackbarHost />
         </AppBootstrap>
       </ThemeProvider>

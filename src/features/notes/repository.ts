@@ -33,6 +33,11 @@ import {
   textToDoc,
   type EditorDoc,
 } from '@/features/editor/doc';
+import {
+  cleanupAfterDelete,
+  copyAttachments,
+  hasAttachments,
+} from '@/features/attachments/repository';
 import { modifiedSince, type NoteFilter } from '@/features/filters/filter';
 import { buildFtsMatch, likePattern, searchTerms } from '@/features/search/query';
 import { capabilities } from '@/lib/capabilities';
@@ -82,12 +87,41 @@ function searchCondition(search: string | undefined): SQL | undefined {
   );
 }
 
+/** Una sola fila de adjuntos visibles de la nota (opcionalmente, de un tipo). */
+function attachmentExists(kind?: 'image' | 'audio') {
+  return exists(
+    getDb()
+      .select({ one: sql`1` })
+      .from(attachments)
+      .where(
+        and(
+          eq(attachments.noteId, notes.id),
+          isNull(attachments.deletedAt),
+          kind ? eq(attachments.kind, kind) : undefined,
+        ),
+      ),
+  );
+}
+
+/**
+ * Tipo de nota: "texto" y "lista" son el tipo de la nota; "imagen" y "voz" son notas con imágenes o
+ * audios adjuntos (cualquier nota puede tenerlos). Varios tipos se combinan con "o".
+ */
+function typesCondition(types: NoteType[]): SQL | undefined {
+  const own = types.filter((t) => t === 'text' || t === 'checklist');
+  return or(
+    own.length > 0 ? inArray(notes.type, own) : undefined,
+    types.includes('image') ? attachmentExists('image') : undefined,
+    types.includes('audio') ? attachmentExists('audio') : undefined,
+  );
+}
+
 /** Condiciones de un `NoteFilter` (salvo `includeArchived`, que decide el ámbito). */
 function filterCondition(filter: NoteFilter | undefined): SQL | undefined {
   if (!filter) return undefined;
   const db = getDb();
   const conditions: (SQL | undefined)[] = [searchCondition(filter.search)];
-  if (filter.types?.length) conditions.push(inArray(notes.type, filter.types));
+  if (filter.types?.length) conditions.push(typesCondition(filter.types));
   if (filter.colors?.length) conditions.push(inArray(notes.color, filter.colors));
   if (filter.folderIds?.length) conditions.push(inArray(notes.folderId, filter.folderIds));
   if (filter.favorite) conditions.push(eq(notes.isFavorite, true));
@@ -127,16 +161,7 @@ function filterCondition(filter: NoteFilter | undefined): SQL | undefined {
       ),
     );
   }
-  if (filter.hasAttachments) {
-    conditions.push(
-      exists(
-        db
-          .select({ one: sql`1` })
-          .from(attachments)
-          .where(and(eq(attachments.noteId, notes.id), isNull(attachments.deletedAt))),
-      ),
-    );
-  }
+  if (filter.hasAttachments) conditions.push(attachmentExists());
   return and(...conditions);
 }
 
@@ -319,10 +344,12 @@ export function restoreFromTrash(ids: string[]) {
 export async function deletePermanently(ids: string[]) {
   if (ids.length === 0) return;
   await getDb().delete(notes).where(inArray(notes.id, ids));
+  await cleanupAfterDelete();
 }
 
 export async function emptyTrash() {
   await getDb().delete(notes).where(isNotNull(notes.deletedAt));
+  await cleanupAfterDelete();
 }
 
 /** Borra definitivamente lo que lleva más de 30 días en la papelera. Se ejecuta al arrancar. */
@@ -340,6 +367,7 @@ export async function discardIfEmpty(id: string) {
   const db = getDb();
   const [note] = await noteQuery(id);
   if (!note || note.title.trim() || note.contentText.trim()) return false;
+  if (await hasAttachments(id)) return false;
   await db.delete(notes).where(eq(notes.id, id));
   return true;
 }
@@ -396,6 +424,7 @@ export async function duplicateNote(id: string) {
         .run();
     }
   });
+  await copyAttachments(id, copyId, now);
   return copyId;
 }
 

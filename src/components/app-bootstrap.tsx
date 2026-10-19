@@ -6,6 +6,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui';
 import { openDatabase, type Database } from '@/db';
 import { ensureSearchIndex } from '@/db/search-index';
+import { purgeAttachments } from '@/features/attachments/repository';
 import { purgeExpiredTrash } from '@/features/notes/repository';
 import { warmUpKvStorage } from '@/lib/kv-storage';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -18,7 +19,8 @@ import migrations from '../../drizzle/migrations';
  * 1. abre el almacén de preferencias e hidrata los ajustes,
  * 2. abre la base de datos,
  * 3. aplica las migraciones pendientes,
- * 4. prepara el índice de búsqueda (solo nativo) y purga la papelera caducada.
+ * 4. prepara el índice de búsqueda (solo nativo), purga la papelera caducada y los ficheros de
+ *    adjuntos que ya no se usan.
  */
 export function AppBootstrap({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<Database | null>(null);
@@ -47,6 +49,8 @@ function Migrations({ db, children }: { db: Database; children: ReactNode }) {
     (async () => {
       await ensureSearchIndex(db);
       await purgeExpiredTrash();
+      // Limpieza de ficheros: si falla, la app arranca igual.
+      await purgeAttachments().catch((e: unknown) => console.warn('Adjuntos: error al purgar', e));
       setReady(true);
     })().catch((e: unknown) => setStartupError(e instanceof Error ? e : new Error(String(e))));
   }, [db, success]);

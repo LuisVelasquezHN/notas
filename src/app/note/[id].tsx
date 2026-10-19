@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,13 +14,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, EmptyState, Icon, IconButton, Screen, Text } from '@/components/ui';
 import type { Note } from '@/db';
+import { AttachSheet } from '@/features/attachments/components/attach-sheet';
+import { AudioList } from '@/features/attachments/components/audio-list';
+import { ImageGallery } from '@/features/attachments/components/image-gallery';
+import { VoiceRecorderSheet } from '@/features/attachments/components/voice-recorder-sheet';
+import { noteAttachmentsQuery } from '@/features/attachments/repository';
 import { ChecklistEditor } from '@/features/checklist/components/checklist-editor';
-import { Editor } from '@/features/editor';
+import { Editor, editorCapabilities, type EditorHandle, type FormatState } from '@/features/editor';
 import * as actions from '@/features/notes/actions';
 import {
   NoteActionsSheet,
   type NoteActionsPage,
 } from '@/features/notes/components/note-actions-sheet';
+import { NoteToolbar } from '@/features/notes/components/note-toolbar';
 import { useAutosave } from '@/features/notes/hooks/use-autosave';
 import { useNoteDraft, type NoteDraft } from '@/features/notes/hooks/use-note-draft';
 import {
@@ -36,11 +42,16 @@ import { tagsForNoteQuery } from '@/features/tags/repository';
 import { daysLeftInTrash, formatRelativeDate } from '@/lib/dates';
 import { consumeWebEnter } from '@/lib/keyboard';
 import { useAutoGrow } from '@/lib/use-auto-grow';
+import { useKeyboardVisible } from '@/lib/use-keyboard-visible';
 import { useNow } from '@/lib/use-now';
 import { MAX_CONTENT_WIDTH, fonts, radius, spacing, typography, useTheme } from '@/theme';
 
+/** Margen bajo el cursor al hacer scroll para seguirlo (deja ver la línea siguiente). */
+const CARET_MARGIN = 48;
+
 export default function NoteScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `record=1`: abrir la grabadora al entrar (acción rápida "Nota de voz").
+  const { id, record } = useLocalSearchParams<{ id: string; record?: string }>();
   const { data, updatedAt } = useLiveQuery(noteQuery(id), [id]);
   const note = data[0];
 
@@ -54,10 +65,10 @@ export default function NoteScreen() {
     );
   }
   // Al convertir texto ↔ checklist se vuelve a montar el editor con el contenido nuevo.
-  return <NoteEditor key={`${note.id}:${note.type}`} note={note} />;
+  return <NoteEditor key={`${note.id}:${note.type}`} note={note} autoRecord={record === '1'} />;
 }
 
-function NoteEditor({ note }: { note: Note }) {
+function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
   const { colors, noteColor } = useTheme();
   const insets = useSafeAreaInsets();
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
@@ -68,11 +79,33 @@ function NoteEditor({ note }: { note: Note }) {
   const now = useNow();
   const titleAutoGrow = useAutoGrow();
   const { draft, setTitle, setDoc, undo, redo, canUndo, canRedo } = useNoteDraft(note);
+  const { data: attachmentRows } = useLiveQuery(noteAttachmentsQuery(note.id), [note.id]);
+  const images = useMemo(() => attachmentRows.filter((a) => a.kind === 'image'), [attachmentRows]);
+  const audios = useMemo(() => attachmentRows.filter((a) => a.kind === 'audio'), [attachmentRows]);
 
   const inTrash = note.deletedAt !== null;
   const editable = !inTrash;
   const isText = note.type === 'text';
   const background = noteColor(note.color);
+
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [recording, setRecording] = useState(autoRecord && editable);
+  const [formatOpen, setFormatOpen] = useState(false);
+  const [formatState, setFormatState] = useState<FormatState>({});
+  const editorRef = useRef<EditorHandle>(null);
+  const keyboardVisible = useKeyboardVisible();
+
+  // Seguir el cursor del editor enriquecido (en nativo vive en una webview sin scroll propio).
+  const scrollY = useRef(0);
+  const viewportHeight = useRef(0);
+  const editorY = useRef(0);
+  const followCaret = (bottom: number) => {
+    const caret = editorY.current + bottom + CARET_MARGIN;
+    const visibleBottom = scrollY.current + viewportHeight.current;
+    if (viewportHeight.current > 0 && caret > visibleBottom) {
+      scrollRef.current?.scrollTo({ y: caret - viewportHeight.current, animated: true });
+    }
+  };
 
   const flush = useAutosave<NoteDraft>(
     draft,
@@ -153,7 +186,13 @@ function NoteEditor({ note }: { note: Note }) {
           ref={scrollRef}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xxxl }]}>
+          onLayout={(e) => (viewportHeight.current = e.nativeEvent.layout.height)}
+          onScroll={(e) => (scrollY.current = e.nativeEvent.contentOffset.y)}
+          scrollEventThrottle={32}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: (editable ? 0 : insets.bottom) + spacing.xxxl },
+          ]}>
           {inTrash ? (
             <View style={[styles.banner, { backgroundColor: colors.surfaceMuted }]}>
               <Text tone="secondary" style={styles.bannerText}>
@@ -167,6 +206,8 @@ function NoteEditor({ note }: { note: Note }) {
               />
             </View>
           ) : null}
+
+          <ImageGallery images={images} editable={editable} />
 
           <TextInput
             accessibilityLabel="Título"
@@ -192,15 +233,22 @@ function NoteEditor({ note }: { note: Note }) {
           />
 
           {isText ? (
-            <Editor
-              value={draft.doc}
-              onChange={setDoc}
-              editable={editable}
-              autoFocus={!note.title && !note.contentText}
-            />
+            <View onLayout={(e) => (editorY.current = e.nativeEvent.layout.y)}>
+              <Editor
+                ref={editorRef}
+                value={draft.doc}
+                onChange={setDoc}
+                editable={editable}
+                autoFocus={!note.title && !note.contentText && !autoRecord}
+                onFormatChange={setFormatState}
+                onCaret={followCaret}
+              />
+            </View>
           ) : (
             <ChecklistEditor note={note} editable={editable} scrollableRef={scrollRef} />
           )}
+
+          <AudioList audios={audios} editable={editable} />
 
           {reminder && !inTrash ? (
             <ReminderChip
@@ -240,7 +288,44 @@ function NoteEditor({ note }: { note: Note }) {
             Editada {formatRelativeDate(note.updatedAt).toLowerCase()}
           </Text>
         </Animated.ScrollView>
+
+        {editable ? (
+          <NoteToolbar
+            background={background}
+            bottomInset={keyboardVisible ? 0 : insets.bottom}
+            onAttach={() => {
+              void flush();
+              setAttachOpen(true);
+            }}
+            onRecord={() => {
+              void flush();
+              setRecording(true);
+            }}
+            format={
+              isText && editorCapabilities.richText
+                ? {
+                    open: formatOpen,
+                    state: formatState,
+                    onToggle: () => setFormatOpen((open) => !open),
+                    onFormat: (command) => editorRef.current?.format(command),
+                  }
+                : undefined
+            }
+          />
+        ) : null}
       </KeyboardAvoidingView>
+
+      <AttachSheet
+        noteId={note.id}
+        visible={attachOpen}
+        onClose={() => setAttachOpen(false)}
+        onRecord={() => setRecording(true)}
+      />
+      <VoiceRecorderSheet
+        noteId={note.id}
+        visible={recording}
+        onClose={() => setRecording(false)}
+      />
 
       <NoteActionsSheet
         key={menu ?? 'closed'}

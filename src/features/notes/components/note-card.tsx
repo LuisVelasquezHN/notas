@@ -1,7 +1,10 @@
+import { Image } from 'expo-image';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon, Text } from '@/components/ui';
 import type { Note, Tag } from '@/db/schema';
+import type { AttachmentCounts } from '@/features/attachments/repository';
+import { resolveUri } from '@/features/attachments/storage';
 import type { ChecklistPreviewItem } from '@/features/checklist/repository';
 import { ReminderChip } from '@/features/reminders/components/reminder-chip';
 import { TagPill } from '@/features/tags/components/tag-pill';
@@ -11,11 +14,20 @@ import { radius, spacing, useTheme } from '@/theme';
 const PREVIEW_ITEMS = 6;
 /** Etiquetas visibles en la tarjeta; el resto se resume en "+N". */
 const PREVIEW_TAGS = 3;
+/** Altura máxima de la miniatura (en la lista compacta, más baja). */
+const THUMB_MAX_HEIGHT = 220;
+const THUMB_MAX_HEIGHT_COMPACT = 140;
+
+export type CardImage = { localUri: string; width: number | null; height: number | null };
 
 type NoteCardProps = {
   note: Note;
   items?: ChecklistPreviewItem[];
   tags?: Tag[];
+  /** Primera imagen adjunta (miniatura arriba de la tarjeta). */
+  image?: CardImage;
+  /** Número de adjuntos por tipo. */
+  attachments?: AttachmentCounts;
   /** Próximo recordatorio activo de la nota (o de sus ítems). */
   reminder?: { fireAt: number; recurring: boolean };
   /** Hora actual, para marcar los recordatorios vencidos. */
@@ -34,6 +46,8 @@ export function NoteCard({
   note,
   items = [],
   tags = [],
+  image,
+  attachments,
   reminder,
   now,
   meta,
@@ -56,7 +70,14 @@ export function NoteCard({
   ]
     .filter(Boolean)
     .join(' · ');
-  const isEmpty = !hasTitle && (isChecklist ? items.length === 0 : !note.contentText.trim());
+  const imageCount = attachments?.image ?? 0;
+  const audioCount = attachments?.audio ?? 0;
+  const isEmpty =
+    !hasTitle &&
+    !image &&
+    audioCount === 0 &&
+    (isChecklist ? items.length === 0 : !note.contentText.trim());
+  const thumbRatio = image?.width && image.height ? image.width / image.height : 4 / 3;
 
   const cardStyle = [
     styles.card,
@@ -73,6 +94,32 @@ export function NoteCard({
 
   const content = (
     <>
+      {image ? (
+        <View style={styles.thumbWrap}>
+          <Image
+            source={{ uri: resolveUri(image.localUri) }}
+            style={[
+              styles.thumb,
+              {
+                aspectRatio: Math.max(thumbRatio, 0.75),
+                maxHeight: compact ? THUMB_MAX_HEIGHT_COMPACT : THUMB_MAX_HEIGHT,
+                backgroundColor: colors.surfaceMuted,
+              },
+            ]}
+            contentFit="cover"
+            recyclingKey={note.id}
+            transition={100}
+          />
+          {imageCount > 1 ? (
+            <View style={styles.thumbBadge}>
+              <Text variant="label" style={styles.thumbBadgeText}>
+                +{imageCount - 1}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
       {hasTitle || note.isPinned || note.isFavorite || selected ? (
         <View style={styles.header}>
           <Text variant="bodyStrong" numberOfLines={2} style={styles.title}>
@@ -119,6 +166,15 @@ export function NoteCard({
         </Text>
       ) : null}
 
+      {audioCount > 0 ? (
+        <View style={styles.audio}>
+          <Icon name="mic" size={14} color={colors.textSecondary} />
+          <Text variant="caption" tone="secondary">
+            {audioCount === 1 ? 'Nota de voz' : `${audioCount} notas de voz`}
+          </Text>
+        </View>
+      ) : null}
+
       {tags.length > 0 ? (
         <View style={styles.tags}>
           {tags.slice(0, PREVIEW_TAGS).map((tag) => (
@@ -149,6 +205,8 @@ export function NoteCard({
     note.isPinned ? 'anclada' : null,
     note.isFavorite ? 'favorita' : null,
     reminder ? 'con recordatorio' : null,
+    imageCount > 0 ? (imageCount === 1 ? 'con una imagen' : `con ${imageCount} imágenes`) : null,
+    audioCount > 0 ? 'con nota de voz' : null,
   ]
     .filter(Boolean)
     .join(', ');
@@ -197,4 +255,24 @@ const styles = StyleSheet.create({
   empty: { fontStyle: 'italic' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.xs },
   selected: { borderWidth: 2, margin: -1.5 },
+  // La miniatura ocupa todo el ancho de la tarjeta, pegada arriba.
+  thumbWrap: {
+    marginTop: -spacing.md,
+    marginHorizontal: -spacing.md,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  thumb: { width: '100%' },
+  thumbBadge: {
+    position: 'absolute',
+    right: spacing.sm,
+    bottom: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  thumbBadgeText: { color: '#FFFFFF' },
+  audio: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
 });
