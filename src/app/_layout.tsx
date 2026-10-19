@@ -33,6 +33,9 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="note/[id]" options={{ title: '' }} />
             <Stack.Screen name="folder/[id]" options={{ title: '' }} />
+            <Stack.Screen name="tag/[id]" options={{ title: '' }} />
+            <Stack.Screen name="smart/[id]" options={{ title: '' }} />
+            <Stack.Screen name="favorites" options={{ title: 'Favoritas' }} />
             <Stack.Screen name="search" options={{ title: 'Buscar' }} />
             <Stack.Screen name="archive" options={{ title: 'Archivo' }} />
             <Stack.Screen name="trash" options={{ title: 'Papelera' }} />

@@ -1,11 +1,18 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import Animated, { useAnimatedRef } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, EmptyState, IconButton, Screen, Text } from '@/components/ui';
+import { Button, EmptyState, Icon, IconButton, Screen, Text } from '@/components/ui';
 import type { Note } from '@/db';
 import { ChecklistEditor } from '@/features/checklist/components/checklist-editor';
 import { Editor } from '@/features/editor';
@@ -19,6 +26,8 @@ import {
   saveNoteContent,
   updateNote,
 } from '@/features/notes/repository';
+import { TagPill } from '@/features/tags/components/tag-pill';
+import { tagsForNoteQuery } from '@/features/tags/repository';
 import { daysLeftInTrash, formatRelativeDate } from '@/lib/dates';
 import { consumeWebEnter } from '@/lib/keyboard';
 import { useAutoGrow } from '@/lib/use-auto-grow';
@@ -46,7 +55,8 @@ function NoteEditor({ note }: { note: Note }) {
   const { colors, noteColor } = useTheme();
   const insets = useSafeAreaInsets();
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menu, setMenu] = useState<'main' | 'tags' | null>(null);
+  const { data: tags } = useLiveQuery(tagsForNoteQuery(note.id), [note.id]);
   const titleAutoGrow = useAutoGrow();
   const { draft, setTitle, setDoc, undo, redo, canUndo, canRedo } = useNoteDraft(note);
 
@@ -69,9 +79,9 @@ function NoteEditor({ note }: { note: Note }) {
     },
   );
 
-  const openMenu = () => {
+  const openMenu = (page: 'main' | 'tags' = 'main') => {
     void flush();
-    setMenuOpen(true);
+    setMenu(page);
   };
 
   return (
@@ -106,10 +116,14 @@ function NoteEditor({ note }: { note: Note }) {
                   icon={note.isPinned ? 'pinFill' : 'pin'}
                   accessibilityLabel={note.isPinned ? 'Desanclar' : 'Anclar'}
                   accessibilityState={{ selected: note.isPinned }}
-                  onPress={() => void actions.togglePin(note)}
+                  onPress={() => void actions.togglePin([note])}
                 />
               ) : null}
-              <IconButton icon="more" accessibilityLabel="Más acciones" onPress={openMenu} />
+              <IconButton
+                icon="more"
+                accessibilityLabel="Más acciones"
+                onPress={() => openMenu()}
+              />
             </View>
           ),
         }}
@@ -133,7 +147,7 @@ function NoteEditor({ note }: { note: Note }) {
                 title="Restaurar"
                 variant="secondary"
                 icon="restore"
-                onPress={() => void actions.restore(note)}
+                onPress={() => void actions.restore([note])}
               />
             </View>
           ) : null}
@@ -172,6 +186,31 @@ function NoteEditor({ note }: { note: Note }) {
             <ChecklistEditor note={note} editable={editable} scrollableRef={scrollRef} />
           )}
 
+          {tags.length > 0 || editable ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                tags.length > 0
+                  ? `Etiquetas: ${tags.map((t) => t.name).join(', ')}`
+                  : 'Añadir etiquetas'
+              }
+              disabled={!editable}
+              onPress={() => openMenu('tags')}
+              style={({ pressed }) => [styles.tags, pressed && { opacity: 0.6 }]}>
+              {tags.map((tag) => (
+                <TagPill key={tag.id} tag={tag} onCard />
+              ))}
+              {editable && tags.length === 0 ? (
+                <>
+                  <Icon name="tag" size={14} color={colors.textMuted} />
+                  <Text variant="caption" tone="muted">
+                    Añadir etiquetas
+                  </Text>
+                </>
+              ) : null}
+            </Pressable>
+          ) : null}
+
           <Text variant="caption" tone="muted" style={styles.meta}>
             Editada {formatRelativeDate(note.updatedAt).toLowerCase()}
           </Text>
@@ -179,9 +218,11 @@ function NoteEditor({ note }: { note: Note }) {
       </KeyboardAvoidingView>
 
       <NoteActionsSheet
-        note={menuOpen ? note : null}
+        key={menu ?? 'closed'}
+        notes={menu ? [note] : null}
+        initialPage={menu ?? 'main'}
         showPin={false}
-        onClose={() => setMenuOpen(false)}
+        onClose={() => setMenu(null)}
         onRemoved={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         onDuplicated={(copyId) =>
           router.replace({ pathname: '/note/[id]', params: { id: copyId } })
@@ -211,5 +252,12 @@ const styles = StyleSheet.create({
   },
   bannerText: { flex: 1 },
   title: { padding: 0, outlineStyle: 'none' } as object,
+  tags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.lg,
+  },
   meta: { textAlign: 'center', marginTop: spacing.xl },
 });

@@ -40,7 +40,7 @@ export default function TrashScreen() {
             <View style={styles.hint}>
               <Text variant="caption" tone="secondary">
                 Las notas se eliminan definitivamente {TRASH_RETENTION_DAYS} días después de
-                moverlas aquí. Mantén pulsada una nota para restaurarla.
+                moverlas aquí. Mantén pulsada una nota para seleccionarla y restaurarla.
               </Text>
             </View>
           ) : null

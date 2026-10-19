@@ -227,7 +227,7 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------- | -------- |
 | **0. Fundaciones**        | Expo + TypeScript, lint y formato, tema y tokens, Drizzle y migraciones, rutas y tabs, UI base, Jest, EAS y CI                           | 1 semana    | ✅ hecha |
 | **1. Núcleo (MVP)**       | CRUD de texto y checklist, carpetas, colores, anclar, archivar, papelera, lista/cuadrícula, ordenación, búsqueda, autoguardado, deshacer | 3–4 semanas | ✅ hecha |
-| **2. Organización**       | Etiquetas, filtros, carpetas inteligentes, selección múltiple, drag & drop, favoritos                                                    | 2 semanas   |          |
+| **2. Organización**       | Etiquetas, filtros, carpetas inteligentes, selección múltiple, drag & drop, favoritos                                                    | 2 semanas   | ✅ hecha |
 | **3. Recordatorios**      | Selector, scheduler con ventana, RRULE, acciones, pantalla de próximos, badge                                                            | 2 semanas   |          |
 | **4. Contenido rico**     | Editor TipTap, imágenes, voz, plantillas, quick actions                                                                                  | 2–3 semanas |          |
 | **5. Seguridad y pulido** | Biometría, export/import y backup, i18n, accesibilidad, onboarding                                                                       | 2 semanas   |          |
@@ -263,7 +263,22 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 - [x] Búsqueda: FTS5 con prefijos y sin acentos en nativo (tabla `notes_fts` + triggers creados al arrancar, fuera de las migraciones); `LIKE` en web. Incluye el texto de los ítems de checklist
 - [x] Web verificada en el navegador: crear/editar texto y checklist, deshacer, color, archivar con snackbar, búsqueda, carpetas, nota en carpeta, descarte de nota vacía, papelera
 - [ ] **Pendiente:** verificar en iOS y Android (teclado, `KeyboardAvoidingView`, arrastre de ítems; el arrastre no se pudo comprobar en web con eventos sintéticos)
-- [ ] **Pasa a la fase 2:** orden manual de notas (drag & drop), selección múltiple
+- [x] **Pasado a la fase 2:** orden manual de notas (drag & drop), selección múltiple (hecho en la fase 2, ver abajo)
+
+### Fase 2: checklist
+
+- [x] Etiquetas: crear, renombrar, color y borrar con deshacer (pestaña Carpetas); asignar desde el menú de la nota o el editor (buscar o crear al vuelo); se muestran en tarjetas y editor; pantalla por etiqueta (`/tag/[id]`) con creación de notas ya etiquetadas. El nombre es único sin distinguir mayúsculas; una etiqueta borrada que ocupa el nombre se elimina del todo para reutilizarlo
+- [x] Favoritos: marcar desde el menú (también en lote), estrella en la tarjeta, pantalla "Favoritas" y contador en Carpetas
+- [x] Filtros combinables (`NoteFilter`, `src/features/filters`): tipo, color, etiqueta, carpeta, favoritas, con recordatorio, con adjuntos, modificada en las últimas 24 h/7/30/365 días e incluir archivadas. "O" dentro de cada criterio, "y" entre criterios. En la búsqueda, con chips para quitar cada criterio
+- [x] Carpetas inteligentes (`saved_filters`): guardar la búsqueda actual, o crear una vacía desde Carpetas; nombre e icono; los filtros se editan desde la propia carpeta (`/smart/[id]`); borrar con deshacer. El JSON se normaliza al leer y escribir
+- [x] Selección múltiple: mantener pulsada una nota entra en el modo; barra flotante con anclar, archivar, papelera y "más" (favoritos, color, etiquetas, mover). Seleccionar todo; el botón atrás de Android y salir de la pantalla cancelan la selección. Deshacer en lote
+- [x] Orden manual (drag & drop): opción "Manual" en Ordenar; mantener pulsado y arrastrar (react-native-sortables). Ancladas y resto se reordenan por separado; solo se reescribe el `sort_key` de la nota movida. En Notas, carpetas, etiquetas, carpetas inteligentes, favoritas y archivo
+- [x] Duplicar copia también las etiquetas
+- [x] Tests: filtros (normalizar, serializar, desglose en chips), claves de orden al mover, vecinos tras soltar, seleccionar todo
+- [x] Web verificada en el navegador: etiquetas desde el editor, tarjetas con etiquetas, selección múltiple y favoritos en lote, filtros combinados con recuento, guardar y abrir carpeta inteligente, pantallas de etiqueta y favoritas, orden manual (render y tocar para abrir)
+- [ ] **Pendiente:** verificar en iOS y Android el arrastre de notas y "mantener sin mover = seleccionar" en orden manual (en web no se puede simular con eventos sintéticos)
+- [ ] **Limitaciones conocidas:** en orden manual la cuadrícula alinea filas (no es masonry) y la lista no está virtualizada; reordenar no cambia `updated_at`. Los filtros "con recordatorio" y "con adjuntos" no darán resultados hasta las fases 3 y 4
+- [ ] **No incluido (P1 de búsqueda, sin fase asignada):** búsquedas recientes y resaltado de coincidencias
 
 ---
 

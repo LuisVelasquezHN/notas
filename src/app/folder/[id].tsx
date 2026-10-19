@@ -99,12 +99,13 @@ export default function FolderScreen() {
       <NoteList
         notes={notes}
         layout={layout}
+        reorderable
         ListHeaderComponent={header}
         ListEmptyComponent={
           <EmptyState
             icon="note"
             title="Carpeta vacía"
-            description="Crea una nota aquí o mueve notas desde su menú (mantén pulsada una nota)."
+            description="Crea una nota aquí o mueve notas a esta carpeta: mantén pulsada una nota y elige «Mover a carpeta»."
           />
         }
       />

@@ -66,6 +66,17 @@ const ICONS = {
   idea: { ios: 'lightbulb', android: 'lightbulb', web: 'lightbulb' },
   travel: { ios: 'airplane', android: 'flight', web: 'flight' },
   school: { ios: 'graduationcap', android: 'school', web: 'school' },
+  starFill: { ios: 'star.fill', android: 'star', web: 'star' },
+  filter: {
+    ios: 'line.3.horizontal.decrease.circle',
+    android: 'filter_list',
+    web: 'filter_list',
+  },
+  smartFolder: { ios: 'text.magnifyingglass', android: 'saved_search', web: 'saved_search' },
+  selectAll: { ios: 'checkmark.circle', android: 'select_all', web: 'select_all' },
+  tagAdd: { ios: 'tag.circle', android: 'new_label', web: 'new_label' },
+  save: { ios: 'bookmark', android: 'bookmark', web: 'bookmark' },
+  attachment: { ios: 'paperclip', android: 'attach_file', web: 'attach_file' },
 } satisfies Record<string, SymbolName>;
 
 export type IconName = keyof typeof ICONS;
@@ -73,6 +84,20 @@ export type IconName = keyof typeof ICONS;
 export function isIconName(value: unknown): value is IconName {
   return typeof value === 'string' && value in ICONS;
 }
+
+/** Iconos que se pueden asignar a una carpeta inteligente. */
+export const SMART_FOLDER_ICONS = [
+  'smartFolder',
+  'filter',
+  'tag',
+  'star',
+  'checklist',
+  'work',
+  'home',
+  'idea',
+  'book',
+  'cart',
+] as const satisfies readonly IconName[];
 
 /** Iconos que se pueden asignar a una carpeta. */
 export const FOLDER_ICONS = [

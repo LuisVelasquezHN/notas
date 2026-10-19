@@ -32,6 +32,7 @@ export default function NotesScreen() {
       <NoteList
         notes={notes}
         layout={layout}
+        reorderable
         ListEmptyComponent={
           <EmptyState
             icon="note"

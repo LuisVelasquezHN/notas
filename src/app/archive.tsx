@@ -28,6 +28,7 @@ export default function ArchiveScreen() {
       <NoteList
         notes={notes}
         layout={layout}
+        reorderable
         ListEmptyComponent={
           <EmptyState
             icon="archive"

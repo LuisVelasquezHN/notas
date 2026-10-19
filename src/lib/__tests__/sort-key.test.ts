@@ -1,4 +1,10 @@
-import { sortKeyAfter, sortKeyBefore, sortKeyBetween, sortKeysBetween } from '../sort-key';
+import {
+  sortKeyAfter,
+  sortKeyBefore,
+  sortKeyBetween,
+  sortKeyForMove,
+  sortKeysBetween,
+} from '../sort-key';
 
 describe('sort keys (fractional indexing)', () => {
   it('genera claves que respetan el orden al insertar entre vecinos', () => {
@@ -21,5 +27,19 @@ describe('sort keys (fractional indexing)', () => {
     const keys = sortKeysBetween(null, null, 5);
     expect(keys).toHaveLength(5);
     expect([...keys].sort()).toEqual(keys);
+  });
+
+  it('mueve entre vecinos y a los extremos', () => {
+    const [a, b] = sortKeysBetween(null, null, 2);
+    const middle = sortKeyForMove(a, b);
+    expect(a < middle && middle < b).toBe(true);
+    expect(sortKeyForMove(null, a) < a).toBe(true);
+    expect(sortKeyForMove(b, null) > b).toBe(true);
+  });
+
+  it('no falla con vecinos repetidos o desordenados', () => {
+    const [a, b] = sortKeysBetween(null, null, 2);
+    expect(sortKeyForMove(a, a) < a).toBe(true);
+    expect(sortKeyForMove(b, a) < a).toBe(true);
   });
 });

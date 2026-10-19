@@ -20,3 +20,13 @@ export function sortKeyBefore(first: string | null): string {
 export function sortKeysBetween(before: string | null, after: string | null, n: number): string[] {
   return generateNKeysBetween(before, after, n);
 }
+
+/**
+ * Clave para mover un elemento entre dos vecinos. Tolera vecinos con la misma clave o desordenados
+ * (no debería pasar, pero una clave repetida no puede bloquear el arrastre): entonces lo coloca
+ * justo antes del siguiente.
+ */
+export function sortKeyForMove(before: string | null, after: string | null): string {
+  if (before !== null && after !== null && before >= after) return generateKeyBetween(null, after);
+  return generateKeyBetween(before, after);
+}

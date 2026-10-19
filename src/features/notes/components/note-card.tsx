@@ -1,28 +1,37 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon, Text } from '@/components/ui';
-import type { Note } from '@/db/schema';
+import type { Note, Tag } from '@/db/schema';
 import type { ChecklistPreviewItem } from '@/features/checklist/repository';
+import { TagPill } from '@/features/tags/components/tag-pill';
 import { radius, spacing, useTheme } from '@/theme';
 
 /** Ítems que se muestran en la vista previa de una checklist. */
 const PREVIEW_ITEMS = 6;
+/** Etiquetas visibles en la tarjeta; el resto se resume en "+N". */
+const PREVIEW_TAGS = 3;
 
 type NoteCardProps = {
   note: Note;
   items?: ChecklistPreviewItem[];
+  tags?: Tag[];
   /** Línea inferior (fecha, días en la papelera…). */
   meta?: string;
   compact?: boolean;
-  onPress: () => void;
+  /** Marcada en selección múltiple. */
+  selected?: boolean;
+  /** Sin `onPress` la tarjeta no gestiona toques (p. ej. dentro de la lista reordenable). */
+  onPress?: () => void;
   onLongPress?: () => void;
 };
 
 export function NoteCard({
   note,
   items = [],
+  tags = [],
   meta,
   compact = false,
+  selected = false,
   onPress,
   onLongPress,
 }: NoteCardProps) {
@@ -42,28 +51,29 @@ export function NoteCard({
     .join(' · ');
   const isEmpty = !hasTitle && (isChecklist ? items.length === 0 : !note.contentText.trim());
 
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={note.title || 'Nota sin título'}
-      accessibilityHint="Mantén pulsado para ver más acciones"
-      onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={350}
-      style={({ pressed }) => [
-        styles.card,
-        {
-          backgroundColor: noteColor(note.color),
-          borderColor: note.color === 'default' ? colors.border : 'transparent',
-          opacity: pressed ? 0.85 : 1,
-        },
-      ]}>
-      {hasTitle || note.isPinned ? (
+  const cardStyle = [
+    styles.card,
+    {
+      backgroundColor: noteColor(note.color),
+      borderColor: selected
+        ? colors.primary
+        : note.color === 'default'
+          ? colors.border
+          : 'transparent',
+    },
+    selected && styles.selected,
+  ];
+
+  const content = (
+    <>
+      {hasTitle || note.isPinned || note.isFavorite || selected ? (
         <View style={styles.header}>
           <Text variant="bodyStrong" numberOfLines={2} style={styles.title}>
             {note.title}
           </Text>
+          {note.isFavorite ? <Icon name="starFill" size={14} color={colors.primary} /> : null}
           {note.isPinned ? <Icon name="pinFill" size={14} color={colors.textSecondary} /> : null}
+          {selected ? <Icon name="checkboxChecked" size={18} color={colors.primary} /> : null}
         </View>
       ) : null}
 
@@ -102,11 +112,58 @@ export function NoteCard({
         </Text>
       ) : null}
 
+      {tags.length > 0 ? (
+        <View style={styles.tags}>
+          {tags.slice(0, PREVIEW_TAGS).map((tag) => (
+            <TagPill key={tag.id} tag={tag} onCard />
+          ))}
+          {tags.length > PREVIEW_TAGS ? (
+            <Text variant="caption" tone="muted">
+              +{tags.length - PREVIEW_TAGS}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
       {meta ? (
         <Text variant="caption" tone="muted">
           {meta}
         </Text>
       ) : null}
+    </>
+  );
+
+  const label = [
+    note.title || 'Nota sin título',
+    note.isPinned ? 'anclada' : null,
+    note.isFavorite ? 'favorita' : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  if (!onPress) {
+    return (
+      <View
+        accessible
+        accessibilityLabel={label}
+        accessibilityState={{ selected }}
+        style={cardStyle}>
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      accessibilityHint="Mantén pulsado para seleccionar"
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+      style={({ pressed }) => [cardStyle, { opacity: pressed ? 0.85 : 1 }]}>
+      {content}
     </Pressable>
   );
 }
@@ -126,4 +183,6 @@ const styles = StyleSheet.create({
   itemText: { flex: 1 },
   checked: { textDecorationLine: 'line-through' },
   empty: { fontStyle: 'italic' },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.xs },
+  selected: { borderWidth: 2, margin: -1.5 },
 });

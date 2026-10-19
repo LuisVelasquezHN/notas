@@ -1,7 +1,31 @@
-import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 
 import { getDb } from '@/db/client';
-import { checklistItems, notes, type NewNote, type Note, type NoteType } from '@/db/schema';
+import {
+  attachments,
+  checklistItems,
+  noteTags,
+  notes,
+  reminders,
+  tags,
+  type NewNote,
+  type Note,
+  type NoteType,
+} from '@/db/schema';
 import {
   docToText,
   parseDoc,
@@ -9,11 +33,12 @@ import {
   textToDoc,
   type EditorDoc,
 } from '@/features/editor/doc';
+import { modifiedSince, type NoteFilter } from '@/features/filters/filter';
 import { buildFtsMatch, likePattern, searchTerms } from '@/features/search/query';
 import { capabilities } from '@/lib/capabilities';
 import { DAY_MS, TRASH_RETENTION_DAYS } from '@/lib/dates';
 import { uuidv7 } from '@/lib/ids';
-import { sortKeyBefore, sortKeysBetween } from '@/lib/sort-key';
+import { sortKeyBefore, sortKeyForMove, sortKeysBetween } from '@/lib/sort-key';
 import type { NotesSortBy } from '@/stores/settings-store';
 import type { NoteColor } from '@/theme/tokens';
 
@@ -25,6 +50,8 @@ export type NotesFilter = {
   folderId?: string | null;
   /** Texto a buscar en título y contenido (incluye los ítems de las checklists). */
   search?: string;
+  /** Criterios combinables (búsqueda, carpetas inteligentes, etiquetas…). */
+  filter?: NoteFilter;
   sortBy?: NotesSortBy;
 };
 
@@ -55,6 +82,64 @@ function searchCondition(search: string | undefined): SQL | undefined {
   );
 }
 
+/** Condiciones de un `NoteFilter` (salvo `includeArchived`, que decide el ámbito). */
+function filterCondition(filter: NoteFilter | undefined): SQL | undefined {
+  if (!filter) return undefined;
+  const db = getDb();
+  const conditions: (SQL | undefined)[] = [searchCondition(filter.search)];
+  if (filter.types?.length) conditions.push(inArray(notes.type, filter.types));
+  if (filter.colors?.length) conditions.push(inArray(notes.color, filter.colors));
+  if (filter.folderIds?.length) conditions.push(inArray(notes.folderId, filter.folderIds));
+  if (filter.favorite) conditions.push(eq(notes.isFavorite, true));
+  if (filter.modifiedWithin) {
+    conditions.push(gte(notes.updatedAt, modifiedSince(filter.modifiedWithin)));
+  }
+  if (filter.tagIds?.length) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(noteTags)
+          .innerJoin(tags, eq(tags.id, noteTags.tagId))
+          .where(
+            and(
+              eq(noteTags.noteId, notes.id),
+              inArray(noteTags.tagId, filter.tagIds),
+              isNull(tags.deletedAt),
+            ),
+          ),
+      ),
+    );
+  }
+  if (filter.hasReminder) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(reminders)
+          .where(
+            and(
+              eq(reminders.noteId, notes.id),
+              isNull(reminders.deletedAt),
+              or(eq(reminders.status, 'scheduled'), eq(reminders.status, 'snoozed')),
+            ),
+          ),
+      ),
+    );
+  }
+  if (filter.hasAttachments) {
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(attachments)
+          .where(and(eq(attachments.noteId, notes.id), isNull(attachments.deletedAt))),
+      ),
+    );
+  }
+  return and(...conditions);
+}
+
 function orderBy(scope: NoteScope, sortBy: NotesSortBy) {
   if (scope === 'trash') return [desc(notes.deletedAt)];
   // Las ancladas siempre primero (salvo en la papelera).
@@ -72,7 +157,10 @@ function orderBy(scope: NoteScope, sortBy: NotesSortBy) {
   }
 }
 
-export function notesQuery({ scope, folderId, search, sortBy = 'updatedAt' }: NotesFilter) {
+export function notesQuery({ scope, folderId, search, filter, sortBy = 'updatedAt' }: NotesFilter) {
+  // "Incluir archivadas" amplía el ámbito activo a todas las notas que no están en la papelera.
+  const scopeSql =
+    scope === 'active' && filter?.includeArchived ? isNull(notes.deletedAt) : scopeCondition(scope);
   const folder =
     folderId === undefined
       ? undefined
@@ -82,7 +170,7 @@ export function notesQuery({ scope, folderId, search, sortBy = 'updatedAt' }: No
   return getDb()
     .select()
     .from(notes)
-    .where(and(scopeCondition(scope), folder, searchCondition(search)))
+    .where(and(scopeSql, folder, searchCondition(search), filterCondition(filter)))
     .orderBy(...orderBy(scope, sortBy));
 }
 
@@ -97,6 +185,14 @@ export function folderNoteCountsQuery() {
     .from(notes)
     .where(and(scopeCondition('active'), isNotNull(notes.folderId)))
     .groupBy(notes.folderId);
+}
+
+/** Número de notas favoritas activas. */
+export function favoriteCountQuery() {
+  return getDb()
+    .select({ count: sql<number>`count(*)` })
+    .from(notes)
+    .where(and(scopeCondition('active'), eq(notes.isFavorite, true)));
 }
 
 async function firstSortKey(): Promise<string | null> {
@@ -139,6 +235,7 @@ type NotePatch = Partial<
     | 'isPinned'
     | 'pinnedAt'
     | 'isArchived'
+    | 'isFavorite'
     | 'deletedAt'
     | 'type'
   >
@@ -177,6 +274,21 @@ export async function saveNoteContent(id: string, title: string, doc: EditorDoc)
 
 export function setPinned(ids: string[], pinned: boolean) {
   return updateNotes(ids, { isPinned: pinned, pinnedAt: pinned ? Date.now() : null });
+}
+
+export function setFavorite(ids: string[], favorite: boolean) {
+  return updateNotes(ids, { isFavorite: favorite });
+}
+
+/**
+ * Orden manual: coloca la nota entre dos vecinas (sus `sort_key`; `null` = extremo de la lista).
+ * No cambia `updated_at`: reordenar no es editar la nota.
+ */
+export async function moveNoteBetween(id: string, before: string | null, after: string | null) {
+  await getDb()
+    .update(notes)
+    .set({ sortKey: sortKeyForMove(before, after) })
+    .where(eq(notes.id, id));
 }
 
 export function setColor(ids: string[], color: NoteColor) {
@@ -242,6 +354,11 @@ export async function duplicateNote(id: string) {
     .where(and(eq(checklistItems.noteId, id), isNull(checklistItems.deletedAt)))
     .orderBy(asc(checklistItems.sortKey));
 
+  const tagRows = await db
+    .select({ tagId: noteTags.tagId })
+    .from(noteTags)
+    .where(eq(noteTags.noteId, id));
+
   const now = Date.now();
   const copyId = uuidv7(now);
   const sortKey = sortKeyBefore(await firstSortKey());
@@ -271,6 +388,11 @@ export async function duplicateNote(id: string) {
             updatedAt: now,
           })),
         )
+        .run();
+    }
+    if (tagRows.length > 0) {
+      tx.insert(noteTags)
+        .values(tagRows.map(({ tagId }) => ({ noteId: copyId, tagId, createdAt: now })))
         .run();
     }
   });
