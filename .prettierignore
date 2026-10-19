@@ -1,0 +1,4 @@
+drizzle/
+.expo/
+dist/
+package-lock.json

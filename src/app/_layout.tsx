@@ -1,18 +1,43 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { AppBootstrap } from '@/components/app-bootstrap';
+import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
+  const { scheme, colors } = useTheme();
+  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  const navTheme = {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: colors.primary,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.border,
+    },
+  };
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={navTheme}>
+        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+        <AppBootstrap>
+          <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="note/[id]" options={{ title: '' }} />
+            <Stack.Screen name="folder/[id]" options={{ title: 'Carpeta' }} />
+            <Stack.Screen name="search" options={{ title: 'Buscar' }} />
+            <Stack.Screen name="archive" options={{ title: 'Archivo' }} />
+            <Stack.Screen name="trash" options={{ title: 'Papelera' }} />
+          </Stack>
+        </AppBootstrap>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formato
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test -- --ci
+
+      - name: Migraciones al día con el esquema
+        run: |
+          npx drizzle-kit generate
+          git diff --exit-code drizzle/ || (echo "::error::El esquema cambió sin generar migración: ejecuta npm run db:generate" && exit 1)
+
+      - name: Expo Doctor
+        run: npx expo-doctor
