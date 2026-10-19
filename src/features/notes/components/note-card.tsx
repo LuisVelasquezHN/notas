@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Icon, Text } from '@/components/ui';
 import type { Note, Tag } from '@/db/schema';
 import type { ChecklistPreviewItem } from '@/features/checklist/repository';
+import { ReminderChip } from '@/features/reminders/components/reminder-chip';
 import { TagPill } from '@/features/tags/components/tag-pill';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -15,6 +16,10 @@ type NoteCardProps = {
   note: Note;
   items?: ChecklistPreviewItem[];
   tags?: Tag[];
+  /** Próximo recordatorio activo de la nota (o de sus ítems). */
+  reminder?: { fireAt: number; recurring: boolean };
+  /** Hora actual, para marcar los recordatorios vencidos. */
+  now?: number;
   /** Línea inferior (fecha, días en la papelera…). */
   meta?: string;
   compact?: boolean;
@@ -29,6 +34,8 @@ export function NoteCard({
   note,
   items = [],
   tags = [],
+  reminder,
+  now,
   meta,
   compact = false,
   selected = false,
@@ -125,6 +132,10 @@ export function NoteCard({
         </View>
       ) : null}
 
+      {reminder && now !== undefined && note.deletedAt === null ? (
+        <ReminderChip fireAt={reminder.fireAt} recurring={reminder.recurring} now={now} compact />
+      ) : null}
+
       {meta ? (
         <Text variant="caption" tone="muted">
           {meta}
@@ -137,6 +148,7 @@ export function NoteCard({
     note.title || 'Nota sin título',
     note.isPinned ? 'anclada' : null,
     note.isFavorite ? 'favorita' : null,
+    reminder ? 'con recordatorio' : null,
   ]
     .filter(Boolean)
     .join(', ');

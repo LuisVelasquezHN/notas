@@ -1,9 +1,11 @@
 import { NativeTabs } from 'expo-router/native-tabs';
 
+import { useOverdueCount } from '@/features/reminders/hooks/use-overdue-count';
 import { useTheme } from '@/theme';
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const overdue = useOverdueCount();
   return (
     <NativeTabs
       backgroundColor={colors.surface}
@@ -22,6 +24,9 @@ export default function TabsLayout() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="reminders">
         <NativeTabs.Trigger.Label>Recordatorios</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Badge hidden={overdue === 0}>
+          {String(overdue)}
+        </NativeTabs.Trigger.Badge>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'bell', selected: 'bell.fill' }}
           md="notifications"

@@ -77,6 +77,21 @@ const ICONS = {
   tagAdd: { ios: 'tag.circle', android: 'new_label', web: 'new_label' },
   save: { ios: 'bookmark', android: 'bookmark', web: 'bookmark' },
   attachment: { ios: 'paperclip', android: 'attach_file', web: 'attach_file' },
+  bellFill: {
+    ios: 'bell.fill',
+    android: 'notifications_active',
+    web: 'notifications_active',
+  },
+  bellOff: { ios: 'bell.slash', android: 'notifications_off', web: 'notifications_off' },
+  repeat: { ios: 'repeat', android: 'repeat', web: 'repeat' },
+  snooze: { ios: 'zzz', android: 'snooze', web: 'snooze' },
+  calendar: { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' },
+  clock: { ios: 'clock', android: 'schedule', web: 'schedule' },
+  chevronLeft: { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
+  minus: { ios: 'minus', android: 'remove', web: 'remove' },
+  sunset: { ios: 'sunset', android: 'wb_twilight', web: 'wb_twilight' },
+  sunrise: { ios: 'sunrise', android: 'wb_sunny', web: 'wb_sunny' },
+  nextWeek: { ios: 'calendar.badge.clock', android: 'date_range', web: 'date_range' },
 } satisfies Record<string, SymbolName>;
 
 export type IconName = keyof typeof ICONS;

@@ -6,7 +6,9 @@ import { BackHandler, StyleSheet, View, useWindowDimensions } from 'react-native
 
 import type { Note, Tag } from '@/db/schema';
 import { allChecklistItemsQuery, type ChecklistPreviewItem } from '@/features/checklist/repository';
+import { activeRemindersQuery } from '@/features/reminders/repository';
 import { noteTagsQuery, tagsQuery } from '@/features/tags/repository';
+import { useNow } from '@/lib/use-now';
 import { useSettingsStore, type NotesLayout } from '@/stores/settings-store';
 import { useUiStore } from '@/stores/ui-store';
 import { MAX_CONTENT_WIDTH, spacing } from '@/theme';
@@ -115,6 +117,17 @@ export function NoteList({
     return map;
   }, [tags, pairs]);
 
+  // Próximo recordatorio de cada nota (la consulta viene ordenada por hora).
+  const { data: activeReminders } = useLiveQuery(activeRemindersQuery());
+  const remindersByNote = useMemo(() => {
+    const map = new Map<string, { fireAt: number; recurring: boolean }>();
+    for (const r of activeReminders) {
+      if (!map.has(r.noteId)) map.set(r.noteId, { fireAt: r.fireAt, recurring: r.rrule !== null });
+    }
+    return map;
+  }, [activeReminders]);
+  const now = useNow(60_000);
+
   const open = (note: Note) => router.push({ pathname: '/note/[id]', params: { id: note.id } });
   const tap = (note: Note) => (selecting ? toggleSelection(note.id) : open(note));
 
@@ -123,6 +136,8 @@ export function NoteList({
       note={note}
       items={itemsByNote.get(note.id)}
       tags={tagsByNote.get(note.id)}
+      reminder={remindersByNote.get(note.id)}
+      now={now}
       meta={meta?.(note)}
       compact={!grid}
       selected={selectedIds.has(note.id)}
@@ -162,8 +177,8 @@ export function NoteList({
         keyExtractor={(note) => note.id}
         numColumns={grid ? columns : 1}
         masonry={grid}
-        // Las tarjetas dependen también de los ítems, las etiquetas y la selección.
-        extraData={[itemsByNote, tagsByNote, selectedIds]}
+        // Las tarjetas dependen también de los ítems, etiquetas, recordatorios y la selección.
+        extraData={[itemsByNote, tagsByNote, remindersByNote, now, selectedIds]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         contentContainerStyle={styles.content}

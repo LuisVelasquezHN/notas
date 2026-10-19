@@ -5,13 +5,17 @@ import { StyleSheet, View } from 'react-native';
 import { ColorSwatch, Sheet, SheetItem, afterSheetClose, isIconName } from '@/components/ui';
 import type { Note } from '@/db/schema';
 import { foldersQuery } from '@/features/folders/repository';
+import * as reminderActions from '@/features/reminders/actions';
+import { ReminderEditor } from '@/features/reminders/components/reminder-sheet';
+import { noteReminderQuery } from '@/features/reminders/repository';
 import { buildFolderTree, flattenFolderTree } from '@/features/folders/tree';
 import { TagPicker } from '@/features/tags/components/tag-picker';
 import { NOTE_COLOR_TOKENS, spacing } from '@/theme';
 
 import * as actions from '../actions';
 
-type Page = 'main' | 'color' | 'folder' | 'tags';
+export type NoteActionsPage = 'main' | 'color' | 'folder' | 'tags' | 'reminder';
+type Page = NoteActionsPage;
 
 type NoteActionsSheetProps = {
   /** Notas sobre las que se actúa (una, o varias en selección múltiple). `null`: cerrada. */
@@ -64,6 +68,8 @@ export function NoteActionsSheet({
     };
 
   const single = notes?.length === 1 ? notes[0] : null;
+  const { data: reminderRows } = useLiveQuery(noteReminderQuery(single?.id ?? ''), [single?.id]);
+  const reminder = single ? reminderRows[0] : undefined;
   const count = notes?.length ?? 0;
   const mainTitle = single ? single.title || 'Nota' : `${count} notas seleccionadas`;
   const title = {
@@ -71,6 +77,7 @@ export function NoteActionsSheet({
     color: 'Color',
     folder: 'Mover a carpeta',
     tags: 'Etiquetas',
+    reminder: 'Recordatorio',
   }[page];
 
   const inTrash = notes?.every((n) => n.deletedAt !== null) ?? false;
@@ -114,6 +121,13 @@ export function NoteActionsSheet({
               label={allFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}
               onPress={run(() => actions.toggleFavorite(notes))}
             />
+            {single ? (
+              <SheetItem
+                icon={reminder ? 'bellFill' : 'bell'}
+                label={reminder ? 'Cambiar recordatorio' : 'Añadir recordatorio'}
+                onPress={() => setPage('reminder')}
+              />
+            ) : null}
             <SheetItem icon="palette" label="Color" onPress={() => setPage('color')} />
             <SheetItem icon="tag" label="Etiquetas" onPress={() => setPage('tags')} />
             <SheetItem icon="move" label="Mover a carpeta" onPress={() => setPage('folder')} />
@@ -172,6 +186,16 @@ export function NoteActionsSheet({
       ) : null}
 
       {notes && page === 'tags' ? <TagPicker notes={notes} /> : null}
+
+      {single && page === 'reminder' ? (
+        <ReminderEditor
+          current={reminder}
+          onSave={(value) =>
+            run(() => reminderActions.saveNoteReminder(single.id, value.fireAt, value.rrule))()
+          }
+          onRemove={reminder ? run(() => reminderActions.remove(reminder.id)) : undefined}
+        />
+      ) : null}
 
       {notes && page === 'folder' ? (
         <>

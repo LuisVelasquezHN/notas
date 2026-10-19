@@ -10,6 +10,7 @@ import {
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Icon, Text, type IconName } from '@/components/ui';
+import { useOverdueCount } from '@/features/reminders/hooks/use-overdue-count';
 import { MAX_CONTENT_WIDTH, radius, spacing, useTheme } from '@/theme';
 
 /** Por debajo de este ancho, la barra pasa abajo y en formato compacto (como en móvil). */
@@ -25,6 +26,7 @@ function useCompact() {
  */
 export default function TabsLayout() {
   const compact = useCompact();
+  const overdue = useOverdueCount();
   return (
     <Tabs>
       {compact ? <TabSlot /> : null}
@@ -38,7 +40,9 @@ export default function TabsLayout() {
             <TabButton icon="folder">Carpetas</TabButton>
           </TabTrigger>
           <TabTrigger name="reminders" href="/reminders" asChild>
-            <TabButton icon="bell">Recordatorios</TabButton>
+            <TabButton icon="bell" badge={overdue}>
+              Recordatorios
+            </TabButton>
           </TabTrigger>
           <TabTrigger name="settings" href="/settings" asChild>
             <TabButton icon="settings">Ajustes</TabButton>
@@ -78,9 +82,10 @@ function TabButton({
   children,
   isFocused,
   icon,
+  badge = 0,
   ref,
   ...props
-}: TabTriggerSlotProps & { icon: IconName }) {
+}: TabTriggerSlotProps & { icon: IconName; badge?: number }) {
   const { colors } = useTheme();
   const compact = useCompact();
   const color = isFocused ? colors.text : colors.textSecondary;
@@ -94,7 +99,18 @@ function TabButton({
         compact && styles.tabCompact,
         isFocused && { backgroundColor: colors.surfaceMuted },
       ])}>
-      <Icon name={icon} size={18} color={color} />
+      <View>
+        <Icon name={icon} size={18} color={color} />
+        {badge > 0 ? (
+          <View
+            accessibilityLabel={`${badge} vencidos`}
+            style={[styles.badge, { backgroundColor: colors.danger }]}>
+            <Text variant="label" style={styles.badgeText}>
+              {badge > 99 ? '99+' : badge}
+            </Text>
+          </View>
+        ) : null}
+      </View>
       <Text variant="label" style={{ color }}>
         {children}
       </Text>
@@ -125,6 +141,18 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.md,
   },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 10, lineHeight: 12 },
   tabCompact: {
     flex: 1,
     flexDirection: 'column',

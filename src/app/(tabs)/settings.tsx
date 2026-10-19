@@ -2,7 +2,9 @@ import Constants from 'expo-constants';
 import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Chip, Icon, Screen, Text, type IconName } from '@/components/ui';
+import { Button, Chip, Icon, Screen, Text, type IconName } from '@/components/ui';
+import { useNotificationPermission } from '@/features/reminders/hooks/use-notification-permission';
+import { capabilities } from '@/lib/capabilities';
 import { useSettingsStore, type ThemePreference } from '@/stores/settings-store';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -35,6 +37,10 @@ export default function SettingsScreen() {
         </View>
       </Section>
 
+      <Section title="Recordatorios">
+        <NotificationsRow />
+      </Section>
+
       <Section title="Notas">
         <LinkRow href="/archive" icon="archive" label="Archivo" />
         <LinkRow href="/trash" icon="trash" label="Papelera" />
@@ -56,6 +62,56 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </Text>
       <View style={[styles.sectionBody, { backgroundColor: colors.surface }]}>{children}</View>
     </View>
+  );
+}
+
+const PERMISSION_LABELS = {
+  granted: 'Activadas',
+  denied: 'Desactivadas en los ajustes del sistema',
+  undetermined: 'Sin activar',
+  unavailable: 'No disponibles en la web: los avisos aparecen con la app abierta',
+} as const;
+
+function NotificationsRow() {
+  const permission = useNotificationPermission();
+  const state = permission.state;
+  return (
+    <>
+      <View style={styles.row}>
+        <Icon name="bell" size={20} />
+        <View style={styles.rowLabel}>
+          <Text>Notificaciones</Text>
+          {state ? (
+            <Text variant="caption" tone="secondary">
+              {PERMISSION_LABELS[state]}
+            </Text>
+          ) : null}
+        </View>
+        {capabilities.localNotifications && (state === 'denied' || state === 'undetermined') ? (
+          <Button
+            title={state === 'denied' ? 'Ajustes' : 'Activar'}
+            variant="secondary"
+            onPress={() => void permission.request()}
+          />
+        ) : null}
+      </View>
+      {state === 'granted' && !permission.exactAlarms ? (
+        <View style={styles.row}>
+          <Icon name="clock" size={20} />
+          <View style={styles.rowLabel}>
+            <Text>Alarmas exactas</Text>
+            <Text variant="caption" tone="secondary">
+              Sin ellas, los avisos pueden llegar con retraso
+            </Text>
+          </View>
+          <Button
+            title="Permitir"
+            variant="secondary"
+            onPress={() => void permission.requestExactAlarms()}
+          />
+        </View>
+      ) : null}
+    </>
   );
 }
 

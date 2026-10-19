@@ -17,7 +17,10 @@ import type { Note } from '@/db';
 import { ChecklistEditor } from '@/features/checklist/components/checklist-editor';
 import { Editor } from '@/features/editor';
 import * as actions from '@/features/notes/actions';
-import { NoteActionsSheet } from '@/features/notes/components/note-actions-sheet';
+import {
+  NoteActionsSheet,
+  type NoteActionsPage,
+} from '@/features/notes/components/note-actions-sheet';
 import { useAutosave } from '@/features/notes/hooks/use-autosave';
 import { useNoteDraft, type NoteDraft } from '@/features/notes/hooks/use-note-draft';
 import {
@@ -26,11 +29,14 @@ import {
   saveNoteContent,
   updateNote,
 } from '@/features/notes/repository';
+import { ReminderChip } from '@/features/reminders/components/reminder-chip';
+import { noteReminderQuery } from '@/features/reminders/repository';
 import { TagPill } from '@/features/tags/components/tag-pill';
 import { tagsForNoteQuery } from '@/features/tags/repository';
 import { daysLeftInTrash, formatRelativeDate } from '@/lib/dates';
 import { consumeWebEnter } from '@/lib/keyboard';
 import { useAutoGrow } from '@/lib/use-auto-grow';
+import { useNow } from '@/lib/use-now';
 import { MAX_CONTENT_WIDTH, fonts, radius, spacing, typography, useTheme } from '@/theme';
 
 export default function NoteScreen() {
@@ -55,8 +61,11 @@ function NoteEditor({ note }: { note: Note }) {
   const { colors, noteColor } = useTheme();
   const insets = useSafeAreaInsets();
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const [menu, setMenu] = useState<'main' | 'tags' | null>(null);
+  const [menu, setMenu] = useState<NoteActionsPage | null>(null);
   const { data: tags } = useLiveQuery(tagsForNoteQuery(note.id), [note.id]);
+  const { data: reminderRows } = useLiveQuery(noteReminderQuery(note.id), [note.id]);
+  const reminder = reminderRows[0];
+  const now = useNow();
   const titleAutoGrow = useAutoGrow();
   const { draft, setTitle, setDoc, undo, redo, canUndo, canRedo } = useNoteDraft(note);
 
@@ -79,7 +88,7 @@ function NoteEditor({ note }: { note: Note }) {
     },
   );
 
-  const openMenu = (page: 'main' | 'tags' = 'main') => {
+  const openMenu = (page: NoteActionsPage = 'main') => {
     void flush();
     setMenu(page);
   };
@@ -110,6 +119,13 @@ function NoteEditor({ note }: { note: Note }) {
                     onPress={redo}
                   />
                 </>
+              ) : null}
+              {editable ? (
+                <IconButton
+                  icon={reminder ? 'bellFill' : 'bell'}
+                  accessibilityLabel={reminder ? 'Cambiar recordatorio' : 'Añadir recordatorio'}
+                  onPress={() => openMenu('reminder')}
+                />
               ) : null}
               {editable ? (
                 <IconButton
@@ -185,6 +201,15 @@ function NoteEditor({ note }: { note: Note }) {
           ) : (
             <ChecklistEditor note={note} editable={editable} scrollableRef={scrollRef} />
           )}
+
+          {reminder && !inTrash ? (
+            <ReminderChip
+              fireAt={reminder.fireAt}
+              recurring={reminder.rrule !== null}
+              now={now}
+              onPress={() => openMenu('reminder')}
+            />
+          ) : null}
 
           {tags.length > 0 || editable ? (
             <Pressable

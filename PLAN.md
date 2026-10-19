@@ -228,7 +228,7 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 | **0. Fundaciones**        | Expo + TypeScript, lint y formato, tema y tokens, Drizzle y migraciones, rutas y tabs, UI base, Jest, EAS y CI                           | 1 semana    | ✅ hecha |
 | **1. Núcleo (MVP)**       | CRUD de texto y checklist, carpetas, colores, anclar, archivar, papelera, lista/cuadrícula, ordenación, búsqueda, autoguardado, deshacer | 3–4 semanas | ✅ hecha |
 | **2. Organización**       | Etiquetas, filtros, carpetas inteligentes, selección múltiple, drag & drop, favoritos                                                    | 2 semanas   | ✅ hecha |
-| **3. Recordatorios**      | Selector, scheduler con ventana, RRULE, acciones, pantalla de próximos, badge                                                            | 2 semanas   |          |
+| **3. Recordatorios**      | Selector, scheduler con ventana, RRULE, acciones, pantalla de próximos, badge                                                            | 2 semanas   | ✅ hecha |
 | **4. Contenido rico**     | Editor TipTap, imágenes, voz, plantillas, quick actions                                                                                  | 2–3 semanas |          |
 | **5. Seguridad y pulido** | Biometría, export/import y backup, i18n, accesibilidad, onboarding                                                                       | 2 semanas   |          |
 | **6. Lanzamiento**        | E2E, Sentry, betas, fichas de las tiendas, privacidad, despliegue web                                                                    | 1–2 semanas |          |
@@ -279,6 +279,21 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 - [ ] **Pendiente:** verificar en iOS y Android el arrastre de notas y "mantener sin mover = seleccionar" en orden manual (en web no se puede simular con eventos sintéticos)
 - [ ] **Limitaciones conocidas:** en orden manual la cuadrícula alinea filas (no es masonry) y la lista no está virtualizada; reordenar no cambia `updated_at`. Los filtros "con recordatorio" y "con adjuntos" no darán resultados hasta las fases 3 y 4
 - [ ] **No incluido (P1 de búsqueda, sin fase asignada):** búsquedas recientes y resaltado de coincidencias
+
+### Fase 3: checklist
+
+- [x] Selector de recordatorio (`src/features/reminders`): atajos "Esta tarde"/"Esta noche", "Mañana" y "Próxima semana", y calendario + hora propios (sin módulos nativos, igual en web). Desde la campana del editor, el chip bajo la nota o el menú de la nota; quitar con deshacer
+- [x] Recurrencia (RRULE con `rrule`): diaria, de lunes a viernes, semanal, mensual y anual. Se guarda `DTSTART` en hora de pared + `RRULE`, y se calcula en la zona del recordatorio (mantiene la hora local con los cambios de horario). `fire_at` es solo el próximo aviso: posponer no desplaza la serie. Un recurrente vencido avanza a su última ocurrencia pasada; "Hecho" lo pasa a la siguiente
+- [x] Scheduler con ventana (`scheduler.ts`, `window.ts`): las 50 notificaciones más próximas; identificador determinista (recordatorio + hora + hash del contenido), así que reprogramar solo cancela/programa diferencias. Se recalcula al arrancar, al volver a primer plano, tras cualquier cambio en notas/ítems/recordatorios (listener de SQLite) y en una tarea de `expo-background-task`
+- [x] Notificaciones: canal "Recordatorios" (alta) en Android, alarmas exactas si hay permiso (`SCHEDULE_EXACT_ALARM`, con aviso para concederlo), categoría con acciones **Hecho**, **Posponer 10 min** y **Abrir**; tocar abre la nota. Las respuestas se atienden con la app abierta, al arrancar (`getLastNotificationResponseAsync`, sin duplicados) y en segundo plano (tarea de `expo-task-manager`)
+- [x] Fecha límite por ítem de checklist: botón al editar el ítem, chip bajo el texto; un ítem completado deja de avisar y "Hecho" sobre su recordatorio lo marca como completado
+- [x] Pantalla Recordatorios: vencidos, hoy, mañana, próximos 7 días y más adelante; marcar como hecho (con deshacer), posponer 10 min / 1 h / mañana, cambiar, abrir y quitar. Avisos de permiso denegado o sin alarmas exactas. Ajustes muestra el estado de las notificaciones
+- [x] Badge: recordatorios vencidos en el icono de la app (nativo) y en la pestaña (NativeTabs y barra web). Las tarjetas muestran el próximo recordatorio (en rojo si venció). El filtro "Con recordatorio" ya funciona
+- [x] Web: sin notificaciones del sistema; mientras la app está abierta, un snackbar avisa al vencer con "Abrir"
+- [x] Tests: zonas horarias y cambios de horario, recurrencias, ventana (límite, orden, diff, identificadores), avance de vencidos, "Hecho", atajos y grupos
+- [x] Web verificada en el navegador: crear recordatorio recurrente desde el editor, chip en editor y tarjeta, pantalla con grupos, vencido + badge (adelantando el reloj), hecho y deshacer, fecha límite de un ítem y marcarlo como hecho desde la lista
+- [ ] **Pendiente:** probar en iOS y Android con un development build (nuevos módulos nativos: expo-notifications, expo-task-manager, expo-background-task): permisos, entrega a la hora, acciones con la app cerrada (en iOS "Hecho"/"Posponer" con la app terminada solo se garantiza al volver a abrirla), canal y alarmas exactas en Android 12–14, badge del icono
+- [ ] **No incluido (P2):** resumen diario y recordatorios por ubicación; recurrencias personalizadas (cada N días, días concretos)
 
 ---
 

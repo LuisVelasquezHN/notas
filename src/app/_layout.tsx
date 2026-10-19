@@ -5,6 +5,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AppBootstrap } from '@/components/app-bootstrap';
 import { SnackbarHost } from '@/components/ui';
+// Define las tareas en segundo plano al cargar el bundle (también con la app cerrada).
+import '@/features/reminders/background';
+import { ReminderRuntime } from '@/features/reminders/components/reminder-runtime';
 import { useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -40,6 +43,7 @@ export default function RootLayout() {
             <Stack.Screen name="archive" options={{ title: 'Archivo' }} />
             <Stack.Screen name="trash" options={{ title: 'Papelera' }} />
           </Stack>
+          <ReminderRuntime />
           <SnackbarHost />
         </AppBootstrap>
       </ThemeProvider>

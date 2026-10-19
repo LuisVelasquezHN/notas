@@ -7,8 +7,12 @@ import Sortable from 'react-native-sortables';
 import { Icon, IconButton, Text } from '@/components/ui';
 import type { ChecklistItem, Note } from '@/db/schema';
 import { useAutosave } from '@/features/notes/hooks/use-autosave';
+import * as reminderActions from '@/features/reminders/actions';
+import { ReminderChip } from '@/features/reminders/components/reminder-chip';
+import { ReminderSheet } from '@/features/reminders/components/reminder-sheet';
 import { consumeWebEnter } from '@/lib/keyboard';
 import { useAutoGrow } from '@/lib/use-auto-grow';
+import { useNow } from '@/lib/use-now';
 import { showUndo } from '@/stores/snackbar-store';
 import { fonts, radius, spacing, typography, useTheme } from '@/theme';
 
@@ -46,6 +50,8 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
   const [focusId, setFocusId] = useState<string | null>(null);
   const [showChecked, setShowChecked] = useState(true);
   const inputs = useRef(new Map<string, InputRef>());
+  const [dueItem, setDueItem] = useState<ChecklistItem | null>(null);
+  const now = useNow();
 
   const pending = items.filter((i) => !i.isChecked);
   const checked = items.filter((i) => i.isChecked);
@@ -82,6 +88,7 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
       item={item}
       editable={editable}
       autoFocus={item.id === focusId}
+      now={now}
       draggable={editable && !item.isChecked}
       inputRef={(input) => {
         if (input) inputs.current.set(item.id, input);
@@ -90,6 +97,7 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
       onSubmit={() => void addAfter(item, item.indent)}
       onBackspaceEmpty={() => void removeEmpty(item)}
       onDelete={() => void remove(item)}
+      onDue={() => setDueItem(item)}
     />
   );
 
@@ -160,6 +168,24 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
           {showChecked ? checked.map(renderRow) : null}
         </View>
       ) : null}
+
+      <ReminderSheet
+        visible={dueItem !== null}
+        title="Fecha límite"
+        allowRecurrence={false}
+        current={dueItem?.dueAt ? { fireAt: dueItem.dueAt, rrule: null } : null}
+        onClose={() => setDueItem(null)}
+        onSave={({ fireAt }) => {
+          const item = dueItem;
+          setDueItem(null);
+          if (item) void reminderActions.saveItemDue(item, fireAt);
+        }}
+        onRemove={() => {
+          const item = dueItem;
+          setDueItem(null);
+          if (item?.dueAt) void reminderActions.clearItemDue(item, item.dueAt);
+        }}
+      />
     </View>
   );
 }
@@ -168,22 +194,27 @@ type ChecklistRowProps = {
   item: ChecklistItem;
   editable: boolean;
   autoFocus: boolean;
+  now: number;
   draggable: boolean;
   inputRef: (input: InputRef | null) => void;
   onSubmit: () => void;
   onBackspaceEmpty: () => void;
   onDelete: () => void;
+  /** Abre el selector de fecha límite. */
+  onDue: () => void;
 };
 
 function ChecklistRow({
   item,
   editable,
   autoFocus,
+  now,
   draggable,
   inputRef,
   onSubmit,
   onBackspaceEmpty,
   onDelete,
+  onDue,
 }: ChecklistRowProps) {
   const { colors } = useTheme();
   const [text, setText] = useState(item.text);
@@ -225,52 +256,73 @@ function ChecklistRow({
           color={item.isChecked ? colors.textMuted : colors.textSecondary}
         />
       </Pressable>
-      <TextInput
-        ref={inputRef}
-        value={text}
-        onChangeText={setText}
-        editable={editable}
-        autoFocus={autoFocus}
-        multiline
-        // Intro crea el siguiente elemento en vez de un salto de línea.
-        submitBehavior="submit"
-        onSubmitEditing={() => {
-          void flush();
-          onSubmit();
-        }}
-        onKeyPress={(e) => {
-          if (consumeWebEnter(e)) {
+      <View style={styles.body}>
+        <TextInput
+          ref={inputRef}
+          value={text}
+          onChangeText={setText}
+          editable={editable}
+          autoFocus={autoFocus}
+          multiline
+          // Intro crea el siguiente elemento en vez de un salto de línea.
+          submitBehavior="submit"
+          onSubmitEditing={() => {
             void flush();
             onSubmit();
-          } else if (e.nativeEvent.key === 'Backspace' && text === '') {
-            onBackspaceEmpty();
-          }
-        }}
-        onFocus={() => setFocused(true)}
-        onBlur={() => {
-          // Con retraso: en web el blur llega antes que el clic en los botones de la fila.
-          setTimeout(() => setFocused(false), 200);
-          void flush();
-        }}
-        placeholder="Elemento"
-        placeholderTextColor={colors.textMuted}
-        selectionColor={colors.primary}
-        scrollEnabled={false}
-        onContentSizeChange={autoGrow.onContentSizeChange}
-        numberOfLines={autoGrow.numberOfLines}
-        style={[
-          styles.input,
-          autoGrow.style,
-          typography.body,
-          {
-            fontFamily: fonts.sans,
-            color: item.isChecked ? colors.textMuted : colors.text,
-            textDecorationLine: item.isChecked ? 'line-through' : 'none',
-          },
-        ]}
-      />
+          }}
+          onKeyPress={(e) => {
+            if (consumeWebEnter(e)) {
+              void flush();
+              onSubmit();
+            } else if (e.nativeEvent.key === 'Backspace' && text === '') {
+              onBackspaceEmpty();
+            }
+          }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            // Con retraso: en web el blur llega antes que el clic en los botones de la fila.
+            setTimeout(() => setFocused(false), 200);
+            void flush();
+          }}
+          placeholder="Elemento"
+          placeholderTextColor={colors.textMuted}
+          selectionColor={colors.primary}
+          scrollEnabled={false}
+          onContentSizeChange={autoGrow.onContentSizeChange}
+          numberOfLines={autoGrow.numberOfLines}
+          style={[
+            styles.input,
+            autoGrow.style,
+            typography.body,
+            {
+              fontFamily: fonts.sans,
+              color: item.isChecked ? colors.textMuted : colors.text,
+              textDecorationLine: item.isChecked ? 'line-through' : 'none',
+            },
+          ]}
+        />
+        {item.dueAt !== null && !item.isChecked ? (
+          <View style={styles.due}>
+            <ReminderChip
+              fireAt={item.dueAt}
+              now={now}
+              compact
+              onPress={editable ? onDue : undefined}
+            />
+          </View>
+        ) : null}
+      </View>
       {editable && focused ? (
         <View style={styles.rowActions}>
+          {!item.isChecked ? (
+            <IconButton
+              icon="calendar"
+              size={18}
+              color={colors.textSecondary}
+              accessibilityLabel="Fecha límite"
+              onPress={onDue}
+            />
+          ) : null}
           <IconButton
             icon={item.indent >= MAX_INDENT ? 'outdent' : 'indent'}
             size={18}
@@ -306,12 +358,13 @@ const styles = StyleSheet.create({
   },
   handle: { width: 24, height: 36, alignItems: 'center', justifyContent: 'center' },
   input: {
-    flex: 1,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
     outlineStyle: 'none',
   } as object,
   rowActions: { flexDirection: 'row' },
+  body: { flex: 1 },
+  due: { paddingHorizontal: spacing.xs, paddingBottom: spacing.xs },
   addRow: {
     flexDirection: 'row',
     alignItems: 'center',
