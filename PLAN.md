@@ -4,12 +4,12 @@ App de notas **local-first** en React Native (Expo) para **iOS, Android y web**:
 
 ## 0. Decisiones tomadas
 
-| #   | Decisión       | Resolución                                                                 | Implicaciones                                                                                                                                                                                                    |
-| --- | -------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Sincronización | **Solo local para el lanzamiento.** La sincronización se evaluará después. | El esquema se diseña _sync-ready_ desde el día 1 (UUID v7, `updated_at`, borrado lógico, `sort_key` fraccional). No hay backend ni cuentas en v1.                                                                |
-| 2   | Monetización   | **Gratis**, preparado para pagos en el futuro.                             | Capa `entitlements` (`useEntitlement('feature')`) que hoy devuelve `true` para todo. Si se cobra más adelante, se conecta RevenueCat sin tocar las pantallas.                                                    |
-| 3   | Plataformas    | **iOS + Android**, más **web si es viable**.                               | Es viable: Expo Router, expo-sqlite (WASM + OPFS) y Drizzle funcionan en web. Las limitaciones están en §3.1. Se trata como plataforma de segundo nivel: debe funcionar, pero no se le dedica pulido específico. |
-| 4   | Editor         | **Recomendación aplicada (ver abajo).**                                    | —                                                                                                                                                                                                                |
+| #   | Decisión       | Resolución                                                | Implicaciones                                                                                                                                                                                                      |
+| --- | -------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Sincronización | **Local-first; sincronización opcional desde la fase 7.** | El esquema es _sync-ready_ desde el día 1 (UUID v7, `updated_at`, borrado lógico, `sort_key` fraccional). En la fase 7: cuenta con Google y sincronización con Supabase (ver §9). Sin cuenta, todo sigue en local. |
+| 2   | Monetización   | **Gratis**, preparado para pagos en el futuro.            | Capa `entitlements` (`useEntitlement('feature')`) que hoy devuelve `true` para todo. Si se cobra más adelante, se conecta RevenueCat sin tocar las pantallas.                                                      |
+| 3   | Plataformas    | **iOS + Android**, más **web si es viable**.              | Es viable: Expo Router, expo-sqlite (WASM + OPFS) y Drizzle funcionan en web. Las limitaciones están en §3.1. Se trata como plataforma de segundo nivel: debe funcionar, pero no se le dedica pulido específico.   |
+| 4   | Editor         | **Recomendación aplicada (ver abajo).**                   | —                                                                                                                                                                                                                  |
 
 ### Decisión 4: estrategia del editor
 
@@ -96,36 +96,36 @@ App de notas **local-first** en React Native (Expo) para **iOS, Android y web**:
 
 ## 2. Stack tecnológico
 
-| Área                    | Elección                                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Framework               | **Expo SDK 58** (React Native 0.88, New Architecture, React Compiler) + TypeScript estricto                  |
-| Navegación              | **Expo Router**: `NativeTabs` en iOS y Android, tabs headless (`expo-router/ui`) en web                      |
-| Base de datos           | **expo-sqlite + Drizzle ORM**: migraciones generadas con drizzle-kit, `useLiveQuery` reactivo                |
-| Preferencias            | **expo-sqlite/kv-store** (API síncrona, funciona en web; se descarta MMKV para no añadir otro módulo nativo) |
-| Estado de UI            | **Zustand**                                                                                                  |
-| IDs                     | **UUID v7** (ordenable por tiempo)                                                                           |
-| Orden manual            | **fractional-indexing**                                                                                      |
-| Listas                  | **FlashList**                                                                                                |
-| Gestos y animación      | Reanimated 4 + Gesture Handler                                                                               |
-| Drag & drop             | react-native-sortables                                                                                       |
-| Bottom sheets           | @gorhom/bottom-sheet                                                                                         |
-| Notificaciones          | **expo-notifications** + **rrule**; reprogramación con **expo-background-task**                              |
-| Editor                  | **TipTap 3** (StarterKit + listas de tareas) en un DOM component de Expo                                     |
-| Multimedia              | expo-image, expo-image-picker, expo-audio, expo-file-system                                                  |
-| Acciones rápidas        | expo-quick-actions (no es del SDK oficial)                                                                   |
-| Seguridad               | expo-local-authentication (biometría o código del dispositivo; sin PIN propio ni expo-secure-store)          |
-| Exportación y copias    | expo-print, expo-sharing, expo-document-picker                                                               |
-| i18n                    | i18next + react-i18next + expo-localization (claves tipadas contra el catálogo en español)                   |
-| Tests                   | Jest (jest-expo) + React Native Testing Library; E2E con Maestro (iOS/Android) y Playwright (web)            |
-| Monitorización          | Sentry (`@sentry/react-native`): solo errores, sin contenido de las notas, desactivable                      |
-| Pagos (futuro)          | RevenueCat, detrás de la capa `entitlements`                                                                 |
-| Sincronización (futuro) | Supabase + PowerSync u otra opción equivalente                                                               |
+| Área                 | Elección                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Framework            | **Expo SDK 58** (React Native 0.88, New Architecture, React Compiler) + TypeScript estricto                  |
+| Navegación           | **Expo Router**: `NativeTabs` en iOS y Android, tabs headless (`expo-router/ui`) en web                      |
+| Base de datos        | **expo-sqlite + Drizzle ORM**: migraciones generadas con drizzle-kit, `useLiveQuery` reactivo                |
+| Preferencias         | **expo-sqlite/kv-store** (API síncrona, funciona en web; se descarta MMKV para no añadir otro módulo nativo) |
+| Estado de UI         | **Zustand**                                                                                                  |
+| IDs                  | **UUID v7** (ordenable por tiempo)                                                                           |
+| Orden manual         | **fractional-indexing**                                                                                      |
+| Listas               | **FlashList**                                                                                                |
+| Gestos y animación   | Reanimated 4 + Gesture Handler                                                                               |
+| Drag & drop          | react-native-sortables                                                                                       |
+| Bottom sheets        | @gorhom/bottom-sheet                                                                                         |
+| Notificaciones       | **expo-notifications** + **rrule**; reprogramación con **expo-background-task**                              |
+| Editor               | **TipTap 3** (StarterKit + listas de tareas) en un DOM component de Expo                                     |
+| Multimedia           | expo-image, expo-image-picker, expo-audio, expo-file-system                                                  |
+| Acciones rápidas     | expo-quick-actions (no es del SDK oficial)                                                                   |
+| Seguridad            | expo-local-authentication (biometría o código del dispositivo; sin PIN propio ni expo-secure-store)          |
+| Exportación y copias | expo-print, expo-sharing, expo-document-picker                                                               |
+| i18n                 | i18next + react-i18next + expo-localization (claves tipadas contra el catálogo en español)                   |
+| Tests                | Jest (jest-expo) + React Native Testing Library; E2E con Maestro (iOS/Android) y Playwright (web)            |
+| Monitorización       | Sentry (`@sentry/react-native`): solo errores, sin contenido de las notas, desactivable                      |
+| Pagos (futuro)       | RevenueCat, detrás de la capa `entitlements`                                                                 |
+| Sincronización       | **Supabase** (Postgres + Auth con Google + Storage, plan gratuito); motor propio (ver §9)                    |
 
 ### 3.1 Web: viabilidad y limitaciones
 
 - **Base de datos:** expo-sqlite funciona en web con WASM (OPFS, persistente). El driver de Drizzle usa la API síncrona, que en web necesita `SharedArrayBuffer`, es decir, las cabeceras `COOP: same-origin` y `COEP: credentialless`.
   - **En desarrollo:** las pone el propio servidor de Expo a partir del plugin de `expo-router` (con `output: "server"`; en `single` no las enviaba).
-  - **En producción:** las aplica `expo-server` en EAS Hosting a partir del plugin de `expo-router`. **Verificado en la fase 6:** con `output: "single"` la exportación es estática y **no** lleva las cabeceras (la base de datos no abriría); con `output: "server"` sí, en todas las rutas. Lo comprueban los E2E web.
+  - **En producción:** las aplica `expo-server` (en Vercel, la función `api/index.ts`) a partir del plugin de `expo-router`; `vercel.json` las pone también en los estáticos. **Verificado en la fase 6:** con `output: "single"` la exportación es estática y **no** lleva las cabeceras (la base de datos no abriría); con `output: "server"` sí, en todas las rutas. Lo comprueban los E2E web.
   - **Arranque:** la base de datos y el kv-store se abren primero de forma **asíncrona** (`AppBootstrap`), porque la primera operación síncrona falla si el worker de SQLite aún no ha cargado.
   - **Salida web:** `output: "server"`. El servidor solo renderiza la pantalla vacía: la base de datos se abre en un efecto, en el navegador, y `AppBootstrap` no pinta nada hasta hidratar (el servidor no conoce el tema del usuario).
   - **Varias pestañas:** OPFS solo admite una conexión por fichero. La pestaña que abre primero se queda un candado (Web Locks, `src/db/tab-lock.web.ts`); las demás muestran "Notas ya está abierta en otra pestaña" y continúan solas al cerrarse aquella.
@@ -136,7 +136,8 @@ App de notas **local-first** en React Native (Expo) para **iOS, Android y web**:
 - **No disponibles en web:** biometría, widgets, share extension y quick actions. Las funciones se ocultan con `Platform.OS` o con capacidades (`capabilities.ts`).
 - **Bloqueo en web:** sin biometría ni código del dispositivo, no se ofrece bloquear la app ni las notas. Una nota bloqueada (p. ej. importada de una copia) se muestra oculta y se abre tocando "Desbloquear": oculta el contenido a la vista, no lo protege.
 - **Exportar en web:** los ficheros (Markdown, texto, copia JSON) se descargan; el PDF se genera con el diálogo de impresión del navegador ("Guardar como PDF"). "Compartir texto" solo aparece si el navegador tiene `navigator.share`.
-- **Despliegue:** EAS Hosting (`.eas/workflows/deploy-web.yml`: producción con cada push a `main`).
+- **Despliegue:** Vercel (`vercel.json` + `api/index.ts`, adaptador `expo-server/adapter/vercel`): producción con cada push a `main`. Hasta la fase 6 era EAS Hosting.
+- **Escritorio:** la web se instala como app (PWA: `public/manifest.json`, `src/app/+html.tsx`; botón en Ajustes → Descargar la app con `beforeinstallprompt`).
 
 ---
 
@@ -230,16 +231,16 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 
 ## 7. Roadmap (1 desarrollador)
 
-| Fase                      | Contenido                                                                                                                                | Duración    | Estado            |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ----------------- |
-| **0. Fundaciones**        | Expo + TypeScript, lint y formato, tema y tokens, Drizzle y migraciones, rutas y tabs, UI base, Jest, EAS y CI                           | 1 semana    | ✅ hecha          |
-| **1. Núcleo (MVP)**       | CRUD de texto y checklist, carpetas, colores, anclar, archivar, papelera, lista/cuadrícula, ordenación, búsqueda, autoguardado, deshacer | 3–4 semanas | ✅ hecha          |
-| **2. Organización**       | Etiquetas, filtros, carpetas inteligentes, selección múltiple, drag & drop, favoritos                                                    | 2 semanas   | ✅ hecha          |
-| **3. Recordatorios**      | Selector, scheduler con ventana, RRULE, acciones, pantalla de próximos, badge                                                            | 2 semanas   | ✅ hecha          |
-| **4. Contenido rico**     | Editor TipTap, imágenes, voz, plantillas, quick actions                                                                                  | 2–3 semanas | ✅ hecha          |
-| **5. Seguridad y pulido** | Biometría, export/import y backup, i18n, accesibilidad, onboarding                                                                       | 2 semanas   | ✅ hecha          |
-| **6. Lanzamiento**        | E2E, Sentry, betas, fichas de las tiendas, privacidad, despliegue web                                                                    | 1–2 semanas | 🟡 falta publicar |
-| **7. Post-lanzamiento**   | Sincronización, pagos, widgets, share extension, versiones, IA                                                                           | continuo    |                   |
+| Fase                      | Contenido                                                                                                                                    | Duración    | Estado                      |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | --------------------------- |
+| **0. Fundaciones**        | Expo + TypeScript, lint y formato, tema y tokens, Drizzle y migraciones, rutas y tabs, UI base, Jest, EAS y CI                               | 1 semana    | ✅ hecha                    |
+| **1. Núcleo (MVP)**       | CRUD de texto y checklist, carpetas, colores, anclar, archivar, papelera, lista/cuadrícula, ordenación, búsqueda, autoguardado, deshacer     | 3–4 semanas | ✅ hecha                    |
+| **2. Organización**       | Etiquetas, filtros, carpetas inteligentes, selección múltiple, drag & drop, favoritos                                                        | 2 semanas   | ✅ hecha                    |
+| **3. Recordatorios**      | Selector, scheduler con ventana, RRULE, acciones, pantalla de próximos, badge                                                                | 2 semanas   | ✅ hecha                    |
+| **4. Contenido rico**     | Editor TipTap, imágenes, voz, plantillas, quick actions                                                                                      | 2–3 semanas | ✅ hecha                    |
+| **5. Seguridad y pulido** | Biometría, export/import y backup, i18n, accesibilidad, onboarding                                                                           | 2 semanas   | ✅ hecha                    |
+| **6. Lanzamiento**        | E2E, Sentry, betas, fichas de las tiendas, privacidad, despliegue web                                                                        | 1–2 semanas | 🟡 falta publicar           |
+| **7. Post-lanzamiento**   | Cuentas con Google, sincronización, web en Vercel, escritorio (PWA), APK de Android. Después: pagos, widgets, share extension, versiones, IA | continuo    | 🟡 falta configurar cuentas |
 
 ### Fase 0: checklist
 
@@ -351,6 +352,19 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 - [ ] **Pendiente:** ejecutar los flujos de Maestro (no hay simulador ni Maestro en esta máquina: solo se validó su sintaxis) y probar Sentry con una compilación real (sin DSN no se envía nada)
 - [ ] **No incluido:** EAS Update (necesita `eas init`; los canales ya están en `eas.json`), source maps de la web en Sentry, PWA/manifest
 
+### Fase 7: checklist
+
+- [x] Servidor (`supabase/migrations/20261020000000_sync.sql`): tabla genérica `sync_rows` (usuario, tabla, id, `updated_at`, lápida, JSON, `seq`) con RLS por usuario; `push_changes` (gana lo igual o más reciente); `delete_account`; bucket privado `attachments` con políticas por carpeta de usuario
+- [x] Seguimiento local: tablas `sync_outbox` y `sync_state` (migración `0001_sync`) y triggers creados al arrancar (`src/features/sync/tracking.ts`), que apuntan cualquier alta, cambio o borrado (también en cascada, importaciones y scheduler) salvo lo que llega del servidor. `os_notification_id` y `local_uri` no se sincronizan
+- [x] Motor (`src/features/sync/engine.ts` + `plan.ts`, ver §9): baja todo lo nuevo, decide con `planPull` (función pura) y aplica en una transacción; luego sube lo pendiente en lotes. Adjuntos a Storage (se suben una vez, se descargan al llegar). Se sincroniza al entrar, al volver a primer plano, 3 s después de un cambio local, al salir de la app y cada minuto con la app abierta
+- [x] Cuenta (`src/features/sync/auth.ts`): Google por Supabase Auth con PKCE, sin módulos nativos (navegador del sistema en iOS/Android → `notas://auth/callback`; redirección en web → `/auth/callback`). Ajustes → Cuenta y sincronización: entrar, estado, sincronizar ahora, cerrar sesión (las notas se quedan) y **eliminar la cuenta** (lo exigen las tiendas). Sin las variables `EXPO_PUBLIC_SUPABASE_*`, la sección no aparece y la app es solo local
+- [x] Web en Vercel (`vercel.json`, `api/index.ts`), verificada sirviendo la exportación con el adaptador: cabeceras COOP/COEP en páginas y estáticos, rutas dinámicas, manifiesto. App de escritorio instalable (PWA) y enlace al APK en Ajustes (solo web)
+- [x] Textos: presentación, política de privacidad (nueva sección "Cuenta y sincronización", web en Vercel), fichas de las tiendas, manifiesto de privacidad de iOS y respuestas de "Seguridad de los datos" (`store/README.md` §4). Guía paso a paso de cuentas en `store/README.md` §0
+- [x] Tests: planificador (gana lo más reciente, pendientes, eco, orden sin cambio de `updatedAt`, lápidas, referencias rotas, validación, fusión de etiquetas y carpetas inteligentes, adjuntos), triggers contra SQLite real (`node:sqlite`) y **dos dispositivos sincronizando** contra un servidor simulado (fusión, conflictos, borrados, etiquetas duplicadas, adjuntos, sin ecos)
+- [ ] **Pendiente (necesita cuentas, ver `store/README.md` §0):** proyecto de Supabase + SQL, cliente OAuth de Google, proyecto en Vercel con las variables, `eas init` + variables en EAS + primer APK. Probar el inicio de sesión real en web y Android (no se pudo sin cuentas: se comprobó que la app redirige a Supabase con la URL de vuelta correcta y que `/auth/callback` vuelve a Ajustes)
+- [ ] **Limitaciones conocidas:** gana la última escritura por reloj del cliente (un reloj muy desajustado puede perder una edición); se compara la fila entera, no campo a campo (editar el título en un dispositivo y el color en otro a la vez: gana una de las dos); sin tiempo real (se bajan cambios cada minuto y al volver a la app); al entrar con una cuenta, las notas del dispositivo se suben a esa cuenta; el plan gratuito de Supabase pausa el proyecto tras 7 días sin uso
+- [ ] **No incluido:** sincronización en tiempo real (Supabase Realtime), cifrado de extremo a extremo, compartir notas entre cuentas, Netlify (solo está preparado Vercel), app de escritorio nativa (Electron/Tauri): la PWA cubre Windows, macOS y Linux
+
 ---
 
 ## 8. Riesgos
@@ -360,5 +374,15 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 | Inestabilidad del editor enriquecido           | `EditorAdapter` y formato TipTap desde el día 1                            |
 | Notificaciones poco fiables en algunos Android | Alarmas exactas, guía para cada fabricante, pruebas en dispositivos reales |
 | Pérdida de datos                               | Migraciones con tests, backup exportable, borrado lógico                   |
-| Añadir sincronización más adelante             | Esquema sync-ready                                                         |
+| Añadir sincronización más adelante             | Esquema sync-ready; motor con tests de dos dispositivos (fase 7)           |
 | Web: sin FTS ni notificaciones                 | Búsqueda con `LIKE` y recordatorios dentro de la app; documentado          |
+
+---
+
+## 9. Sincronización
+
+- **Modelo:** cada fila local (`folders`, `notes`, `checklist_items`, `tags`, `note_tags`, `reminders`, `attachments`, `saved_filters`) es una fila de `sync_rows` con sus datos en JSON (nombres de Drizzle, como las copias). `note_tags` usa `note_id|tag_id` como id. Los borrados definitivos viajan como lápidas.
+- **Conflictos:** gana la versión con `updated_at` mayor (en `note_tags`, `created_at`); en empate gana quien sube (reordenar no cambia `updated_at`). Un cambio local pendiente igual o más reciente que el del servidor se respeta y se sube después.
+- **Cursor:** `seq` crece con cada escritura en el servidor; cada dispositivo guarda el último que vio (kv-store, por usuario) y baja solo lo posterior. Se baja todo antes de aplicar para no romper referencias entre páginas.
+- **Etiquetas duplicadas** (mismo nombre creado en dos dispositivos): queda la de id menor (UUID v7: la más antigua) en todos; la otra se funde (sus notas y carpetas inteligentes pasan a la que queda).
+- **Primera vez con una cuenta:** todo lo del dispositivo se apunta para subir (`enqueueAll`) y se baja la cuenta entera: se fusionan.

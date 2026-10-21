@@ -13,7 +13,7 @@ test('cambia el idioma al momento', async ({ page }) => {
 test('la política de privacidad es pública', async ({ page }) => {
   // Sin pasar por la presentación: es la URL que enlazan las fichas de las tiendas.
   await page.goto('/privacy');
-  await expect(page.getByText('Tus notas se quedan en tu dispositivo')).toBeVisible();
+  await expect(page.getByText('Tus notas están en tu dispositivo')).toBeVisible();
   await expect(page).toHaveURL(/\/privacy$/);
 });
 
@@ -22,6 +22,6 @@ test.describe('en inglés', () => {
 
   test('la política de privacidad sigue el idioma del navegador', async ({ page }) => {
     await page.goto('/privacy');
-    await expect(page.getByText('Your notes stay on your device')).toBeVisible();
+    await expect(page.getByText('Your notes live on your device')).toBeVisible();
   });
 });

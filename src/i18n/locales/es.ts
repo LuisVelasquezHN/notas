@@ -564,7 +564,7 @@ const es = {
     notificationsOn: 'Notificaciones activadas',
     welcome: {
       title: 'Tus notas, en tu dispositivo',
-      body: 'Escribe notas, listas y notas de voz. Todo se guarda en este dispositivo: sin cuentas ni servidores.',
+      body: 'Escribe notas, listas y notas de voz. Todo se guarda en este dispositivo y, si quieres, se sincroniza con tu cuenta de Google en Ajustes.',
     },
     organize: {
       title: 'Todo en su sitio',
@@ -589,8 +589,12 @@ const es = {
       'Notas es una app de notas local-first. Esta política explica qué datos maneja y dónde quedan.',
     sections: {
       notes: {
-        title: 'Tus notas se quedan en tu dispositivo',
-        body: 'Las notas, listas, carpetas, etiquetas, recordatorios, imágenes y notas de voz se guardan solo en tu dispositivo (en la web, en el almacenamiento de tu navegador). No hay cuentas ni servidores de sincronización: nadie más, tampoco nosotros, puede leerlas.',
+        title: 'Tus notas están en tu dispositivo',
+        body: 'Las notas, listas, carpetas, etiquetas, recordatorios, imágenes y notas de voz se guardan en tu dispositivo (en la web, en el almacenamiento de tu navegador). Sin cuenta, no salen de ahí.',
+      },
+      sync: {
+        title: 'Cuenta y sincronización (opcional)',
+        body: 'Si entras con Google para sincronizar, recibimos de Google tu nombre y tu email, y una copia de tus notas, adjuntos, carpetas, etiquetas y recordatorios se guarda en Supabase (nuestro proveedor de base de datos) para llevarla a tus otros dispositivos. Cada cuenta solo puede leer sus propios datos y la conexión va cifrada. Al cerrar sesión tus notas se quedan en el dispositivo; para borrar la cuenta y su copia en el servidor, escríbenos al email de contacto.',
       },
       permissions: {
         title: 'Permisos',
@@ -606,7 +610,7 @@ const es = {
       },
       web: {
         title: 'Versión web',
-        body: 'La versión web se sirve desde EAS Hosting (Expo). Como en cualquier web, el servidor recibe datos técnicos de la conexión (dirección IP, navegador) para entregar la página. Tus notas no salen del navegador.',
+        body: 'La versión web se sirve desde Vercel. Como en cualquier web, el servidor recibe datos técnicos de la conexión (dirección IP, navegador) para entregar la página. Tus notas no salen del navegador salvo que actives la sincronización.',
       },
       sharing: {
         title: 'Sin publicidad ni venta de datos',
@@ -614,7 +618,7 @@ const es = {
       },
       children: {
         title: 'Menores',
-        body: 'La app no recoge datos personales, tampoco de menores.',
+        body: 'Sin cuenta, la app no recoge datos personales. La sincronización no está pensada para menores de 14 años.',
       },
       changes: {
         title: 'Cambios',
@@ -625,6 +629,43 @@ const es = {
         body: 'Para cualquier duda sobre privacidad, escríbenos:',
       },
     },
+  },
+  account: {
+    title: 'Cuenta y sincronización',
+    signedOutTitle: 'Tus notas en todos tus dispositivos',
+    signedOutHint:
+      'Entra con Google para sincronizar tus notas entre el móvil, el ordenador y la web. Sin cuenta, todo sigue solo en este dispositivo.',
+    signIn: 'Continuar con Google',
+    signInFailed: 'No se pudo iniciar sesión. Inténtalo de nuevo.',
+    completing: 'Iniciando sesión…',
+    status: {
+      idle: 'Sincronizado: {{when}}',
+      never: 'Aún sin sincronizar',
+      syncing: 'Sincronizando…',
+      error: 'No se pudo sincronizar. Se reintentará solo.',
+    },
+    syncNow: 'Sincronizar ahora',
+    signOut: 'Cerrar sesión',
+    signOutTitle: '¿Cerrar sesión?',
+    signOutMessage:
+      'Tus notas se quedan en este dispositivo, pero dejarán de sincronizarse hasta que vuelvas a entrar.',
+    signedOut: 'Sesión cerrada',
+    deleteAccount: 'Eliminar la cuenta',
+    deleteTitle: '¿Eliminar la cuenta?',
+    deleteMessage:
+      'Se borrarán la cuenta y la copia de tus notas en el servidor. Las notas de este dispositivo se quedan aquí; en tus otros dispositivos también, pero dejarán de sincronizarse.',
+    deleteConfirm: 'Eliminar',
+    deleted: 'Cuenta eliminada',
+    deleteFailed: 'No se pudo eliminar la cuenta. Comprueba la conexión e inténtalo de nuevo.',
+  },
+  install: {
+    title: 'Descargar la app',
+    android: 'App para Android',
+    androidHint: 'Descarga el instalador (APK)',
+    desktop: 'Instalar en este ordenador',
+    desktopHint: 'Se abre en su propia ventana, como una app',
+    desktopManual:
+      'En Chrome o Edge: menú ⋮ → «Instalar Notas». En Safari: Archivo → «Añadir al Dock».',
   },
   settings: {
     title: 'Ajustes',

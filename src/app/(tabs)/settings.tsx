@@ -2,13 +2,16 @@ import Constants from 'expo-constants';
 import { router, type Href } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { Button, Chip, Icon, Screen, Text, type IconName } from '@/components/ui';
 import { exportBackup, importBackupFromFile } from '@/features/backup/actions';
+import { InstallSection } from '@/features/install/components/install-section';
 import { useNotificationPermission } from '@/features/reminders/hooks/use-notification-permission';
 import { confirmIdentity } from '@/features/security/actions';
 import { authenticate, getAuthSupport, type BiometryKind } from '@/features/security/auth';
+import { AccountSection } from '@/features/sync/components/account-section';
+import { isSyncConfigured } from '@/features/sync/supabase';
 import { LANGUAGES, LANGUAGE_NAMES, type LanguagePreference } from '@/i18n';
 import { capabilities } from '@/lib/capabilities';
 import { useSettingsStore, type LockAfter, type ThemePreference } from '@/stores/settings-store';
@@ -31,6 +34,16 @@ export default function SettingsScreen() {
       <Text variant="largeTitle" style={styles.title}>
         {t('settings.title')}
       </Text>
+
+      {isSyncConfigured ? (
+        <Section title={t('account.title')}>
+          <AccountSection />
+        </Section>
+      ) : null}
+
+      {Platform.OS === 'web' ? (
+        <InstallSection wrap={(body) => <Section title={t('install.title')}>{body}</Section>} />
+      ) : null}
 
       <Section title={t('settings.appearance')}>
         <ChipGroup label={t('settings.appearance')}>

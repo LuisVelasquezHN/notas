@@ -47,7 +47,7 @@ function split<T extends Stamped>(rows: T[], local: Map<string, number>): TableP
 }
 
 /** Carpetas en un orden en que cada padre va antes que sus hijas (para las claves foráneas). */
-function parentsFirst<T extends { id: string; parentId: string | null }>(rows: T[]): T[] {
+export function parentsFirst<T extends { id: string; parentId: string | null }>(rows: T[]): T[] {
   const byId = new Map(rows.map((r) => [r.id, r]));
   const done = new Set<string>();
   const result: T[] = [];

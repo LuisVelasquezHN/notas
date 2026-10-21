@@ -17,6 +17,9 @@ import '@/features/reminders/background';
 import { QuickActionsRuntime } from '@/features/quick-actions/quick-actions-runtime';
 import { ReminderRuntime } from '@/features/reminders/components/reminder-runtime';
 import { AppLockGate } from '@/features/security/components/app-lock-gate';
+import { SyncRuntime } from '@/features/sync/components/sync-runtime';
+// En web, escucha desde el arranque si el navegador ofrece instalar la app (PWA).
+import '@/features/install/install-prompt';
 import { initMonitoring, wrapErrorBoundary, wrapRoot } from '@/lib/monitoring';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useTheme } from '@/theme';
@@ -58,6 +61,11 @@ function RootLayout() {
           <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
             {/* Pública también en la web (enlace de las fichas de las tiendas). */}
             <Stack.Screen name="privacy" options={{ title: t('privacy.title') }} />
+            {/* Vuelta del inicio de sesión con Google (también llega antes de la presentación). */}
+            <Stack.Screen
+              name="auth/callback"
+              options={{ headerShown: false, animation: 'none' }}
+            />
             {/* Primer arranque: solo la presentación; al terminarla, el resto de la app. */}
             <Stack.Protected guard={!onboarded}>
               <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
@@ -77,6 +85,7 @@ function RootLayout() {
           </Stack>
           <ReminderRuntime />
           <QuickActionsRuntime />
+          <SyncRuntime />
           <SnackbarHost />
           <AppLockGate />
         </AppBootstrap>

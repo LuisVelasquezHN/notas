@@ -196,3 +196,30 @@ export type Reminder = typeof reminders.$inferSelect;
 export type Attachment = typeof attachments.$inferSelect;
 export type NoteVersion = typeof noteVersions.$inferSelect;
 export type SavedFilter = typeof savedFilters.$inferSelect;
+
+/**
+ * Sincronización (PLAN.md §9): cambios locales pendientes de subir, uno por fila. Lo rellenan
+ * triggers creados al arrancar (`src/features/sync/tracking.ts`); `row_id` de `note_tags` es
+ * `note_id|tag_id`. `deleted`: la fila se borró del todo (se sube como lápida).
+ */
+export const syncOutbox = sqliteTable(
+  'sync_outbox',
+  {
+    tbl: text('tbl').notNull(),
+    rowId: text('row_id').notNull(),
+    changedAt: integer('changed_at').notNull(),
+    deleted: bool('deleted'),
+  },
+  (t) => [primaryKey({ columns: [t.tbl, t.rowId] })],
+);
+
+/**
+ * Una sola fila (`id = 1`). `applying = 1` mientras se aplican cambios que llegan del servidor:
+ * los triggers no los apuntan como pendientes.
+ */
+export const syncState = sqliteTable('sync_state', {
+  id: integer('id').primaryKey(),
+  applying: bool('applying'),
+});
+
+export type SyncOutboxEntry = typeof syncOutbox.$inferSelect;

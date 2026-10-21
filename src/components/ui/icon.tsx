@@ -129,6 +129,20 @@ const ICONS = {
   bug: { ios: 'ladybug', android: 'bug_report', web: 'bug_report' },
   sparkles: { ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' },
   info: { ios: 'info.circle', android: 'info', web: 'info' },
+  cloud: { ios: 'icloud', android: 'cloud', web: 'cloud' },
+  cloudSync: {
+    ios: 'arrow.triangle.2.circlepath.icloud',
+    android: 'cloud_sync',
+    web: 'cloud_sync',
+  },
+  cloudOff: { ios: 'icloud.slash', android: 'cloud_off', web: 'cloud_off' },
+  account: { ios: 'person.crop.circle', android: 'account_circle', web: 'account_circle' },
+  logout: {
+    ios: 'rectangle.portrait.and.arrow.right',
+    android: 'logout',
+    web: 'logout',
+  },
+  download: { ios: 'arrow.down.circle', android: 'download', web: 'download' },
 } satisfies Record<string, SymbolName>;
 
 export type IconName = keyof typeof ICONS;

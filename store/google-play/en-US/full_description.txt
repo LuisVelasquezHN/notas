@@ -1,4 +1,4 @@
-Notas is a simple, private notes app. Everything is stored on your device: no accounts, no servers and no ads.
+Notas is a simple, private notes app. Everything is stored on your device and, if you want, syncs with your Google account. No ads.
 
 WRITE YOUR WAY
 • Rich notes: headings, bold, lists, checkboxes, quotes and code.
@@ -18,7 +18,7 @@ NEVER FORGET
 • Right from the notification: Done, Snooze 10 minutes or Open.
 
 TRULY PRIVATE
-• Your notes never leave your device.
+• Without an account, your notes never leave your device; with one, they sync across your phone, computer and the web.
 • Lock the app or just some notes with Face ID, fingerprint or your device passcode.
 • Full backup to a file you keep wherever you want, plus export to Markdown, plain text or PDF.
 

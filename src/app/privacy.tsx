@@ -8,6 +8,7 @@ import { spacing } from '@/theme';
 
 const SECTIONS = [
   'notes',
+  'sync',
   'permissions',
   'crashReports',
   'files',

@@ -10,6 +10,7 @@ import { ensureSearchIndex } from '@/db/search-index';
 import { acquireDatabaseLock } from '@/db/tab-lock';
 import { purgeAttachments } from '@/features/attachments/repository';
 import { purgeExpiredTrash } from '@/features/notes/repository';
+import { ensureSyncTracking } from '@/features/sync/tracking';
 import { syncLanguageWithSettings } from '@/i18n/sync';
 import { capabilities } from '@/lib/capabilities';
 import { reportError } from '@/lib/monitoring';
@@ -26,8 +27,8 @@ import migrations from '../../drizzle/migrations';
  * 1. abre el almacén de preferencias, hidrata los ajustes y aplica el idioma elegido,
  * 2. abre la base de datos,
  * 3. aplica las migraciones pendientes,
- * 4. prepara el índice de búsqueda (solo nativo), purga la papelera caducada y los ficheros de
- *    adjuntos que ya no se usan.
+ * 4. prepara el índice de búsqueda (solo nativo) y el seguimiento de cambios para sincronizar,
+ *    purga la papelera caducada y los ficheros de adjuntos que ya no se usan.
  */
 export function AppBootstrap({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<Database | null>(null);
@@ -80,6 +81,7 @@ function Migrations({ db, children }: { db: Database; children: ReactNode }) {
     if (!success) return;
     (async () => {
       await ensureSearchIndex(db);
+      await ensureSyncTracking(db);
       await purgeExpiredTrash();
       // Limpieza de ficheros: si falla, la app arranca igual.
       await purgeAttachments().catch((e: unknown) => console.warn('Adjuntos: error al purgar', e));

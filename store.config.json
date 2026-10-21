@@ -29,7 +29,7 @@
       "es-ES": {
         "title": "Notas: listas y notas de voz",
         "subtitle": "Notas privadas en tu móvil",
-        "description": "Notas es una app de notas sencilla y privada. Todo se guarda en tu dispositivo: sin cuentas, sin servidores y sin publicidad.\n\nESCRIBE COMO QUIERAS\n• Notas con formato: títulos, negrita, listas, casillas, citas y código.\n• Listas con casillas: reordénalas arrastrando, crea subtareas y oculta lo completado.\n• Notas de voz y fotos dentro de cualquier nota.\n• Plantillas para reuniones, la compra, el diario, recetas o un viaje.\n\nTODO EN SU SITIO\n• Carpetas anidadas con color e icono.\n• Etiquetas, colores, notas ancladas y favoritas.\n• Búsqueda instantánea y filtros combinables (tipo, color, etiqueta, fecha…).\n• Carpetas inteligentes: guarda una búsqueda y se actualiza sola.\n\nQUE NO SE TE OLVIDE\n• Recordatorios en cualquier nota, también repetidos (cada día, entre semana, cada semana, mes o año).\n• Fechas límite en los elementos de una lista.\n• Desde la notificación: Hecho, Posponer 10 minutos o Abrir.\n\nPRIVADA DE VERDAD\n• Tus notas no salen del dispositivo.\n• Bloquea la app o solo algunas notas con Face ID, huella o el código del dispositivo.\n• Copia de seguridad completa en un fichero que guardas donde quieras, y exportación a Markdown, texto o PDF.\n\nY además: tema claro y oscuro, español e inglés, acciones rápidas desde el icono y deshacer en todas partes.",
+        "description": "Notas es una app de notas sencilla y privada. Todo se guarda en tu dispositivo y, si quieres, se sincroniza con tu cuenta de Google. Sin publicidad.\n\nESCRIBE COMO QUIERAS\n• Notas con formato: títulos, negrita, listas, casillas, citas y código.\n• Listas con casillas: reordénalas arrastrando, crea subtareas y oculta lo completado.\n• Notas de voz y fotos dentro de cualquier nota.\n• Plantillas para reuniones, la compra, el diario, recetas o un viaje.\n\nTODO EN SU SITIO\n• Carpetas anidadas con color e icono.\n• Etiquetas, colores, notas ancladas y favoritas.\n• Búsqueda instantánea y filtros combinables (tipo, color, etiqueta, fecha…).\n• Carpetas inteligentes: guarda una búsqueda y se actualiza sola.\n\nQUE NO SE TE OLVIDE\n• Recordatorios en cualquier nota, también repetidos (cada día, entre semana, cada semana, mes o año).\n• Fechas límite en los elementos de una lista.\n• Desde la notificación: Hecho, Posponer 10 minutos o Abrir.\n\nPRIVADA DE VERDAD\n• Sin cuenta, tus notas no salen del dispositivo; con ella, se sincronizan entre el móvil, el ordenador y la web.\n• Bloquea la app o solo algunas notas con Face ID, huella o el código del dispositivo.\n• Copia de seguridad completa en un fichero que guardas donde quieras, y exportación a Markdown, texto o PDF.\n\nY además: tema claro y oscuro, español e inglés, acciones rápidas desde el icono y deshacer en todas partes.",
         "keywords": [
           "notas",
           "listas",
@@ -42,16 +42,16 @@
           "privado",
           "carpetas"
         ],
-        "promoText": "Notas, listas y notas de voz que se quedan en tu dispositivo. Sin cuentas ni publicidad.",
+        "promoText": "Notas, listas y notas de voz en tu dispositivo, con sincronización opcional. Sin publicidad.",
         "releaseNotes": "Primera versión.",
-        "marketingUrl": "https://notas.expo.app",
-        "supportUrl": "https://notas.expo.app/privacy",
-        "privacyPolicyUrl": "https://notas.expo.app/privacy"
+        "marketingUrl": "https://notes-lavg.vercel.app",
+        "supportUrl": "https://notes-lavg.vercel.app/privacy",
+        "privacyPolicyUrl": "https://notes-lavg.vercel.app/privacy"
       },
       "en-US": {
         "title": "Notas: lists & voice notes",
         "subtitle": "Private notes on your device",
-        "description": "Notas is a simple, private notes app. Everything is stored on your device: no accounts, no servers and no ads.\n\nWRITE YOUR WAY\n• Rich notes: headings, bold, lists, checkboxes, quotes and code.\n• Checklists: drag to reorder, add subtasks and hide completed items.\n• Voice notes and photos inside any note.\n• Templates for meetings, groceries, journaling, recipes or a trip.\n\nEVERYTHING IN ITS PLACE\n• Nested folders with color and icon.\n• Tags, colors, pinned notes and favorites.\n• Instant search and combinable filters (type, color, tag, date…).\n• Smart folders: save a search and it keeps itself up to date.\n\nNEVER FORGET\n• Reminders on any note, including repeating ones (daily, weekdays, weekly, monthly or yearly).\n• Due dates on checklist items.\n• Right from the notification: Done, Snooze 10 minutes or Open.\n\nTRULY PRIVATE\n• Your notes never leave your device.\n• Lock the app or just some notes with Face ID, fingerprint or your device passcode.\n• Full backup to a file you keep wherever you want, plus export to Markdown, plain text or PDF.\n\nPlus: light and dark themes, Spanish and English, quick actions from the app icon, and undo everywhere.",
+        "description": "Notas is a simple, private notes app. Everything is stored on your device and, if you want, syncs with your Google account. No ads.\n\nWRITE YOUR WAY\n• Rich notes: headings, bold, lists, checkboxes, quotes and code.\n• Checklists: drag to reorder, add subtasks and hide completed items.\n• Voice notes and photos inside any note.\n• Templates for meetings, groceries, journaling, recipes or a trip.\n\nEVERYTHING IN ITS PLACE\n• Nested folders with color and icon.\n• Tags, colors, pinned notes and favorites.\n• Instant search and combinable filters (type, color, tag, date…).\n• Smart folders: save a search and it keeps itself up to date.\n\nNEVER FORGET\n• Reminders on any note, including repeating ones (daily, weekdays, weekly, monthly or yearly).\n• Due dates on checklist items.\n• Right from the notification: Done, Snooze 10 minutes or Open.\n\nTRULY PRIVATE\n• Without an account, your notes never leave your device; with one, they sync across your phone, computer and the web.\n• Lock the app or just some notes with Face ID, fingerprint or your device passcode.\n• Full backup to a file you keep wherever you want, plus export to Markdown, plain text or PDF.\n\nPlus: light and dark themes, Spanish and English, quick actions from the app icon, and undo everywhere.",
         "keywords": [
           "notes",
           "lists",
@@ -64,11 +64,11 @@
           "folders",
           "tags"
         ],
-        "promoText": "Notes, checklists and voice notes that stay on your device. No accounts, no ads.",
+        "promoText": "Notes, checklists and voice notes on your device, with optional sync. No ads.",
         "releaseNotes": "First release.",
-        "marketingUrl": "https://notas.expo.app",
-        "supportUrl": "https://notas.expo.app/privacy",
-        "privacyPolicyUrl": "https://notas.expo.app/privacy"
+        "marketingUrl": "https://notes-lavg.vercel.app",
+        "supportUrl": "https://notes-lavg.vercel.app/privacy",
+        "privacyPolicyUrl": "https://notes-lavg.vercel.app/privacy"
       }
     }
   }

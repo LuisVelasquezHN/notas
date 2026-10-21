@@ -1,4 +1,4 @@
-Notas es una app de notas sencilla y privada. Todo se guarda en tu dispositivo: sin cuentas, sin servidores y sin publicidad.
+Notas es una app de notas sencilla y privada. Todo se guarda en tu dispositivo y, si quieres, se sincroniza con tu cuenta de Google. Sin publicidad.
 
 ESCRIBE COMO QUIERAS
 • Notas con formato: títulos, negrita, listas, casillas, citas y código.
@@ -18,7 +18,7 @@ QUE NO SE TE OLVIDE
 • Desde la notificación: Hecho, Posponer 10 minutos o Abrir.
 
 PRIVADA DE VERDAD
-• Tus notas no salen del dispositivo.
+• Sin cuenta, tus notas no salen del dispositivo; con ella, se sincronizan entre el móvil, el ordenador y la web.
 • Bloquea la app o solo algunas notas con Face ID, huella o el código del dispositivo.
 • Copia de seguridad completa en un fichero que guardas donde quieras, y exportación a Markdown, texto o PDF.
 

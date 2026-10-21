@@ -19,13 +19,13 @@
       "distribution": "internal",
       "channel": "preview",
       "environment": "preview",
-      "env": { "EXPO_PUBLIC_APP_ENV": "preview" },
+      "env": { "EXPO_PUBLIC_APP_ENV": "preview", "SENTRY_DISABLE_AUTO_UPLOAD": "true" },
       "android": { "buildType": "apk" }
     },
     "e2e-test": {
       "withoutCredentials": true,
       "environment": "preview",
-      "env": { "EXPO_PUBLIC_APP_ENV": "e2e" },
+      "env": { "EXPO_PUBLIC_APP_ENV": "e2e", "SENTRY_DISABLE_AUTO_UPLOAD": "true" },
       "ios": { "simulator": true },
       "android": { "buildType": "apk" }
     },

@@ -559,7 +559,7 @@ const en: Catalog = {
     notificationsOn: 'Notifications are on',
     welcome: {
       title: 'Your notes, on your device',
-      body: 'Write notes, lists and voice notes. Everything stays on this device: no accounts, no servers.',
+      body: 'Write notes, lists and voice notes. Everything is stored on this device and, if you want, syncs with your Google account in Settings.',
     },
     organize: {
       title: 'Everything in its place',
@@ -584,8 +584,12 @@ const en: Catalog = {
       'Notas is a local-first notes app. This policy explains what data it handles and where that data stays.',
     sections: {
       notes: {
-        title: 'Your notes stay on your device',
-        body: 'Notes, lists, folders, tags, reminders, images and voice notes are stored only on your device (on the web, in your browser’s storage). There are no accounts or sync servers: nobody else, including us, can read them.',
+        title: 'Your notes live on your device',
+        body: 'Notes, lists, folders, tags, reminders, images and voice notes are stored on your device (on the web, in your browser’s storage). Without an account, they never leave it.',
+      },
+      sync: {
+        title: 'Account and sync (optional)',
+        body: 'If you sign in with Google to sync, we receive your name and email from Google, and a copy of your notes, attachments, folders, tags and reminders is stored with Supabase (our database provider) to bring it to your other devices. Each account can only read its own data and the connection is encrypted. Signing out keeps your notes on the device; to delete your account and its server copy, email us at the contact address.',
       },
       permissions: {
         title: 'Permissions',
@@ -601,7 +605,7 @@ const en: Catalog = {
       },
       web: {
         title: 'Web version',
-        body: 'The web version is served from EAS Hosting (Expo). As with any website, the server receives technical connection data (IP address, browser) to deliver the page. Your notes never leave the browser.',
+        body: 'The web version is served from Vercel. As with any website, the server receives technical connection data (IP address, browser) to deliver the page. Your notes never leave the browser unless you turn on sync.',
       },
       sharing: {
         title: 'No ads, no selling data',
@@ -609,7 +613,7 @@ const en: Catalog = {
       },
       children: {
         title: 'Children',
-        body: 'The app does not collect personal data, including from children.',
+        body: 'Without an account, the app does not collect personal data. Sync is not intended for children under 14.',
       },
       changes: {
         title: 'Changes',
@@ -620,6 +624,41 @@ const en: Catalog = {
         body: 'For any privacy question, write to us:',
       },
     },
+  },
+  account: {
+    title: 'Account and sync',
+    signedOutTitle: 'Your notes on all your devices',
+    signedOutHint:
+      'Sign in with Google to sync your notes across your phone, computer and the web. Without an account, everything stays on this device.',
+    signIn: 'Continue with Google',
+    signInFailed: 'Couldn’t sign in. Please try again.',
+    completing: 'Signing in…',
+    status: {
+      idle: 'Synced: {{when}}',
+      never: 'Not synced yet',
+      syncing: 'Syncing…',
+      error: 'Couldn’t sync. It will retry on its own.',
+    },
+    syncNow: 'Sync now',
+    signOut: 'Sign out',
+    signOutTitle: 'Sign out?',
+    signOutMessage: 'Your notes stay on this device, but they won’t sync until you sign in again.',
+    signedOut: 'Signed out',
+    deleteAccount: 'Delete account',
+    deleteTitle: 'Delete your account?',
+    deleteMessage:
+      'Your account and the server copy of your notes will be deleted. The notes on this device stay here, and so do those on your other devices, but they will stop syncing.',
+    deleteConfirm: 'Delete',
+    deleted: 'Account deleted',
+    deleteFailed: 'Couldn’t delete the account. Check your connection and try again.',
+  },
+  install: {
+    title: 'Get the app',
+    android: 'Android app',
+    androidHint: 'Download the installer (APK)',
+    desktop: 'Install on this computer',
+    desktopHint: 'Opens in its own window, like an app',
+    desktopManual: 'In Chrome or Edge: ⋮ menu → “Install Notas”. In Safari: File → “Add to Dock”.',
   },
   settings: {
     title: 'Settings',
