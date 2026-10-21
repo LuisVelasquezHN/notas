@@ -26,13 +26,18 @@ class FakeServer {
   files = new Map<string, string>();
   seq = 0;
 
-  push(changes: Omit<ServerRow, 'seq'>[]) {
+  /** Como `push_changes`: todo o nada; una nota titulada "DEMASIADO" incumple un límite. */
+  push(changes: Omit<ServerRow, 'seq'>[]): { code: string; message: string } | null {
+    if (changes.some((c) => c.data?.title === 'DEMASIADO')) {
+      return { code: '23514', message: 'sync_rows_data_size_check' };
+    }
     for (const c of JSON.parse(JSON.stringify(changes)) as Omit<ServerRow, 'seq'>[]) {
       const key = `${c.tbl}:${c.row_id}`;
       const existing = this.rows.get(key);
       if (existing && c.updated_at < existing.updated_at) continue;
       this.rows.set(key, { ...c, data: c.deleted ? null : c.data, seq: ++this.seq });
     }
+    return null;
   }
 
   live(tbl: string) {
@@ -117,6 +122,7 @@ jest.mock('expo-sqlite/kv-store', () => ({
   default: {
     getItemSync: (k: string) => mockCurrent.kv.get(k) ?? null,
     setItemSync: (k: string, v: string) => mockCurrent.kv.set(k, v),
+    removeItemSync: (k: string) => mockCurrent.kv.delete(k),
   },
 }));
 jest.mock('../files', () => ({
@@ -130,8 +136,7 @@ jest.mock('../supabase', () => ({
   getSupabase: () => ({
     auth: { getSession: async () => ({ data: { session: { user: { id: 'user-1' } } } }) },
     rpc: async (_name: string, { changes }: { changes: Omit<ServerRow, 'seq'>[] }) => {
-      mockServer.push(changes);
-      return { error: null };
+      return { error: mockServer.push(changes) };
     },
     from: () => {
       let after = 0;
@@ -159,8 +164,10 @@ jest.mock('../supabase', () => ({
   }),
 }));
 
+jest.mock('@/features/attachments/repository', () => ({ cleanupAfterDelete: async () => {} }));
+
 // eslint-disable-next-line import/first
-import { syncNow } from '../engine';
+import { syncNow, wipeLocalData } from '../engine';
 // eslint-disable-next-line import/first
 import { ensureSyncTracking } from '../tracking';
 
@@ -309,5 +316,36 @@ describe('sincronización entre dos dispositivos', () => {
     await sync(b);
     await sync(a);
     for (const d of [a, b]) expect(all(d, 'SELECT title FROM notes')).toEqual([{ title: 'B' }]);
+  });
+
+  it('una fila que el servidor rechaza no atasca la sincronización', async () => {
+    const a = await device();
+    addNote(a, 'n1', 'bien', 10);
+    addNote(a, 'n2', 'DEMASIADO', 10);
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await sync(a);
+    warn.mockRestore();
+    expect(mockServer.live('notes').map((r) => r.row_id)).toEqual(['n1']);
+    expect(all(a, 'SELECT count(*) AS n FROM sync_outbox')).toEqual([{ n: 0 }]);
+  });
+
+  it('al cerrar sesión se quitan los datos del dispositivo y vuelven al entrar', async () => {
+    const a = await device();
+    addNote(a, 'n1', 'hola', 10);
+    a.client.sqlite.exec(
+      "INSERT INTO tags (id, name, created_at, updated_at) VALUES ('t1', 'x', 1, 1)",
+    );
+    await sync(a);
+
+    mockCurrent = a;
+    await wipeLocalData('user-1');
+    expect(all(a, 'SELECT count(*) AS n FROM notes')).toEqual([{ n: 0 }]);
+    expect(all(a, 'SELECT count(*) AS n FROM tags')).toEqual([{ n: 0 }]);
+    expect(all(a, 'SELECT count(*) AS n FROM sync_outbox')).toEqual([{ n: 0 }]);
+    // El borrado local no llega al servidor.
+    expect(mockServer.live('notes')).toHaveLength(1);
+
+    await sync(a);
+    expect(all(a, 'SELECT id, title FROM notes')).toEqual([{ id: 'n1', title: 'hola' }]);
   });
 });

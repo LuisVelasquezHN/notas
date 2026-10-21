@@ -8,6 +8,7 @@ import { useAppLocked } from '@/stores/security-store';
 import { radius, spacing, useTheme } from '@/theme';
 
 import { Icon, type IconName } from './icon';
+import { KeyboardAvoider } from './keyboard-avoider';
 import { Text } from './text';
 
 /**
@@ -43,7 +44,8 @@ export function Sheet({ visible, onClose, title, children }: SheetProps) {
       transparent
       animationType={reduceMotion ? 'fade' : 'slide'}
       onRequestClose={onClose}>
-      <View style={styles.root}>
+      {/* Las hojas con campos (carpeta, etiqueta…) suben con el teclado. */}
+      <KeyboardAvoider style={styles.root}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('common.close')}
@@ -61,11 +63,11 @@ export function Sheet({ visible, onClose, title, children }: SheetProps) {
               {title}
             </Text>
           ) : null}
-          <ScrollView bounces={false} keyboardShouldPersistTaps="handled">
+          <ScrollView bounces={false} keyboardShouldPersistTaps="handled" style={styles.scroll}>
             {children}
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoider>
     </Modal>
   );
 }
@@ -120,6 +122,9 @@ const styles = StyleSheet.create({
     maxWidth: 560,
     maxHeight: '85%',
     alignSelf: 'center',
+    // Con el teclado abierto queda menos alto: la hoja encoge y su contenido se desplaza.
+    flexShrink: 1,
+    overflow: 'hidden',
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     paddingTop: spacing.sm,
@@ -131,6 +136,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     marginBottom: spacing.sm,
   },
+  scroll: { flexGrow: 0, flexShrink: 1 },
   title: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   item: {
     flexDirection: 'row',

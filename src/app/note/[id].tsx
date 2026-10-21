@@ -2,18 +2,19 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { useAnimatedRef } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, EmptyState, Icon, IconButton, Screen, Text } from '@/components/ui';
+import {
+  Button,
+  EmptyState,
+  Icon,
+  IconButton,
+  KeyboardAvoider,
+  Screen,
+  Text,
+} from '@/components/ui';
 import type { Note } from '@/db';
 import { AttachSheet } from '@/features/attachments/components/attach-sheet';
 import { AudioList } from '@/features/attachments/components/audio-list';
@@ -188,10 +189,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
         }}
       />
 
-      <KeyboardAvoidingView
-        style={styles.root}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={insets.top + 44}>
+      <KeyboardAvoider style={styles.root} offset={insets.top + 44}>
         <Animated.ScrollView
           ref={scrollRef}
           keyboardShouldPersistTaps="handled"
@@ -324,7 +322,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
             }
           />
         ) : null}
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
 
       <AttachSheet
         noteId={note.id}

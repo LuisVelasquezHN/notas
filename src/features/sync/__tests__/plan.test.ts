@@ -288,4 +288,12 @@ describe('planPull', () => {
     );
     expect(fresh.upserts[0].row.localUri).toBe('');
   });
+
+  it('ignora ids que podrían salirse de la carpeta de adjuntos', () => {
+    const plan = planPull(
+      [change('attachments', '../../x', { id: '../../x' }), change('notes', 'n/1', note('n/1', 1))],
+      snapshot(),
+    );
+    expect(plan.upserts).toHaveLength(0);
+  });
 });

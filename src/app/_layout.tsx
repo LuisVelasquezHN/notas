@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { AppBootstrap } from '@/components/app-bootstrap';
 import { SnackbarHost } from '@/components/ui';
@@ -55,41 +56,46 @@ function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={navTheme}>
-        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-        <AppBootstrap>
-          <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
-            {/* Pública también en la web (enlace de las fichas de las tiendas). */}
-            <Stack.Screen name="privacy" options={{ title: t('privacy.title') }} />
-            {/* Vuelta del inicio de sesión con Google (también llega antes de la presentación). */}
-            <Stack.Screen
-              name="auth/callback"
-              options={{ headerShown: false, animation: 'none' }}
-            />
-            {/* Primer arranque: solo la presentación; al terminarla, el resto de la app. */}
-            <Stack.Protected guard={!onboarded}>
-              <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
-            </Stack.Protected>
-            <Stack.Protected guard={onboarded} redirectTo="/onboarding">
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="note/[id]" options={{ title: '' }} />
-              <Stack.Screen name="folder/[id]" options={{ title: '' }} />
-              <Stack.Screen name="tag/[id]" options={{ title: '' }} />
-              <Stack.Screen name="smart/[id]" options={{ title: '' }} />
-              <Stack.Screen name="favorites" options={{ title: t('screens.favorites') }} />
-              <Stack.Screen name="search" options={{ title: t('screens.search') }} />
-              <Stack.Screen name="archive" options={{ title: t('screens.archive') }} />
-              <Stack.Screen name="trash" options={{ title: t('screens.trash') }} />
-              <Stack.Screen name="new" options={{ title: '', animation: 'none' }} />
-            </Stack.Protected>
-          </Stack>
-          <ReminderRuntime />
-          <QuickActionsRuntime />
-          <SyncRuntime />
-          <SnackbarHost />
-          <AppLockGate />
-        </AppBootstrap>
-      </ThemeProvider>
+      <KeyboardProvider>
+        <ThemeProvider value={navTheme}>
+          <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+          <AppBootstrap>
+            <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
+              {/* Pública también en la web (enlace de las fichas de las tiendas). */}
+              <Stack.Screen name="privacy" options={{ title: t('privacy.title') }} />
+              {/* Vuelta del inicio de sesión con Google (también llega antes de la presentación). */}
+              <Stack.Screen
+                name="auth/callback"
+                options={{ headerShown: false, animation: 'none' }}
+              />
+              {/* Primer arranque: solo la presentación; al terminarla, el resto de la app. */}
+              <Stack.Protected guard={!onboarded}>
+                <Stack.Screen
+                  name="onboarding"
+                  options={{ headerShown: false, animation: 'fade' }}
+                />
+              </Stack.Protected>
+              <Stack.Protected guard={onboarded} redirectTo="/onboarding">
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="note/[id]" options={{ title: '' }} />
+                <Stack.Screen name="folder/[id]" options={{ title: '' }} />
+                <Stack.Screen name="tag/[id]" options={{ title: '' }} />
+                <Stack.Screen name="smart/[id]" options={{ title: '' }} />
+                <Stack.Screen name="favorites" options={{ title: t('screens.favorites') }} />
+                <Stack.Screen name="search" options={{ title: t('screens.search') }} />
+                <Stack.Screen name="archive" options={{ title: t('screens.archive') }} />
+                <Stack.Screen name="trash" options={{ title: t('screens.trash') }} />
+                <Stack.Screen name="new" options={{ title: '', animation: 'none' }} />
+              </Stack.Protected>
+            </Stack>
+            <ReminderRuntime />
+            <QuickActionsRuntime />
+            <SyncRuntime />
+            <SnackbarHost />
+            <AppLockGate />
+          </AppBootstrap>
+        </ThemeProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

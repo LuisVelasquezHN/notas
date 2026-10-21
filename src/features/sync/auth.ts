@@ -3,7 +3,7 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
-import { forgetAccount } from './engine';
+import { forgetAccount, hasPendingChanges, syncNow, wipeLocalData } from './engine';
 import { deleteAllAttachments } from './files';
 import type { Account } from './store';
 import { getSupabase } from './supabase';
@@ -75,9 +75,22 @@ export async function signInWithGoogle(): Promise<SignInResult> {
   return (await exchangeCode(code)) ? 'ok' : 'error';
 }
 
-/** Cierra la sesión. Las notas se quedan en el dispositivo. */
-export async function signOut(): Promise<void> {
-  await getSupabase().auth.signOut();
+export type SignOutResult = 'ok' | 'pending';
+
+/**
+ * Cierra la sesión y quita los datos de la cuenta de este dispositivo (siguen en la cuenta).
+ * Antes se sube lo pendiente: si no se puede (sin conexión), no se cierra y devuelve `'pending'`
+ * para no perder nada.
+ */
+export async function signOut(): Promise<SignOutResult> {
+  const supabase = getSupabase();
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user.id;
+  await syncNow();
+  if (await hasPendingChanges()) return 'pending';
+  await supabase.auth.signOut();
+  if (userId) await wipeLocalData(userId);
+  return 'ok';
 }
 
 /**

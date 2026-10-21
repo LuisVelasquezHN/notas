@@ -2,4 +2,4 @@
 export const CONTACT_EMAIL = 'gestiones@novotechn.com';
 
 /** Fecha de la versión vigente de la política de privacidad (actualizarla al cambiar el texto). */
-export const PRIVACY_POLICY_DATE = '2026-10-20';
+export const PRIVACY_POLICY_DATE = '2026-10-21';

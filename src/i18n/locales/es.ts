@@ -594,7 +594,7 @@ const es = {
       },
       sync: {
         title: 'Cuenta y sincronización (opcional)',
-        body: 'Si entras con Google para sincronizar, recibimos de Google tu nombre y tu email, y una copia de tus notas, adjuntos, carpetas, etiquetas y recordatorios se guarda en Supabase (nuestro proveedor de base de datos) para llevarla a tus otros dispositivos. Cada cuenta solo puede leer sus propios datos y la conexión va cifrada. Al cerrar sesión tus notas se quedan en el dispositivo; para borrar la cuenta y su copia en el servidor, escríbenos al email de contacto.',
+        body: 'Si entras con Google para sincronizar, recibimos de Google tu nombre y tu email, y una copia de tus notas, adjuntos, carpetas, etiquetas y recordatorios se guarda en Supabase (nuestro proveedor de base de datos) para llevarla a tus otros dispositivos. Cada cuenta solo puede leer sus propios datos y la conexión va cifrada. Al cerrar sesión, las notas de la cuenta se quitan del dispositivo y siguen en la cuenta. Puedes eliminar la cuenta y su copia en el servidor en Ajustes → Cuenta y sincronización, o pedirlo en el email de contacto.',
       },
       permissions: {
         title: 'Permisos',
@@ -648,8 +648,10 @@ const es = {
     signOut: 'Cerrar sesión',
     signOutTitle: '¿Cerrar sesión?',
     signOutMessage:
-      'Tus notas se quedan en este dispositivo, pero dejarán de sincronizarse hasta que vuelvas a entrar.',
+      'Tus notas se quitarán de este dispositivo, pero siguen en tu cuenta: volverán al entrar de nuevo. Así nadie que use este dispositivo después podrá verlas.',
     signedOut: 'Sesión cerrada',
+    signOutPending:
+      'No se pudieron subir los últimos cambios. Conéctate a internet y vuelve a intentarlo.',
     deleteAccount: 'Eliminar la cuenta',
     deleteTitle: '¿Eliminar la cuenta?',
     deleteMessage:
