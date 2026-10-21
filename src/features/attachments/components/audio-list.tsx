@@ -1,4 +1,5 @@
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { IconButton, Text } from '@/components/ui';
@@ -16,6 +17,7 @@ type AudioListProps = {
 
 /** Notas de voz de la nota: reproducir/pausar, progreso y borrar. */
 export function AudioList({ audios, editable }: AudioListProps) {
+  const { t } = useTranslation();
   if (audios.length === 0) return null;
   return (
     <View style={styles.list}>
@@ -23,7 +25,11 @@ export function AudioList({ audios, editable }: AudioListProps) {
         <AudioRow
           key={audio.id}
           audio={audio}
-          label={audios.length > 1 ? `Nota de voz ${i + 1}` : 'Nota de voz'}
+          label={
+            audios.length > 1
+              ? t('attachments.voiceNoteN', { n: i + 1 })
+              : t('attachments.voiceNote')
+          }
           editable={editable}
         />
       ))}
@@ -41,6 +47,7 @@ function AudioRow({
   editable: boolean;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const player = useAudioPlayer(resolveUri(audio.localUri), { updateInterval: 250 });
   const status = useAudioPlayerStatus(player);
   // En web, las grabaciones WebM de Chrome no traen duración: se usa la medida al grabar.
@@ -65,7 +72,9 @@ function AudioRow({
     <View style={[styles.row, { backgroundColor: colors.surfaceMuted }]}>
       <IconButton
         icon={status.playing ? 'pause' : 'play'}
-        accessibilityLabel={status.playing ? `Pausar ${label}` : `Reproducir ${label}`}
+        accessibilityLabel={
+          status.playing ? t('attachments.pause', { label }) : t('attachments.play', { label })
+        }
         color={colors.text}
         onPress={() => void toggle()}
       />
@@ -88,7 +97,7 @@ function AudioRow({
         <IconButton
           icon="close"
           size={18}
-          accessibilityLabel={`Eliminar ${label}`}
+          accessibilityLabel={t('attachments.deleteNamed', { label })}
           color={colors.textSecondary}
           onPress={() => {
             player.pause();

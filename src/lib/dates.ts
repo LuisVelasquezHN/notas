@@ -1,3 +1,5 @@
+import { currentLocale, t, type TFunction } from '@/i18n';
+
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Días que una nota permanece en la papelera antes de borrarse definitivamente. */
@@ -9,22 +11,30 @@ export function daysLeftInTrash(deletedAt: number, now: number = Date.now()): nu
   return Math.max(0, Math.ceil((expiresAt - now) / DAY_MS));
 }
 
-/** Fecha corta y relativa para las tarjetas: "Ahora", "Hace 5 min", "Ayer", "12 mar", "12 mar 2024". */
-export function formatRelativeDate(timestamp: number, now: number = Date.now()): string {
+/**
+ * Fecha corta y relativa para las tarjetas: "Ahora", "Hace 5 min", "Ayer", "12 mar", "12 mar 2024".
+ * En el render, pasa el `t` de `useTranslation()` (ver `@/i18n`).
+ */
+export function formatRelativeDate(
+  timestamp: number,
+  now: number = Date.now(),
+  tr: TFunction = t,
+): string {
   const diff = now - timestamp;
-  if (diff < 60_000) return 'Ahora';
-  if (diff < 3_600_000) return `Hace ${Math.floor(diff / 60_000)} min`;
+  if (diff < 60_000) return tr('dates.now');
+  if (diff < 3_600_000) return tr('dates.minutesAgo', { count: Math.floor(diff / 60_000) });
 
+  const locale = currentLocale();
   const date = new Date(timestamp);
   const today = new Date(now);
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   if (timestamp >= startOfToday) {
-    return date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   }
-  if (timestamp >= startOfToday - DAY_MS) return 'Ayer';
+  if (timestamp >= startOfToday - DAY_MS) return tr('dates.yesterday');
 
   const sameYear = date.getFullYear() === today.getFullYear();
-  return date.toLocaleDateString('es', {
+  return date.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'short',
     ...(sameYear ? {} : { year: 'numeric' }),

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, TextInput } from 'react-native';
 
 import { useAutoGrow } from '@/lib/use-auto-grow';
@@ -14,21 +15,22 @@ export function PlainTextEditor({
   value,
   onChange,
   editable = true,
-  placeholder = 'Escribe algo…',
+  placeholder,
   autoFocus = false,
   textColor,
 }: EditorAdapterProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const text = useMemo(() => docToText(value), [value]);
   const autoGrow = useAutoGrow(MIN_HEIGHT);
 
   return (
     <TextInput
-      accessibilityLabel="Contenido de la nota"
+      accessibilityLabel={t('editor.contentLabel')}
       value={text}
       onChangeText={(next) => onChange(textToDoc(next))}
       editable={editable}
-      placeholder={placeholder}
+      placeholder={placeholder ?? t('editor.placeholder')}
       placeholderTextColor={colors.textMuted}
       selectionColor={colors.primary}
       autoFocus={autoFocus}

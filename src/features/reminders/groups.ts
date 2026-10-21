@@ -1,15 +1,13 @@
+import { t, type TFunction } from '@/i18n';
+
 import { dayDiff } from './format';
 
 export const REMINDER_GROUPS = ['overdue', 'today', 'tomorrow', 'week', 'later'] as const;
 export type ReminderGroup = (typeof REMINDER_GROUPS)[number];
 
-export const REMINDER_GROUP_LABELS: Record<ReminderGroup, string> = {
-  overdue: 'Vencidos',
-  today: 'Hoy',
-  tomorrow: 'Mañana',
-  week: 'Próximos 7 días',
-  later: 'Más adelante',
-};
+export function reminderGroupLabel(group: ReminderGroup, tr: TFunction = t): string {
+  return tr(`reminders.groups.${group}`);
+}
 
 export function reminderGroup(fireAt: number, now: number): ReminderGroup {
   if (fireAt <= now) return 'overdue';

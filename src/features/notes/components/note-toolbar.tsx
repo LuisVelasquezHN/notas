@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { IconButton } from '@/components/ui';
@@ -31,6 +32,7 @@ export function NoteToolbar({
   format,
 }: NoteToolbarProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   return (
     <View
       style={[
@@ -42,7 +44,7 @@ export function NoteToolbar({
           <>
             <IconButton
               icon="close"
-              accessibilityLabel="Cerrar formato"
+              accessibilityLabel={t('format.close')}
               onPress={format.onToggle}
             />
             <View style={styles.formats}>
@@ -53,14 +55,18 @@ export function NoteToolbar({
           <>
             <IconButton
               icon="addBox"
-              accessibilityLabel="Añadir imagen o audio"
+              accessibilityLabel={t('attachments.addHint')}
               onPress={onAttach}
             />
-            <IconButton icon="mic" accessibilityLabel="Grabar nota de voz" onPress={onRecord} />
+            <IconButton
+              icon="mic"
+              accessibilityLabel={t('attachments.recordVoice')}
+              onPress={onRecord}
+            />
             {format ? (
               <IconButton
                 icon="textFormat"
-                accessibilityLabel="Formato de texto"
+                accessibilityLabel={t('format.open')}
                 onPress={format.onToggle}
               />
             ) : null}

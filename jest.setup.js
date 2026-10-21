@@ -10,3 +10,8 @@ jest.mock('@/lib/kv-storage', () => {
     warmUpKvStorage: async () => {},
   };
 });
+
+// Los tests comprueban los textos en español (el catálogo de referencia) salvo que cambien de idioma.
+beforeEach(() => {
+  require('@/i18n').applyLanguage('es');
+});

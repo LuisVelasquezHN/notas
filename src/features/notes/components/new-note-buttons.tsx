@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,6 +27,7 @@ type NewNoteButtonsProps = {
 /** Botones flotantes: nota de texto (principal), checklist o desde plantilla. */
 export function NewNoteButtons({ folderId = null, tagId, favorite = false }: NewNoteButtonsProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   // En selección múltiple la barra de acciones ocupa su sitio.
   const selecting = useIsSelecting();
@@ -49,8 +51,8 @@ export function NewNoteButtons({ folderId = null, tagId, favorite = false }: New
   if (selecting) return null;
 
   const secondary: { icon: IconName; label: string; onPress: () => void }[] = [
-    { icon: 'checklist', label: 'Nueva lista', onPress: () => void create('checklist') },
-    { icon: 'template', label: 'Nueva desde plantilla', onPress: () => setTemplatesOpen(true) },
+    { icon: 'checklist', label: t('newNote.checklist'), onPress: () => void create('checklist') },
+    { icon: 'template', label: t('newNote.template'), onPress: () => setTemplatesOpen(true) },
   ];
 
   return (
@@ -73,7 +75,7 @@ export function NewNoteButtons({ folderId = null, tagId, favorite = false }: New
           <Icon name={button.icon} size={22} color={colors.text} />
         </Pressable>
       ))}
-      <Fab accessibilityLabel="Nueva nota" onPress={() => void create('text')} />
+      <Fab accessibilityLabel={t('newNote.text')} onPress={() => void create('text')} />
       <TemplateSheet
         visible={templatesOpen}
         onClose={() => setTemplatesOpen(false)}

@@ -1,4 +1,5 @@
 import { NOTE_TYPES, type NoteType } from '@/db/schema';
+import { t, type TFunction } from '@/i18n';
 import { DAY_MS } from '@/lib/dates';
 import { NOTE_COLOR_TOKENS, type NoteColor } from '@/theme/tokens';
 
@@ -6,12 +7,9 @@ import { NOTE_COLOR_TOKENS, type NoteColor } from '@/theme/tokens';
 export const MODIFIED_WITHIN = ['day', 'week', 'month', 'year'] as const;
 export type ModifiedWithin = (typeof MODIFIED_WITHIN)[number];
 
-export const MODIFIED_WITHIN_LABELS: Record<ModifiedWithin, string> = {
-  day: 'Últimas 24 horas',
-  week: 'Últimos 7 días',
-  month: 'Últimos 30 días',
-  year: 'Último año',
-};
+export function modifiedWithinLabel(within: ModifiedWithin, tr: TFunction = t): string {
+  return tr(`filters.modified.${within}`);
+}
 
 const MODIFIED_WITHIN_DAYS: Record<ModifiedWithin, number> = {
   day: 1,
@@ -119,27 +117,6 @@ export function parseFilter(json: string | null | undefined): NoteFilter {
   }
 }
 
-const TYPE_LABELS: Record<NoteType, string> = {
-  text: 'Texto',
-  checklist: 'Lista',
-  image: 'Imagen',
-  audio: 'Voz',
-};
-
-const COLOR_LABELS: Record<NoteColor, string> = {
-  default: 'Sin color',
-  red: 'Rojo',
-  orange: 'Naranja',
-  yellow: 'Amarillo',
-  green: 'Verde',
-  teal: 'Turquesa',
-  blue: 'Azul',
-  purple: 'Morado',
-  pink: 'Rosa',
-  brown: 'Marrón',
-  gray: 'Gris',
-};
-
 export type FilterPart = {
   key: string;
   label: string;
@@ -156,7 +133,11 @@ type NameLookup = {
  * Desglosa un filtro en partes legibles ("Rojo", "#trabajo", "Favoritas"…), cada una con el
  * filtro resultante de quitarla. Los IDs que ya no existen (etiqueta o carpeta borrada) se omiten.
  */
-export function describeFilter(filter: NoteFilter, names: NameLookup): FilterPart[] {
+export function describeFilter(
+  filter: NoteFilter,
+  names: NameLookup,
+  tr: TFunction = t,
+): FilterPart[] {
   const parts: FilterPart[] = [];
   const list = <K extends 'types' | 'colors' | 'tagIds' | 'folderIds'>(
     key: K,
@@ -174,8 +155,8 @@ export function describeFilter(filter: NoteFilter, names: NameLookup): FilterPar
       });
     }
   };
-  list('types', (t) => TYPE_LABELS[t]);
-  list('colors', (c) => COLOR_LABELS[c]);
+  list('types', (type) => tr(`noteTypes.${type}`));
+  list('colors', (color) => tr(`colors.${color}`));
   list('tagIds', (id) => {
     const name = names.tag(id);
     return name ? `#${name}` : undefined;
@@ -184,18 +165,19 @@ export function describeFilter(filter: NoteFilter, names: NameLookup): FilterPar
   if (filter.modifiedWithin) {
     parts.push({
       key: 'modifiedWithin',
-      label: MODIFIED_WITHIN_LABELS[filter.modifiedWithin],
+      label: modifiedWithinLabel(filter.modifiedWithin, tr),
       without: { ...filter, modifiedWithin: undefined },
     });
   }
-  const flags = [
-    ['favorite', 'Favoritas'],
-    ['hasReminder', 'Con recordatorio'],
-    ['hasAttachments', 'Con adjuntos'],
-    ['includeArchived', 'Incluye archivadas'],
-  ] as const;
-  for (const [key, label] of flags) {
-    if (filter[key]) parts.push({ key, label, without: { ...filter, [key]: undefined } });
+  const flags = ['favorite', 'hasReminder', 'hasAttachments', 'includeArchived'] as const;
+  for (const key of flags) {
+    if (filter[key]) {
+      parts.push({
+        key,
+        label: tr(`filters.flags.${key}`),
+        without: { ...filter, [key]: undefined },
+      });
+    }
   }
   return parts;
 }

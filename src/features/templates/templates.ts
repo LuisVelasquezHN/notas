@@ -1,5 +1,6 @@
 import type { IconName } from '@/components/ui/icon';
 import type { DocNode, EditorDoc } from '@/features/editor/doc';
+import { currentLocale, t, type TFunction } from '@/i18n';
 
 /**
  * Plantillas integradas. Cada una produce el contenido inicial de una nota nueva: un documento
@@ -11,12 +12,16 @@ export type TemplateContent =
   | { type: 'text'; title: string; doc: EditorDoc }
   | { type: 'checklist'; title: string; items: string[] };
 
+export type TemplateId = 'meeting' | 'shopping' | 'journal' | 'project' | 'recipe' | 'packing';
+
+/**
+ * El nombre y la descripción están en el catálogo (`templates.<id>.name` / `.description`); el
+ * contenido se genera en el idioma actual al crear la nota.
+ */
 export type NoteTemplate = {
-  id: string;
-  name: string;
-  description: string;
+  id: TemplateId;
   icon: IconName;
-  build: (now: Date) => TemplateContent;
+  build: (now: Date, tr?: TFunction) => TemplateContent;
 };
 
 const text = (value: string) => ({ type: 'text' as const, text: value });
@@ -46,9 +51,12 @@ const taskList = (items: string[]): DocNode => ({
 });
 const doc = (...content: DocNode[]): EditorDoc => ({ type: 'doc', content });
 
-/** "lunes, 19 de octubre de 2026" (con mayúscula inicial). */
+/** Ítems de una checklist del catálogo: una línea por ítem. */
+const lines = (value: string) => value.split('\n').filter((line) => line.trim());
+
+/** "Lunes, 19 de octubre de 2026" (con mayúscula inicial), en el idioma actual. */
 export function longDate(date: Date): string {
-  const formatted = new Intl.DateTimeFormat('es', {
+  const formatted = new Intl.DateTimeFormat(currentLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -60,102 +68,88 @@ export function longDate(date: Date): string {
 export const TEMPLATES: NoteTemplate[] = [
   {
     id: 'meeting',
-    name: 'Reunión',
-    description: 'Asistentes, temas, acuerdos y tareas',
     icon: 'work',
-    build: (now) => ({
+    build: (now, tr = t) => ({
       type: 'text',
-      title: `Reunión · ${now.toLocaleDateString('es')}`,
+      title: tr('templates.meeting.title', { date: now.toLocaleDateString(currentLocale()) }),
       doc: doc(
-        heading('Asistentes'),
+        heading(tr('templates.meeting.attendees')),
         bulletList(['']),
-        heading('Temas'),
+        heading(tr('templates.meeting.topics')),
         bulletList(['']),
-        heading('Acuerdos'),
+        heading(tr('templates.meeting.decisions')),
         bulletList(['']),
-        heading('Tareas'),
+        heading(tr('templates.meeting.tasks')),
         taskList(['']),
       ),
     }),
   },
   {
     id: 'shopping',
-    name: 'Lista de la compra',
-    description: 'Checklist con lo básico',
     icon: 'cart',
-    build: () => ({
+    build: (_now, tr = t) => ({
       type: 'checklist',
-      title: 'Lista de la compra',
-      items: ['Pan', 'Leche', 'Huevos', 'Fruta', 'Verdura'],
+      title: tr('templates.shopping.name'),
+      items: lines(tr('templates.shopping.items')),
     }),
   },
   {
     id: 'journal',
-    name: 'Diario',
-    description: 'La entrada de hoy, con tres preguntas',
     icon: 'book',
-    build: (now) => ({
+    build: (now, tr = t) => ({
       type: 'text',
       title: longDate(now),
       doc: doc(
-        heading('¿Qué ha pasado hoy?'),
+        heading(tr('templates.journal.today')),
         paragraph(),
-        heading('Hoy agradezco'),
+        heading(tr('templates.journal.grateful')),
         bulletList(['']),
-        heading('Mañana quiero'),
+        heading(tr('templates.journal.tomorrow')),
         paragraph(),
       ),
     }),
   },
   {
     id: 'project',
-    name: 'Proyecto o idea',
-    description: 'Objetivo, notas y próximos pasos',
     icon: 'idea',
-    build: () => ({
+    build: (_now, tr = t) => ({
       type: 'text',
       title: '',
       doc: doc(
-        heading('Objetivo'),
+        heading(tr('templates.project.goal')),
         paragraph(),
-        heading('Notas'),
+        heading(tr('templates.project.notes')),
         bulletList(['']),
-        heading('Próximos pasos'),
+        heading(tr('templates.project.nextSteps')),
         taskList(['']),
       ),
     }),
   },
   {
     id: 'recipe',
-    name: 'Receta',
-    description: 'Ingredientes y pasos',
     icon: 'heart',
-    build: () => ({
+    build: (_now, tr = t) => ({
       type: 'text',
       title: '',
-      doc: doc(heading('Ingredientes'), bulletList(['']), heading('Pasos'), orderedList([''])),
+      doc: doc(
+        heading(tr('templates.recipe.ingredients')),
+        bulletList(['']),
+        heading(tr('templates.recipe.steps')),
+        orderedList(['']),
+      ),
     }),
   },
   {
     id: 'packing',
-    name: 'Equipaje',
-    description: 'Checklist para un viaje',
     icon: 'travel',
-    build: () => ({
+    build: (_now, tr = t) => ({
       type: 'checklist',
-      title: 'Equipaje',
-      items: [
-        'Documentación y billetes',
-        'Cargadores',
-        'Ropa',
-        'Neceser',
-        'Medicinas',
-        'Llaves de casa',
-      ],
+      title: tr('templates.packing.name'),
+      items: lines(tr('templates.packing.items')),
     }),
   },
 ];
 
 export function findTemplate(id: string): NoteTemplate | undefined {
-  return TEMPLATES.find((t) => t.id === id);
+  return TEMPLATES.find((template) => template.id === id);
 }

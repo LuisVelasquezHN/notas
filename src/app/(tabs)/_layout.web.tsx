@@ -8,6 +8,7 @@ import {
   type TabTriggerSlotProps,
 } from 'expo-router/ui';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { Icon, Text, type IconName } from '@/components/ui';
 import { useOverdueCount } from '@/features/reminders/hooks/use-overdue-count';
@@ -27,6 +28,7 @@ function useCompact() {
 export default function TabsLayout() {
   const compact = useCompact();
   const overdue = useOverdueCount();
+  const { t } = useTranslation();
   return (
     <Tabs>
       {compact ? <TabSlot /> : null}
@@ -34,18 +36,18 @@ export default function TabsLayout() {
       <TabList asChild>
         <TabBar>
           <TabTrigger name="index" href="/" asChild>
-            <TabButton icon="note">Notas</TabButton>
+            <TabButton icon="note">{t('tabs.notes')}</TabButton>
           </TabTrigger>
           <TabTrigger name="folders" href="/folders" asChild>
-            <TabButton icon="folder">Carpetas</TabButton>
+            <TabButton icon="folder">{t('tabs.folders')}</TabButton>
           </TabTrigger>
           <TabTrigger name="reminders" href="/reminders" asChild>
             <TabButton icon="bell" badge={overdue}>
-              Recordatorios
+              {t('tabs.reminders')}
             </TabButton>
           </TabTrigger>
           <TabTrigger name="settings" href="/settings" asChild>
-            <TabButton icon="settings">Ajustes</TabButton>
+            <TabButton icon="settings">{t('tabs.settings')}</TabButton>
           </TabTrigger>
         </TabBar>
       </TabList>
@@ -57,6 +59,7 @@ export default function TabsLayout() {
 function TabBar({ children, ...props }: TabListProps) {
   const { colors } = useTheme();
   const compact = useCompact();
+  const { t } = useTranslation();
   return (
     <View
       {...props}
@@ -69,7 +72,7 @@ function TabBar({ children, ...props }: TabListProps) {
       <View style={[styles.inner, compact && styles.innerCompact]}>
         {compact ? null : (
           <Text variant="heading" style={styles.brand}>
-            Notas
+            {t('tabs.notes')}
           </Text>
         )}
         {children}
@@ -88,6 +91,7 @@ function TabButton({
 }: TabTriggerSlotProps & { icon: IconName; badge?: number }) {
   const { colors } = useTheme();
   const compact = useCompact();
+  const { t } = useTranslation();
   const color = isFocused ? colors.text : colors.textSecondary;
   return (
     <Pressable
@@ -103,7 +107,7 @@ function TabButton({
         <Icon name={icon} size={18} color={color} />
         {badge > 0 ? (
           <View
-            accessibilityLabel={`${badge} vencidos`}
+            accessibilityLabel={t('tabs.overdueBadge', { count: badge })}
             style={[styles.badge, { backgroundColor: colors.danger }]}>
             <Text variant="label" style={styles.badgeText}>
               {badge > 99 ? '99+' : badge}

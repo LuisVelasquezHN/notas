@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Chip, Sheet, SheetItem, Text, type IconName } from '@/components/ui';
@@ -48,6 +49,7 @@ export function ReminderEditor({
   onRemove,
 }: ReminderEditorProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const now = useNow();
   const [custom, setCustom] = useState(false);
   const [value, setValue] = useState(() =>
@@ -61,30 +63,34 @@ export function ReminderEditor({
       <View>
         {current ? (
           <Text tone="secondary" style={styles.current}>
-            {formatReminder(current.fireAt, now)}
+            {formatReminder(current.fireAt, now, t)}
             {currentKind !== 'none'
-              ? ` · ${recurrenceLabel(currentKind, parseRecurrence(current.rrule)!.start)}`
+              ? ` · ${recurrenceLabel(currentKind, parseRecurrence(current.rrule)!.start, t)}`
               : ''}
           </Text>
         ) : null}
-        {reminderPresets(now).map((preset) => (
+        {reminderPresets(now, t).map((preset) => (
           <SheetItem
             key={preset.key}
             icon={PRESET_ICONS[preset.key] ?? 'clock'}
             label={preset.label}
             trailing={
               <Text variant="caption" tone="muted">
-                {formatReminder(preset.at, now)}
+                {formatReminder(preset.at, now, t)}
               </Text>
             }
             onPress={() => onSave({ fireAt: preset.at, rrule: null })}
           />
         ))}
-        <SheetItem icon="calendar" label="Elegir fecha y hora" onPress={() => setCustom(true)} />
+        <SheetItem
+          icon="calendar"
+          label={t('reminders.pickDate')}
+          onPress={() => setCustom(true)}
+        />
         {current && onRemove ? (
           <SheetItem
             icon="bellOff"
-            label={allowRecurrence ? 'Quitar recordatorio' : 'Quitar fecha límite'}
+            label={allowRecurrence ? t('reminders.removeReminder') : t('reminders.removeDue')}
             destructive
             onPress={onRemove}
           />
@@ -106,13 +112,13 @@ export function ReminderEditor({
       {allowRecurrence ? (
         <View style={styles.repeat}>
           <Text variant="label" tone="secondary">
-            REPETIR
+            {t('reminders.repeat').toUpperCase()}
           </Text>
           <View style={styles.chips}>
             {RECURRENCE_KINDS.map((k) => (
               <Chip
                 key={k}
-                label={recurrenceLabel(k, start)}
+                label={recurrenceLabel(k, start, t)}
                 icon={k === 'none' ? undefined : 'repeat'}
                 selected={kind === k}
                 onPress={() => setKind(k)}
@@ -124,12 +130,14 @@ export function ReminderEditor({
       <Text
         variant="caption"
         style={[styles.summary, { color: valid ? colors.textSecondary : colors.danger }]}>
-        {valid ? `Aviso: ${formatReminder(fireAt, now)}` : 'Elige una hora futura'}
+        {valid
+          ? t('reminders.firesAt', { when: formatReminder(fireAt, now, t) })
+          : t('reminders.pickFuture')}
       </Text>
       <View style={styles.buttons}>
-        <Button title="Atrás" variant="secondary" onPress={() => setCustom(false)} />
+        <Button title={t('common.back')} variant="secondary" onPress={() => setCustom(false)} />
         <Button
-          title="Guardar"
+          title={t('common.save')}
           disabled={!valid}
           style={styles.save}
           onPress={() => {
@@ -149,14 +157,10 @@ type ReminderSheetProps = Omit<ReminderEditorProps, 'onSave'> & {
 };
 
 /** Hoja con el selector de recordatorio (editor de la nota, fechas límite, lista de recordatorios). */
-export function ReminderSheet({
-  visible,
-  title = 'Recordatorio',
-  onClose,
-  ...editor
-}: ReminderSheetProps) {
+export function ReminderSheet({ visible, title, onClose, ...editor }: ReminderSheetProps) {
+  const { t } = useTranslation();
   return (
-    <Sheet visible={visible} onClose={onClose} title={title}>
+    <Sheet visible={visible} onClose={onClose} title={title ?? t('reminders.reminder')}>
       {visible ? <ReminderEditor {...editor} /> : null}
     </Sheet>
   );

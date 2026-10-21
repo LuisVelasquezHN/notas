@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
+import { useTranslation } from 'react-i18next';
 
 import { Sheet, SheetItem, afterSheetClose } from '@/components/ui';
 import { confirm } from '@/lib/confirm';
@@ -22,20 +23,20 @@ export function FolderActionsSheet({
   onEdit,
   onDeleted,
 }: FolderActionsSheetProps) {
+  const { t } = useTranslation();
   const { data: all } = useLiveQuery(foldersQuery());
 
   async function remove(target: FolderNode) {
     const ok = await confirm({
-      title: `¿Eliminar «${target.name}»?`,
-      message:
-        'Se eliminarán también sus subcarpetas. Las notas no se borran: pasan a "Sin carpeta".',
-      confirmLabel: 'Eliminar',
+      title: t('folders.deleteTitle', { name: target.name }),
+      message: t('folders.deleteMessage'),
+      confirmLabel: t('common.delete'),
       destructive: true,
     });
     if (!ok) return;
     const deleted = await deleteFolder(target.id, all);
     onDeleted?.();
-    showUndo('Carpeta eliminada', () => restoreFolder(deleted));
+    showUndo(t('folders.deleted'), () => restoreFolder(deleted));
   }
 
   return (
@@ -44,7 +45,7 @@ export function FolderActionsSheet({
         <>
           <SheetItem
             icon="edit"
-            label="Editar"
+            label={t('common.edit')}
             onPress={() => {
               onClose();
               afterSheetClose(() => onEdit({ mode: 'edit', folder }));
@@ -53,7 +54,7 @@ export function FolderActionsSheet({
           {canHaveSubfolders(folder.depth) ? (
             <SheetItem
               icon="folderAdd"
-              label="Nueva subcarpeta"
+              label={t('folders.newSubfolder')}
               onPress={() => {
                 onClose();
                 afterSheetClose(() => onEdit({ mode: 'create', parentId: folder.id }));
@@ -62,7 +63,7 @@ export function FolderActionsSheet({
           ) : null}
           <SheetItem
             icon="trash"
-            label="Eliminar"
+            label={t('common.delete')}
             destructive
             onPress={() => {
               onClose();

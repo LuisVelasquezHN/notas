@@ -1,23 +1,26 @@
+import { useTranslation } from 'react-i18next';
+
 import { Sheet, SheetItem, type IconName } from '@/components/ui';
 import { useSettingsStore, type NotesSortBy } from '@/stores/settings-store';
 
-const OPTIONS: { value: NotesSortBy; label: string; icon: IconName }[] = [
-  { value: 'updatedAt', label: 'Fecha de modificación', icon: 'edit' },
-  { value: 'createdAt', label: 'Fecha de creación', icon: 'add' },
-  { value: 'title', label: 'Título (A–Z)', icon: 'text' },
-  { value: 'manual', label: 'Manual (arrastrar)', icon: 'dragHandle' },
+const OPTIONS: { value: NotesSortBy; icon: IconName }[] = [
+  { value: 'updatedAt', icon: 'edit' },
+  { value: 'createdAt', icon: 'add' },
+  { value: 'title', icon: 'text' },
+  { value: 'manual', icon: 'dragHandle' },
 ];
 
 export function SortSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const sortBy = useSettingsStore((s) => s.notesSortBy);
   const setSortBy = useSettingsStore((s) => s.setNotesSortBy);
+  const { t } = useTranslation();
   return (
-    <Sheet visible={visible} onClose={onClose} title="Ordenar por">
+    <Sheet visible={visible} onClose={onClose} title={t('sort.title')}>
       {OPTIONS.map((option) => (
         <SheetItem
           key={option.value}
           icon={option.icon}
-          label={option.label}
+          label={t(`sort.by.${option.value}`)}
           selected={sortBy === option.value}
           onPress={() => {
             setSortBy(option.value);

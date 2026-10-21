@@ -1,4 +1,5 @@
 import { useDeferredValue, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { EmptyState, IconButton, Screen, TextField } from '@/components/ui';
@@ -20,6 +21,7 @@ const INITIAL_FILTER: NoteFilter = { includeArchived: true };
 export default function SearchScreen() {
   const { colors } = useTheme();
   const layout = useSettingsStore((s) => s.notesLayout);
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [criteria, setCriteria] = useState<NoteFilter>(INITIAL_FILTER);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -37,19 +39,19 @@ export default function SearchScreen() {
         <TextField
           value={query}
           onChangeText={setQuery}
-          placeholder="Buscar en títulos, notas y listas"
+          placeholder={t('search.placeholder')}
           autoFocus
           autoCorrect={false}
           returnKeyType="search"
           clearButtonMode="while-editing"
-          accessibilityLabel="Buscar"
+          accessibilityLabel={t('common.search')}
           style={styles.input}
         />
         {/* iOS ya muestra su propio botón de borrar (`clearButtonMode`). */}
         {query && Platform.OS !== 'ios' ? (
           <IconButton
             icon="close"
-            accessibilityLabel="Borrar búsqueda"
+            accessibilityLabel={t('search.clear')}
             color={colors.textSecondary}
             onPress={() => setQuery('')}
           />
@@ -57,7 +59,7 @@ export default function SearchScreen() {
         {active ? (
           <IconButton
             icon="save"
-            accessibilityLabel="Guardar como carpeta inteligente"
+            accessibilityLabel={t('search.saveAsSmart')}
             onPress={() => setSaveTarget({ mode: 'create', filter })}
           />
         ) : null}
@@ -74,19 +76,13 @@ export default function SearchScreen() {
           active ? (
             <EmptyState
               icon="search"
-              title="Sin resultados"
+              title={t('search.noResults')}
               description={
-                search
-                  ? `No hay notas que contengan «${search}» con estos filtros.`
-                  : 'Ninguna nota cumple estos filtros.'
+                search ? t('search.noResultsFor', { search }) : t('search.noResultsFilters')
               }
             />
           ) : (
-            <EmptyState
-              icon="search"
-              title="Buscar notas"
-              description="Busca por título, contenido o elementos de una lista, o combina filtros por tipo, color, etiqueta, carpeta y fecha."
-            />
+            <EmptyState icon="search" title={t('search.idle')} description={t('search.idleHint')} />
           )
         }
       />

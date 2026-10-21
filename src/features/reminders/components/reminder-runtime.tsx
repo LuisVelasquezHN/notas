@@ -2,8 +2,10 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AppState } from 'react-native';
 
+import { t } from '@/i18n';
 import { capabilities } from '@/lib/capabilities';
 import { showSnackbar } from '@/stores/snackbar-store';
 
@@ -27,6 +29,19 @@ export function ReminderRuntime() {
 }
 
 function NativeRuntime() {
+  const { i18n } = useTranslation();
+  const language = useRef(i18n.language);
+
+  // Al cambiar de idioma: botones de la notificación y nombre del canal, y los textos por defecto
+  // de las notificaciones ya programadas ("Recordatorio", "Elemento de la lista").
+  useEffect(() => {
+    if (language.current === i18n.language) return;
+    language.current = i18n.language;
+    void configureNotifications()
+      .then(() => rescheduleReminders())
+      .catch((e: unknown) => console.warn('Recordatorios: error al cambiar de idioma', e));
+  }, [i18n.language]);
+
   useEffect(() => {
     void (async () => {
       await configureNotifications();
@@ -82,7 +97,7 @@ function InAppAlerts() {
         if (delay <= MAX_TIMEOUT) {
           alerted.current.add(`${next.id}@${next.fireAt}`);
           showSnackbar(`🔔 ${notificationContent(next).title}`, {
-            label: 'Abrir',
+            label: t('common.open'),
             onPress: () => openNote(next.noteId),
           });
         }

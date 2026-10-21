@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useRef, useState, type ComponentRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import type { AnimatedRef } from 'react-native-reanimated';
 import Sortable from 'react-native-sortables';
@@ -46,6 +47,7 @@ type ChecklistEditorProps = {
  */
 export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEditorProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { data: items } = useLiveQuery(checklistItemsQuery(note.id), [note.id]);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [showChecked, setShowChecked] = useState(true);
@@ -72,14 +74,12 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
 
   async function remove(item: ChecklistItem) {
     await deleteItem(item);
-    showUndo('Elemento eliminado', () => restoreItem(item));
+    showUndo(t('checklist.itemDeleted'), () => restoreItem(item));
   }
 
   async function removeChecked() {
     const ids = await deleteCheckedItems(note.id);
-    showUndo(ids.length === 1 ? '1 elemento eliminado' : `${ids.length} elementos eliminados`, () =>
-      restoreItems(note.id, ids),
-    );
+    showUndo(t('checklist.itemsDeleted', { count: ids.length }), () => restoreItems(note.id, ids));
   }
 
   const renderRow = (item: ChecklistItem) => (
@@ -124,10 +124,11 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
       {editable ? (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={t('checklist.addItem')}
           onPress={() => void addAfter(null)}
           style={({ pressed }) => [styles.addRow, pressed && { opacity: 0.6 }]}>
           <Icon name="add" size={20} color={colors.textSecondary} />
-          <Text tone="secondary">Elemento de la lista</Text>
+          <Text tone="secondary">{t('checklist.listItem')}</Text>
         </Pressable>
       ) : null}
 
@@ -142,9 +143,7 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
               <View style={{ transform: [{ rotate: showChecked ? '0deg' : '-90deg' }] }}>
                 <Icon name="chevronDown" size={16} color={colors.textSecondary} />
               </View>
-              <Text tone="secondary">
-                {checked.length === 1 ? '1 completado' : `${checked.length} completados`}
-              </Text>
+              <Text tone="secondary">{t('card.completed', { count: checked.length })}</Text>
             </Pressable>
             {editable ? (
               <>
@@ -152,14 +151,14 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
                   icon="checkbox"
                   size={18}
                   color={colors.textSecondary}
-                  accessibilityLabel="Desmarcar todos"
+                  accessibilityLabel={t('checklist.uncheckAll')}
                   onPress={() => void uncheckAll(note.id)}
                 />
                 <IconButton
                   icon="trash"
                   size={18}
                   color={colors.textSecondary}
-                  accessibilityLabel="Eliminar completados"
+                  accessibilityLabel={t('checklist.deleteChecked')}
                   onPress={() => void removeChecked()}
                 />
               </>
@@ -171,7 +170,7 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
 
       <ReminderSheet
         visible={dueItem !== null}
-        title="Fecha límite"
+        title={t('reminders.due')}
         allowRecurrence={false}
         current={dueItem?.dueAt ? { fireAt: dueItem.dueAt, rrule: null } : null}
         onClose={() => setDueItem(null)}
@@ -217,6 +216,7 @@ function ChecklistRow({
   onDue,
 }: ChecklistRowProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [text, setText] = useState(item.text);
   const [focused, setFocused] = useState(false);
   const autoGrow = useAutoGrow();
@@ -233,7 +233,7 @@ function ChecklistRow({
     <View style={[styles.row, { paddingLeft: item.indent * spacing.xl }]}>
       {draggable ? (
         <Sortable.Handle>
-          <View accessibilityLabel="Arrastrar para reordenar" style={styles.handle}>
+          <View accessibilityLabel={t('checklist.dragHandle')} style={styles.handle}>
             <Icon name="dragHandle" size={18} color={colors.textMuted} />
           </View>
         </Sortable.Handle>
@@ -243,7 +243,7 @@ function ChecklistRow({
       <Pressable
         accessibilityRole="checkbox"
         accessibilityState={{ checked: item.isChecked }}
-        accessibilityLabel={item.text || 'Elemento'}
+        accessibilityLabel={item.text || t('checklist.item')}
         disabled={!editable}
         hitSlop={6}
         onPress={() => {
@@ -284,7 +284,7 @@ function ChecklistRow({
             setTimeout(() => setFocused(false), 200);
             void flush();
           }}
-          placeholder="Elemento"
+          placeholder={t('checklist.item')}
           placeholderTextColor={colors.textMuted}
           selectionColor={colors.primary}
           scrollEnabled={false}
@@ -319,7 +319,7 @@ function ChecklistRow({
               icon="calendar"
               size={18}
               color={colors.textSecondary}
-              accessibilityLabel="Fecha límite"
+              accessibilityLabel={t('reminders.due')}
               onPress={onDue}
             />
           ) : null}
@@ -328,7 +328,7 @@ function ChecklistRow({
             size={18}
             color={colors.textSecondary}
             accessibilityLabel={
-              item.indent >= MAX_INDENT ? 'Quitar sangría' : 'Convertir en subtarea'
+              item.indent >= MAX_INDENT ? t('checklist.outdent') : t('checklist.indent')
             }
             onPress={() =>
               void setItemIndent(item, item.indent >= MAX_INDENT ? 0 : item.indent + 1)
@@ -338,7 +338,7 @@ function ChecklistRow({
             icon="close"
             size={18}
             color={colors.textSecondary}
-            accessibilityLabel="Eliminar elemento"
+            accessibilityLabel={t('checklist.deleteItem')}
             onPress={onDelete}
           />
         </View>

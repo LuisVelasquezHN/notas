@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Chip, ColorSwatch, Sheet, Text, type IconName } from '@/components/ui';
@@ -11,19 +12,19 @@ import { NOTE_COLOR_TOKENS, spacing } from '@/theme';
 
 import {
   MODIFIED_WITHIN,
-  MODIFIED_WITHIN_LABELS,
   activeCriteriaCount,
+  modifiedWithinLabel,
   toggleValue,
   type NoteFilter,
 } from '../filter';
 
 /** Tipos que se pueden filtrar. */
-export const FILTERABLE_TYPES: { value: NoteType; label: string; icon: IconName }[] = [
-  { value: 'text', label: 'Texto', icon: 'text' },
-  { value: 'checklist', label: 'Lista', icon: 'checklist' },
+export const FILTERABLE_TYPES: { value: NoteType; icon: IconName }[] = [
+  { value: 'text', icon: 'text' },
+  { value: 'checklist', icon: 'checklist' },
   // Imagen y voz: notas con imágenes o audios adjuntos (ver `typesCondition`).
-  { value: 'image', label: 'Imagen', icon: 'image' },
-  { value: 'audio', label: 'Voz', icon: 'mic' },
+  { value: 'image', icon: 'image' },
+  { value: 'audio', icon: 'mic' },
 ];
 
 type FilterSheetProps = {
@@ -37,19 +38,20 @@ type FilterSheetProps = {
 
 /** Filtros combinables. Cada cambio se aplica al momento. */
 export function FilterSheet({ visible, filter, onChange, onClose, resultCount }: FilterSheetProps) {
+  const { t } = useTranslation();
   const { data: tags } = useLiveQuery(tagsQuery());
   const { data: folders } = useLiveQuery(foldersQuery());
   const folderRows = flattenFolderTree(buildFolderTree(folders));
   const set = (patch: Partial<NoteFilter>) => onChange({ ...filter, ...patch });
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Filtros">
+    <Sheet visible={visible} onClose={onClose} title={t('filters.title')}>
       <View style={styles.body}>
-        <Section title="TIPO">
-          {FILTERABLE_TYPES.map(({ value, label, icon }) => (
+        <Section title={t('filters.type')}>
+          {FILTERABLE_TYPES.map(({ value, icon }) => (
             <Chip
               key={value}
-              label={label}
+              label={t(`noteTypes.${value}`)}
               icon={icon}
               selected={filter.types?.includes(value) ?? false}
               onPress={() => set({ types: toggleValue(filter.types, value) })}
@@ -57,7 +59,7 @@ export function FilterSheet({ visible, filter, onChange, onClose, resultCount }:
           ))}
         </Section>
 
-        <Section title="COLOR">
+        <Section title={t('filters.color')}>
           {NOTE_COLOR_TOKENS.map((color) => (
             <ColorSwatch
               key={color}
@@ -69,7 +71,7 @@ export function FilterSheet({ visible, filter, onChange, onClose, resultCount }:
         </Section>
 
         {tags.length > 0 ? (
-          <Section title="ETIQUETAS">
+          <Section title={t('filters.tags')}>
             {tags.map((tag) => (
               <Chip
                 key={tag.id}
@@ -83,7 +85,7 @@ export function FilterSheet({ visible, filter, onChange, onClose, resultCount }:
         ) : null}
 
         {folderRows.length > 0 ? (
-          <Section title="CARPETA">
+          <Section title={t('filters.folder')}>
             {folderRows.map((folder) => (
               <Chip
                 key={folder.id}
@@ -96,11 +98,11 @@ export function FilterSheet({ visible, filter, onChange, onClose, resultCount }:
           </Section>
         ) : null}
 
-        <Section title="MODIFICADA">
+        <Section title={t('filters.modifiedTitle')}>
           {MODIFIED_WITHIN.map((value) => (
             <Chip
               key={value}
-              label={MODIFIED_WITHIN_LABELS[value]}
+              label={modifiedWithinLabel(value, t)}
               selected={filter.modifiedWithin === value}
               onPress={() =>
                 set({ modifiedWithin: filter.modifiedWithin === value ? undefined : value })
@@ -109,27 +111,27 @@ export function FilterSheet({ visible, filter, onChange, onClose, resultCount }:
           ))}
         </Section>
 
-        <Section title="OTROS">
+        <Section title={t('filters.other')}>
           <Chip
-            label="Favoritas"
+            label={t('filters.flags.favorite')}
             icon="star"
             selected={filter.favorite ?? false}
             onPress={() => set({ favorite: !filter.favorite || undefined })}
           />
           <Chip
-            label="Con recordatorio"
+            label={t('filters.flags.hasReminder')}
             icon="bell"
             selected={filter.hasReminder ?? false}
             onPress={() => set({ hasReminder: !filter.hasReminder || undefined })}
           />
           <Chip
-            label="Con adjuntos"
+            label={t('filters.flags.hasAttachments')}
             icon="attachment"
             selected={filter.hasAttachments ?? false}
             onPress={() => set({ hasAttachments: !filter.hasAttachments || undefined })}
           />
           <Chip
-            label="Incluir archivadas"
+            label={t('filters.includeArchived')}
             icon="archive"
             selected={filter.includeArchived ?? false}
             onPress={() => set({ includeArchived: !filter.includeArchived || undefined })}
@@ -138,7 +140,7 @@ export function FilterSheet({ visible, filter, onChange, onClose, resultCount }:
 
         <View style={styles.footer}>
           <Button
-            title="Limpiar"
+            title={t('filters.clear')}
             variant="secondary"
             disabled={activeCriteriaCount(filter) === 0}
             onPress={() =>
@@ -149,10 +151,8 @@ export function FilterSheet({ visible, filter, onChange, onClose, resultCount }:
           <Button
             title={
               resultCount === undefined
-                ? 'Listo'
-                : resultCount === 1
-                  ? 'Ver 1 nota'
-                  : `Ver ${resultCount} notas`
+                ? t('common.done')
+                : t('filters.showResults', { count: resultCount })
             }
             onPress={onClose}
             style={styles.footerButton}
@@ -166,8 +166,8 @@ export function FilterSheet({ visible, filter, onChange, onClose, resultCount }:
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text variant="label" tone="secondary">
-        {title}
+      <Text variant="label" tone="secondary" accessibilityRole="header">
+        {title.toUpperCase()}
       </Text>
       <View style={styles.wrap}>{children}</View>
     </View>

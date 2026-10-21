@@ -7,6 +7,7 @@ import {
   type RecordingOptions,
 } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Button, Sheet, Text } from '@/components/ui';
@@ -34,8 +35,9 @@ type VoiceRecorderSheetProps = {
 
 /** Hoja de grabación: empieza a grabar al abrirse; "Guardar" adjunta el audio a la nota. */
 export function VoiceRecorderSheet({ noteId, visible, onClose }: VoiceRecorderSheetProps) {
+  const { t } = useTranslation();
   return (
-    <Sheet visible={visible} onClose={onClose} title="Nota de voz">
+    <Sheet visible={visible} onClose={onClose} title={t('attachments.voiceNote')}>
       {/* El grabador solo existe mientras la hoja está abierta. */}
       {visible ? <Recorder noteId={noteId} onClose={onClose} /> : null}
     </Sheet>
@@ -46,6 +48,7 @@ type Phase = 'starting' | 'recording' | 'saving';
 
 function Recorder({ noteId, onClose }: { noteId: string; onClose: () => void }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const recorder = useAudioRecorder(VOICE_PRESET);
   const state = useAudioRecorderState(recorder, 200);
   const [phase, setPhase] = useState<Phase>('starting');
@@ -60,7 +63,7 @@ function Recorder({ noteId, onClose }: { noteId: string; onClose: () => void }) 
         if (cancelled) return;
         if (!permission.granted) {
           onClose();
-          await permissionDenied('el micrófono', permission.canAskAgain);
+          await permissionDenied('microphone', permission.canAskAgain);
           return;
         }
         await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
@@ -71,7 +74,7 @@ function Recorder({ noteId, onClose }: { noteId: string; onClose: () => void }) 
       } catch (e) {
         if (cancelled) return;
         console.warn('Grabación: no se pudo empezar', e);
-        showSnackbar('No se pudo empezar a grabar');
+        showSnackbar(t('attachments.recordStartFailed'));
         onClose();
       }
     })();
@@ -91,13 +94,13 @@ function Recorder({ noteId, onClose }: { noteId: string; onClose: () => void }) 
     await stopRecording(recorder);
     const uri = recorder.uri;
     try {
-      if (!uri) throw new Error('La grabación no tiene fichero');
+      if (!uri) throw new Error('Recording has no file');
       await addAttachments(noteId, [
         { kind: 'audio', uri, mime: MIME, durationMs, temporary: true },
       ]);
     } catch (e) {
       console.warn('Grabación: no se pudo guardar', e);
-      showSnackbar('No se pudo guardar la nota de voz');
+      showSnackbar(t('attachments.recordSaveFailed'));
     }
     onClose();
   };
@@ -114,26 +117,31 @@ function Recorder({ noteId, onClose }: { noteId: string; onClose: () => void }) 
             recording && Math.floor(state.durationMillis / 600) % 2 === 1 && styles.dotDim,
           ]}
         />
-        <Text variant="largeTitle" accessibilityLiveRegion="polite">
+        <Text variant="largeTitle" accessibilityRole="timer">
           {formatDuration(state.durationMillis)}
         </Text>
       </View>
-      <Text tone="secondary" style={styles.hint}>
+      <Text tone="secondary" style={styles.hint} accessibilityLiveRegion="polite">
         {phase === 'starting'
-          ? 'Preparando el micrófono…'
+          ? t('attachments.preparing')
           : phase === 'saving'
-            ? 'Guardando…'
-            : 'Grabando. Pulsa "Guardar" cuando termines.'}
+            ? t('attachments.saving')
+            : t('attachments.recording')}
       </Text>
       <View style={styles.actions}>
-        <Button title="Cancelar" variant="secondary" onPress={onClose} style={styles.action} />
+        <Button
+          title={t('common.cancel')}
+          variant="secondary"
+          onPress={onClose}
+          style={styles.action}
+        />
         {phase === 'saving' ? (
           <View style={[styles.action, styles.saving]}>
             <ActivityIndicator color={colors.primary} />
           </View>
         ) : (
           <Button
-            title="Guardar"
+            title={t('common.save')}
             icon="stop"
             disabled={!recording}
             onPress={() => void save()}

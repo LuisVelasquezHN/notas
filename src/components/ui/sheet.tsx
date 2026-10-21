@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useReducedMotion } from 'react-native-reanimated';
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAppLocked } from '@/stores/security-store';
 import { radius, spacing, useTheme } from '@/theme';
 
 import { Icon, type IconName } from './icon';
@@ -29,12 +32,21 @@ type SheetProps = {
 export function Sheet({ visible, onClose, title, children }: SheetProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  // Con la app bloqueada no se muestra (un modal quedaría encima de la pantalla de bloqueo).
+  const appLocked = useAppLocked();
+  // Con "Reducir movimiento" la hoja aparece sin deslizarse.
+  const reduceMotion = useReducedMotion();
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible && !appLocked}
+      transparent
+      animationType={reduceMotion ? 'fade' : 'slide'}
+      onRequestClose={onClose}>
       <View style={styles.root}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Cerrar"
+          accessibilityLabel={t('common.close')}
           style={styles.backdrop}
           onPress={onClose}
         />

@@ -4,12 +4,21 @@ import { fonts, typography, useTheme, type TypographyVariant } from '@/theme';
 
 type Tone = 'default' | 'secondary' | 'muted' | 'primary' | 'danger';
 
+/** Variantes que son títulos: los lectores de pantalla las anuncian como encabezado. */
+const HEADER_VARIANTS = new Set<TypographyVariant>(['largeTitle', 'title', 'heading']);
+
 export type TextProps = RNTextProps & {
   variant?: TypographyVariant;
   tone?: Tone;
 };
 
-export function Text({ variant = 'body', tone = 'default', style, ...rest }: TextProps) {
+export function Text({
+  variant = 'body',
+  tone = 'default',
+  style,
+  accessibilityRole,
+  ...rest
+}: TextProps) {
   const { colors } = useTheme();
   const color = {
     default: colors.text,
@@ -20,6 +29,10 @@ export function Text({ variant = 'body', tone = 'default', style, ...rest }: Tex
   }[tone];
 
   return (
-    <RNText style={[{ fontFamily: fonts.sans, color }, typography[variant], style]} {...rest} />
+    <RNText
+      accessibilityRole={accessibilityRole ?? (HEADER_VARIANTS.has(variant) ? 'header' : undefined)}
+      style={[{ fontFamily: fonts.sans, color }, typography[variant], style]}
+      {...rest}
+    />
   );
 }

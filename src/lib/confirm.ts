@@ -1,5 +1,7 @@
 import { Alert, Platform } from 'react-native';
 
+import { t } from '@/i18n';
+
 type ConfirmOptions = {
   title: string;
   message?: string;
@@ -11,7 +13,7 @@ type ConfirmOptions = {
 export function confirm({
   title,
   message,
-  confirmLabel = 'Aceptar',
+  confirmLabel = t('common.ok'),
   destructive = false,
 }: ConfirmOptions): Promise<boolean> {
   if (Platform.OS === 'web') {
@@ -22,7 +24,7 @@ export function confirm({
       title,
       message,
       [
-        { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
+        { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
         {
           text: confirmLabel,
           style: destructive ? 'destructive' : 'default',

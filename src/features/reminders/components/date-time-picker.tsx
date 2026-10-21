@@ -1,7 +1,10 @@
+import { getCalendars } from 'expo-localization';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Chip, IconButton, Text } from '@/components/ui';
+import { currentLocale } from '@/i18n';
 import { radius, spacing, useTheme } from '@/theme';
 
 /** Paso de los minutos en el selector. */
@@ -12,7 +15,20 @@ const QUICK_TIMES = [
   [18, 0],
   [20, 0],
 ] as const;
-const WEEKDAY_HEADERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+/** Primer día de la semana según la región (0 = domingo, como `Date.getDay()`). Lunes si no se sabe. */
+function firstWeekday(): number {
+  const first = getCalendars()[0]?.firstWeekday; // 1 = domingo
+  return first ? (first - 1) % 7 : 1;
+}
+
+/** Iniciales de los días ("L M X J V S D" en español), empezando por `start`. */
+function weekdayHeaders(start: number, locale: string): string[] {
+  // El 4 de enero de 2026 es domingo.
+  return Array.from({ length: 7 }, (_, i) =>
+    new Date(2026, 0, 4 + ((start + i) % 7)).toLocaleDateString(locale, { weekday: 'narrow' }),
+  );
+}
 
 type DateTimePickerProps = {
   value: number;
@@ -39,6 +55,9 @@ function withTime(value: number, hour: number, minute: number) {
  */
 export function DateTimePicker({ value, onChange, min }: DateTimePickerProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
+  const locale = currentLocale();
+  const weekStart = firstWeekday();
   const selected = new Date(value);
   const [month, setMonth] = useState(() => ({
     year: selected.getFullYear(),
@@ -46,8 +65,7 @@ export function DateTimePicker({ value, onChange, min }: DateTimePickerProps) {
   }));
 
   const first = new Date(month.year, month.month, 1);
-  // Semanas de lunes a domingo.
-  const leading = (first.getDay() + 6) % 7;
+  const leading = (first.getDay() - weekStart + 7) % 7;
   const daysInMonth = new Date(month.year, month.month + 1, 0).getDate();
   const cells: (number | null)[] = [
     ...Array.from({ length: leading }, () => null),
@@ -75,14 +93,14 @@ export function DateTimePicker({ value, onChange, min }: DateTimePickerProps) {
   const hour = selected.getHours();
   const minute = selected.getMinutes();
   const stepMinutes = (delta: number) => onChange(value + delta * 60_000);
-  const title = first.toLocaleDateString('es', { month: 'long', year: 'numeric' });
+  const title = first.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 
   return (
     <View style={styles.root}>
       <View style={styles.monthHeader}>
         <IconButton
           icon="chevronLeft"
-          accessibilityLabel="Mes anterior"
+          accessibilityLabel={t('picker.previousMonth')}
           disabled={!canGoBack}
           color={canGoBack ? colors.text : colors.textMuted}
           onPress={() => shiftMonth(-1)}
@@ -92,14 +110,14 @@ export function DateTimePicker({ value, onChange, min }: DateTimePickerProps) {
         </Text>
         <IconButton
           icon="chevronRight"
-          accessibilityLabel="Mes siguiente"
+          accessibilityLabel={t('picker.nextMonth')}
           onPress={() => shiftMonth(1)}
         />
       </View>
 
       <View style={styles.week}>
-        {WEEKDAY_HEADERS.map((d) => (
-          <Text key={d} variant="label" tone="muted" style={styles.weekday}>
+        {weekdayHeaders(weekStart, locale).map((d, i) => (
+          <Text key={i} variant="label" tone="muted" style={styles.weekday}>
             {d}
           </Text>
         ))}
@@ -121,7 +139,7 @@ export function DateTimePicker({ value, onChange, min }: DateTimePickerProps) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={new Date(month.year, month.month, day).toLocaleDateString(
-                  'es',
+                  locale,
                   { weekday: 'long', day: 'numeric', month: 'long' },
                 )}
                 accessibilityState={{ selected: isSelected, disabled }}
@@ -152,7 +170,7 @@ export function DateTimePicker({ value, onChange, min }: DateTimePickerProps) {
       <View style={styles.timeRow}>
         <IconButton
           icon="minus"
-          accessibilityLabel={`Restar ${MINUTE_STEP} minutos`}
+          accessibilityLabel={t('picker.minusMinutes', { count: MINUTE_STEP })}
           onPress={() => stepMinutes(-MINUTE_STEP)}
         />
         <Text variant="title" accessibilityLiveRegion="polite" style={styles.time}>
@@ -160,7 +178,7 @@ export function DateTimePicker({ value, onChange, min }: DateTimePickerProps) {
         </Text>
         <IconButton
           icon="add"
-          accessibilityLabel={`Sumar ${MINUTE_STEP} minutos`}
+          accessibilityLabel={t('picker.plusMinutes', { count: MINUTE_STEP })}
           onPress={() => stepMinutes(MINUTE_STEP)}
         />
       </View>

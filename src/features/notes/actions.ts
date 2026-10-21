@@ -1,5 +1,6 @@
 import type { Note, Tag } from '@/db/schema';
 import { setTagOnNotes } from '@/features/tags/repository';
+import { t } from '@/i18n';
 import { confirm } from '@/lib/confirm';
 import { showSnackbar, showUndo } from '@/stores/snackbar-store';
 import type { NoteColor } from '@/theme/tokens';
@@ -26,11 +27,6 @@ import {
 
 const ids = (notes: Note[]) => notes.map((n) => n.id);
 
-/** "Nota archivada" · "3 notas archivadas". */
-function countLabel(notes: Note[], singular: string, plural: string) {
-  return notes.length === 1 ? `Nota ${singular}` : `${notes.length} notas ${plural}`;
-}
-
 /** Vuelve a anclar las que estaban ancladas (archivar o tirar a la papelera las desancla). */
 async function repin(notes: Note[]) {
   const pinned = notes.filter((n) => n.isPinned);
@@ -46,14 +42,14 @@ export async function toggleFavorite(notes: Note[]) {
   const favorite = !notes.every((n) => n.isFavorite);
   await setFavorite(ids(notes), favorite);
   if (notes.length > 1) {
-    showSnackbar(favorite ? 'Añadidas a favoritos' : 'Quitadas de favoritos');
+    showSnackbar(favorite ? t('noteActions.favorited') : t('noteActions.unfavorited'));
   }
 }
 
 export async function changeColor(notes: Note[], color: NoteColor) {
   await setColor(ids(notes), color);
   if (notes.length > 1) {
-    showUndo(`Color cambiado en ${notes.length} notas`, async () => {
+    showUndo(t('noteActions.colorChanged', { count: notes.length }), async () => {
       for (const note of notes) await setColor([note.id], note.color);
     });
   }
@@ -66,7 +62,7 @@ export async function toggleTag(notes: Note[], tag: Tag, assignedToAll: boolean)
 
 export async function archive(notes: Note[]) {
   await setArchived(ids(notes), true);
-  showUndo(countLabel(notes, 'archivada', 'archivadas'), async () => {
+  showUndo(t('noteActions.archived', { count: notes.length }), async () => {
     await setArchived(ids(notes), false);
     await repin(notes);
   });
@@ -74,34 +70,29 @@ export async function archive(notes: Note[]) {
 
 export async function unarchive(notes: Note[]) {
   await setArchived(ids(notes), false);
-  showUndo(
-    notes.length === 1 ? 'Nota restaurada del archivo' : `${notes.length} notas desarchivadas`,
-    () => setArchived(ids(notes), true),
+  showUndo(t('noteActions.unarchived', { count: notes.length }), () =>
+    setArchived(ids(notes), true),
   );
 }
 
 export async function trash(notes: Note[]) {
   await moveToTrash(ids(notes));
-  showUndo(
-    notes.length === 1 ? 'Nota movida a la papelera' : `${notes.length} notas en la papelera`,
-    async () => {
-      await restoreFromTrash(ids(notes));
-      await repin(notes);
-    },
-  );
+  showUndo(t('noteActions.trashed', { count: notes.length }), async () => {
+    await restoreFromTrash(ids(notes));
+    await repin(notes);
+  });
 }
 
 export async function restore(notes: Note[]) {
   await restoreFromTrash(ids(notes));
-  showUndo(countLabel(notes, 'restaurada', 'restauradas'), () => moveToTrash(ids(notes)));
+  showUndo(t('noteActions.restored', { count: notes.length }), () => moveToTrash(ids(notes)));
 }
 
 export async function deleteForever(notes: Note[]): Promise<boolean> {
-  const one = notes.length === 1;
   const ok = await confirm({
-    title: '¿Eliminar definitivamente?',
-    message: `${one ? 'La nota se borrará' : `Las ${notes.length} notas se borrarán`} para siempre. Esta acción no se puede deshacer.`,
-    confirmLabel: 'Eliminar',
+    title: t('noteActions.deleteForeverTitle'),
+    message: t('noteActions.deleteForeverMessage', { count: notes.length }),
+    confirmLabel: t('common.delete'),
     destructive: true,
   });
   if (ok) await deletePermanently(ids(notes));
@@ -110,9 +101,9 @@ export async function deleteForever(notes: Note[]): Promise<boolean> {
 
 export async function emptyTrashWithConfirm(count: number): Promise<boolean> {
   const ok = await confirm({
-    title: '¿Vaciar la papelera?',
-    message: `Se eliminarán definitivamente ${count === 1 ? '1 nota' : `${count} notas`}.`,
-    confirmLabel: 'Vaciar',
+    title: t('trash.emptyTitle'),
+    message: t('trash.emptyMessage', { count }),
+    confirmLabel: t('trash.empty'),
     destructive: true,
   });
   if (ok) await emptyTrash();
@@ -123,15 +114,17 @@ export async function move(notes: Note[], folderId: string | null, folderName: s
   const moving = notes.filter((n) => n.folderId !== folderId);
   if (moving.length === 0) return;
   await moveToFolder(ids(moving), folderId);
-  const what = moving.length === 1 ? 'Movida' : `${moving.length} notas movidas`;
-  showUndo(folderName ? `${what} a «${folderName}»` : `${what} fuera de las carpetas`, async () => {
+  const message = folderName
+    ? t('noteActions.movedTo', { count: moving.length, folder: folderName })
+    : t('noteActions.movedOut', { count: moving.length });
+  showUndo(message, async () => {
     for (const note of moving) await moveToFolder([note.id], note.folderId);
   });
 }
 
 export async function duplicate(note: Note) {
   const id = await duplicateNote(note.id);
-  if (id) showSnackbar('Nota duplicada');
+  if (id) showSnackbar(t('noteActions.duplicated'));
   return id;
 }
 

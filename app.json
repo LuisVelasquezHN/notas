@@ -10,7 +10,10 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.novotechn.notas",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      }
     },
     "android": {
       "package": "com.novotechn.notas",
@@ -75,11 +78,29 @@
         }
       ],
       "expo-quick-actions",
-      "expo-asset"
+      "expo-asset",
+      "expo-sharing",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": ["es", "en"]
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Notas usa Face ID para desbloquear la app y las notas bloqueadas."
+        }
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "locales": {
+      "es": "./locales/es.json",
+      "en": "./locales/en.json"
     }
   }
 }

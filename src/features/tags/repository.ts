@@ -93,8 +93,8 @@ export async function createTag(fields: TagFields): Promise<Tag> {
 }
 
 export class DuplicateTagError extends Error {
-  constructor(name: string) {
-    super(`Ya existe una etiqueta llamada «${name}»`);
+  constructor(readonly tagName: string) {
+    super(`Duplicate tag: ${tagName}`);
   }
 }
 

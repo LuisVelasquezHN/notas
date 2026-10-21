@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Chip, EmptyState, IconButton, Screen, Text } from '@/components/ui';
@@ -23,6 +24,7 @@ export default function FolderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const layout = useSettingsStore((s) => s.notesLayout);
   const sortBy = useSettingsStore((s) => s.notesSortBy);
+  const { t } = useTranslation();
   const { data: folders, updatedAt } = useLiveQuery(foldersQuery());
   const { data: notes } = useLiveQuery(notesQuery({ scope: 'active', folderId: id, sortBy }), [
     id,
@@ -41,7 +43,7 @@ export default function FolderScreen() {
     return (
       <Screen edges={[]}>
         <Stack.Screen options={{ title: '' }} />
-        {updatedAt ? <EmptyState icon="folder" title="Carpeta no encontrada" /> : null}
+        {updatedAt ? <EmptyState icon="folder" title={t('folders.notFound')} /> : null}
       </Screen>
     );
   }
@@ -88,7 +90,7 @@ export default function FolderScreen() {
               <ListControls />
               <IconButton
                 icon="more"
-                accessibilityLabel="Opciones de la carpeta"
+                accessibilityLabel={t('folders.options')}
                 onPress={() => setMenuOpen(true)}
               />
             </View>
@@ -104,8 +106,8 @@ export default function FolderScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="note"
-            title="Carpeta vacía"
-            description="Crea una nota aquí o mueve notas a esta carpeta: mantén pulsada una nota y elige «Mover a carpeta»."
+            title={t('notes.folderEmpty')}
+            description={t('notes.folderEmptyHint')}
           />
         }
       />

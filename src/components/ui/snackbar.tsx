@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useScreenReaderEnabled } from '@/lib/use-screen-reader';
 import { SNACKBAR_DURATION_MS, useSnackbarStore } from '@/stores/snackbar-store';
 import { MAX_CONTENT_WIDTH, radius, spacing, useTheme } from '@/theme';
 
@@ -10,6 +11,8 @@ import { Text } from './text';
 
 /** Altura aproximada de la tab bar, para no tapar la navegación. */
 const TAB_BAR_OFFSET = 64;
+/** Con lector de pantalla hace falta más tiempo para llegar a "Deshacer". */
+const SCREEN_READER_FACTOR = 3;
 
 /** Mensaje temporal global (con acción opcional, normalmente "Deshacer"). Va en el layout raíz. */
 export function SnackbarHost() {
@@ -17,12 +20,16 @@ export function SnackbarHost() {
   const dismiss = useSnackbarStore((s) => s.dismiss);
   const insets = useSafeAreaInsets();
   const { scheme } = useTheme();
+  const screenReader = useScreenReaderEnabled();
 
   useEffect(() => {
     if (!current) return;
-    const timer = setTimeout(() => dismiss(current.id), SNACKBAR_DURATION_MS);
+    // Android lo anuncia por la región "live"; iOS necesita el anuncio explícito.
+    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(current.message);
+    const duration = SNACKBAR_DURATION_MS * (screenReader ? SCREEN_READER_FACTOR : 1);
+    const timer = setTimeout(() => dismiss(current.id), duration);
     return () => clearTimeout(timer);
-  }, [current, dismiss]);
+  }, [current, dismiss, screenReader]);
 
   if (!current) return null;
 

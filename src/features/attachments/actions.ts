@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Linking, Platform } from 'react-native';
 
 import type { Attachment } from '@/db/schema';
+import { t } from '@/i18n';
 import { confirm } from '@/lib/confirm';
 import { showSnackbar, showUndo } from '@/stores/snackbar-store';
 
@@ -20,7 +21,7 @@ export async function pickImages(noteId: string, source: ImageSource) {
   if (source === 'camera' && Platform.OS !== 'web') {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      await permissionDenied('la cámara', permission.canAskAgain);
+      await permissionDenied('camera', permission.canAskAgain);
       return 0;
     }
   }
@@ -50,28 +51,29 @@ export async function pickImages(noteId: string, source: ImageSource) {
     return rows.length;
   } catch (e) {
     console.warn('Adjuntos: no se pudo guardar la imagen', e);
-    showSnackbar('No se pudo guardar la imagen');
+    showSnackbar(t('attachments.imageSaveFailed'));
     return 0;
   }
 }
 
 export async function deleteAttachment(attachment: Attachment) {
   await removeAttachment(attachment.id);
-  showUndo(attachment.kind === 'audio' ? 'Audio eliminado' : 'Imagen eliminada', () =>
-    restoreAttachment(attachment.id),
+  showUndo(
+    attachment.kind === 'audio' ? t('attachments.audioDeleted') : t('attachments.imageDeleted'),
+    () => restoreAttachment(attachment.id),
   );
 }
 
 /** Permiso denegado: si ya no se puede volver a pedir, se ofrece abrir los ajustes del sistema. */
-export async function permissionDenied(what: string, canAskAgain: boolean) {
+export async function permissionDenied(what: 'camera' | 'microphone', canAskAgain: boolean) {
   if (canAskAgain || Platform.OS === 'web') {
-    showSnackbar(`Sin permiso para usar ${what}`);
+    showSnackbar(t(`permissions.${what}.denied`));
     return;
   }
   const open = await confirm({
-    title: `Permiso para ${what}`,
-    message: `Activa el acceso a ${what} en los ajustes del sistema para usar esta función.`,
-    confirmLabel: 'Abrir ajustes',
+    title: t(`permissions.${what}.title`),
+    message: t(`permissions.${what}.message`),
+    confirmLabel: t('common.openSettings'),
   });
   if (open) await Linking.openSettings();
 }

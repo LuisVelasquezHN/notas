@@ -19,6 +19,23 @@ export async function storeFile(
   return { localUri: dataUri, size: Math.round((dataUri.length * 3) / 4) };
 }
 
+/** El contenido ya es un data URI: se devuelve la parte en base64. */
+export async function readFileBase64(localUri: string): Promise<string> {
+  const dataUri = await toDataUri(localUri);
+  return dataUri.slice(dataUri.indexOf(',') + 1);
+}
+
+export async function storeBase64(
+  _name: string,
+  base64: string,
+  mime: string | null,
+): Promise<StoredFile> {
+  return {
+    localUri: `data:${mime ?? 'application/octet-stream'};base64,${base64}`,
+    size: Math.round((base64.length * 3) / 4),
+  };
+}
+
 export function resolveUri(localUri: string): string {
   return localUri;
 }
@@ -34,7 +51,7 @@ async function toDataUri(uri: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer el fichero'));
+    reader.onerror = () => reject(reader.error ?? new Error('Could not read file'));
     reader.readAsDataURL(blob);
   });
 }

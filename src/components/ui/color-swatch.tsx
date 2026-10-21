@@ -1,6 +1,7 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { noteColorLabels, radius, useTheme, type NoteColor } from '@/theme';
+import { radius, useTheme, type NoteColor } from '@/theme';
 
 import { Icon } from './icon';
 
@@ -13,10 +14,11 @@ type ColorSwatchProps = {
 
 export function ColorSwatch({ color, selected = false, size = 36, onPress }: ColorSwatchProps) {
   const { colors, noteColor } = useTheme();
+  const { t } = useTranslation();
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityLabel={noteColorLabels[color]}
+      accessibilityLabel={t(`colors.${color}`)}
       accessibilityState={{ selected }}
       onPress={onPress}
       style={[

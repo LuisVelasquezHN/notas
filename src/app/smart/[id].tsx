@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import {
@@ -39,6 +40,7 @@ import { spacing, useTheme } from '@/theme';
 export default function SmartFolderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const layout = useSettingsStore((s) => s.notesLayout);
   const sortBy = useSettingsStore((s) => s.notesSortBy);
   const { data, updatedAt } = useLiveQuery(savedFilterQuery(id), [id]);
@@ -53,9 +55,7 @@ export default function SmartFolderScreen() {
     return (
       <Screen edges={[]}>
         <Stack.Screen options={{ title: '' }} />
-        {updatedAt ? (
-          <EmptyState icon="smartFolder" title="Carpeta inteligente no encontrada" />
-        ) : null}
+        {updatedAt ? <EmptyState icon="smartFolder" title={t('smart.notFound')} /> : null}
       </Screen>
     );
   }
@@ -64,16 +64,16 @@ export default function SmartFolderScreen() {
 
   async function remove() {
     const ok = await confirm({
-      title: `¿Eliminar «${saved.name}»?`,
-      message: 'Solo se elimina la carpeta inteligente; las notas no se tocan.',
-      confirmLabel: 'Eliminar',
+      title: t('smart.deleteTitle', { name: saved.name }),
+      message: t('smart.deleteMessage'),
+      confirmLabel: t('common.delete'),
       destructive: true,
     });
     if (!ok) return;
     await deleteSavedFilter(saved.id);
     if (router.canGoBack()) router.back();
     else router.replace('/folders');
-    showUndo('Carpeta inteligente eliminada', () => restoreSavedFilter(saved.id));
+    showUndo(t('smart.deleted'), () => restoreSavedFilter(saved.id));
   }
 
   return (
@@ -97,7 +97,7 @@ export default function SmartFolderScreen() {
               <ListControls />
               <IconButton
                 icon="more"
-                accessibilityLabel="Opciones de la carpeta inteligente"
+                accessibilityLabel={t('smart.options')}
                 onPress={() => setMenuOpen(true)}
               />
             </View>
@@ -116,11 +116,9 @@ export default function SmartFolderScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="smartFolder"
-            title={isFilterEmpty(filter) ? 'Sin filtros' : 'Ninguna nota coincide'}
+            title={isFilterEmpty(filter) ? t('smart.noFilters') : t('smart.noMatches')}
             description={
-              isFilterEmpty(filter)
-                ? 'Añade filtros para elegir qué notas aparecen aquí.'
-                : 'Las notas que cumplan estos filtros aparecerán aquí automáticamente.'
+              isFilterEmpty(filter) ? t('smart.noFiltersHint') : t('smart.noMatchesHint')
             }
           />
         }
@@ -136,7 +134,7 @@ export default function SmartFolderScreen() {
       <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)} title={saved.name}>
         <SheetItem
           icon="filter"
-          label="Editar filtros"
+          label={t('smart.editFilters')}
           onPress={() => {
             setMenuOpen(false);
             afterSheetClose(() => setFiltersOpen(true));
@@ -144,7 +142,7 @@ export default function SmartFolderScreen() {
         />
         <SheetItem
           icon="edit"
-          label="Nombre e icono"
+          label={t('smart.nameAndIcon')}
           onPress={() => {
             setMenuOpen(false);
             afterSheetClose(() => setForm({ mode: 'edit', saved }));
@@ -152,7 +150,7 @@ export default function SmartFolderScreen() {
         />
         <SheetItem
           icon="trash"
-          label="Eliminar"
+          label={t('common.delete')}
           destructive
           onPress={() => {
             setMenuOpen(false);

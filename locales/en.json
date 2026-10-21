@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Notas uses the camera to attach photos to your notes.",
+    "NSPhotoLibraryUsageDescription": "Notas uses your photos to attach images to your notes.",
+    "NSMicrophoneUsageDescription": "Notas uses the microphone to record voice notes.",
+    "NSFaceIDUsageDescription": "Notas uses Face ID to unlock the app and locked notes."
+  },
+  "android": {}
+}

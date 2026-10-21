@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, ColorSwatch, Sheet, Text, TextField } from '@/components/ui';
@@ -22,11 +23,12 @@ type TagFormSheetProps = {
 
 /** Crear o editar una etiqueta: nombre y color. */
 export function TagFormSheet({ target, onClose }: TagFormSheetProps) {
+  const { t } = useTranslation();
   return (
     <Sheet
       visible={target !== null}
       onClose={onClose}
-      title={target?.mode === 'edit' ? 'Editar etiqueta' : 'Nueva etiqueta'}>
+      title={target?.mode === 'edit' ? t('tags.edit') : t('folders.newTag')}>
       {target ? (
         <TagForm
           key={target.mode === 'edit' ? target.tag.id : 'new'}
@@ -39,6 +41,7 @@ export function TagFormSheet({ target, onClose }: TagFormSheetProps) {
 }
 
 function TagForm({ target, onDone }: { target: TagFormTarget; onDone: () => void }) {
+  const { t } = useTranslation();
   const initial = target.mode === 'edit' ? target.tag : null;
   const [name, setName] = useState(initial?.name ?? '');
   const [color, setColor] = useState<NoteColor>(initial?.color ?? 'default');
@@ -52,7 +55,7 @@ function TagForm({ target, onDone }: { target: TagFormTarget; onDone: () => void
       else await createTag({ name, color });
       onDone();
     } catch (e) {
-      if (e instanceof DuplicateTagError) setError(e.message);
+      if (e instanceof DuplicateTagError) setError(t('tags.duplicate', { name: e.tagName }));
       else throw e;
     }
   }
@@ -65,8 +68,8 @@ function TagForm({ target, onDone }: { target: TagFormTarget; onDone: () => void
           setName(value);
           setError(null);
         }}
-        placeholder="Nombre de la etiqueta"
-        accessibilityLabel="Nombre de la etiqueta"
+        placeholder={t('tags.nameLabel')}
+        accessibilityLabel={t('tags.nameLabel')}
         autoFocus
         autoCorrect={false}
         maxLength={MAX_TAG_LENGTH}
@@ -74,13 +77,13 @@ function TagForm({ target, onDone }: { target: TagFormTarget; onDone: () => void
         onSubmitEditing={() => void submit()}
       />
       {error ? (
-        <Text variant="caption" tone="danger">
+        <Text variant="caption" tone="danger" accessibilityLiveRegion="polite">
           {error}
         </Text>
       ) : null}
 
       <Text variant="label" tone="secondary">
-        COLOR
+        {t('filters.color').toUpperCase()}
       </Text>
       <View style={styles.wrap}>
         {NOTE_COLOR_TOKENS.map((token) => (
@@ -94,7 +97,7 @@ function TagForm({ target, onDone }: { target: TagFormTarget; onDone: () => void
       </View>
 
       <Button
-        title={target.mode === 'edit' ? 'Guardar' : 'Crear etiqueta'}
+        title={target.mode === 'edit' ? t('common.save') : t('tags.create')}
         disabled={!valid}
         onPress={() => void submit()}
         style={styles.submit}

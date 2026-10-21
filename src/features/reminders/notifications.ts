@@ -3,6 +3,7 @@ import { AndroidImportance, IosAuthorizationStatus } from 'expo-notifications';
 import Storage from 'expo-sqlite/kv-store';
 import { Platform } from 'react-native';
 
+import { currentLocale, t } from '@/i18n';
 import { capabilities } from '@/lib/capabilities';
 
 import { SNOOZE_MINUTES } from './format';
@@ -23,10 +24,17 @@ export const ACTION_OPEN = 'open';
 export type ReminderNotificationData = { reminderId: string; noteId: string };
 
 let configured: Promise<void> | null = null;
+/** Idioma de los textos ya registrados (nombre del canal y botones de la categoría). */
+let configuredLocale: string | null = null;
 
-/** Handler en primer plano, canal de Android y categoría con acciones. Idempotente. */
+/**
+ * Handler en primer plano, canal de Android y categoría con acciones. Idempotente; si cambia el
+ * idioma, vuelve a registrar el canal y los botones con los textos nuevos.
+ */
 export function configureNotifications(): Promise<void> {
   if (!capabilities.localNotifications) return Promise.resolve();
+  if (configuredLocale !== currentLocale()) configured = null;
+  configuredLocale = currentLocale();
   configured ??= (async () => {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
@@ -39,7 +47,7 @@ export function configureNotifications(): Promise<void> {
     if (Platform.OS === 'android') {
       // En Android 13+ el diálogo de permiso solo aparece si ya existe un canal.
       await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
-        name: 'Recordatorios',
+        name: t('notifications.channel'),
         importance: AndroidImportance.HIGH,
         sound: 'default',
         vibrationPattern: [0, 250, 250, 250],
@@ -48,18 +56,23 @@ export function configureNotifications(): Promise<void> {
     await Notifications.setNotificationCategoryAsync(REMINDER_CATEGORY_ID, [
       {
         identifier: ACTION_DONE,
-        buttonTitle: 'Hecho',
+        buttonTitle: t('notifications.done'),
         options: { opensAppToForeground: false },
       },
       {
         identifier: ACTION_SNOOZE,
-        buttonTitle: `Posponer ${SNOOZE_MINUTES} min`,
+        buttonTitle: t('notifications.snooze', { count: SNOOZE_MINUTES }),
         options: { opensAppToForeground: false },
       },
-      { identifier: ACTION_OPEN, buttonTitle: 'Abrir', options: { opensAppToForeground: true } },
+      {
+        identifier: ACTION_OPEN,
+        buttonTitle: t('common.open'),
+        options: { opensAppToForeground: true },
+      },
     ]);
   })().catch((e: unknown) => {
     configured = null;
+    configuredLocale = null;
     throw e;
   });
   return configured;

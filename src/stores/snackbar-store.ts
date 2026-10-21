@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { t } from '@/i18n';
+
 export type SnackbarAction = { label: string; onPress: () => void | Promise<void> };
 
 export type SnackbarMessage = {
@@ -34,5 +36,5 @@ export function showSnackbar(message: string, action?: SnackbarAction) {
 }
 
 export function showUndo(message: string, undo: () => void | Promise<void>) {
-  showSnackbar(message, { label: 'Deshacer', onPress: undo });
+  showSnackbar(message, { label: t('common.undo'), onPress: undo });
 }

@@ -83,20 +83,6 @@ export const noteColors: Record<ColorScheme, Record<NoteColor, string>> = {
   },
 };
 
-export const noteColorLabels: Record<NoteColor, string> = {
-  default: 'Sin color',
-  red: 'Rojo',
-  orange: 'Naranja',
-  yellow: 'Amarillo',
-  green: 'Verde',
-  teal: 'Turquesa',
-  blue: 'Azul',
-  purple: 'Morado',
-  pink: 'Rosa',
-  brown: 'Marrón',
-  gray: 'Gris',
-};
-
 export function isNoteColor(value: unknown): value is NoteColor {
   return typeof value === 'string' && (NOTE_COLOR_TOKENS as readonly string[]).includes(value);
 }

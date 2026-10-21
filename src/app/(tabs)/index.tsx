@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { EmptyState, IconButton, Screen, Text } from '@/components/ui';
@@ -13,16 +14,17 @@ import { spacing } from '@/theme';
 export default function NotesScreen() {
   const layout = useSettingsStore((s) => s.notesLayout);
   const sortBy = useSettingsStore((s) => s.notesSortBy);
+  const { t } = useTranslation();
   const { data: notes } = useLiveQuery(notesQuery({ scope: 'active', sortBy }), [sortBy]);
 
   return (
     <Screen contentStyle={styles.screen}>
       <View style={styles.header}>
-        <Text variant="largeTitle">Notas</Text>
+        <Text variant="largeTitle">{t('notes.title')}</Text>
         <View style={styles.headerActions}>
           <IconButton
             icon="search"
-            accessibilityLabel="Buscar"
+            accessibilityLabel={t('common.search')}
             onPress={() => router.push('/search')}
           />
           <ListControls />
@@ -34,11 +36,7 @@ export default function NotesScreen() {
         layout={layout}
         reorderable
         ListEmptyComponent={
-          <EmptyState
-            icon="note"
-            title="Aún no tienes notas"
-            description="Pulsa + para escribir una nota o el botón de lista para crear una checklist."
-          />
+          <EmptyState icon="note" title={t('notes.empty')} description={t('notes.emptyHint')} />
         }
       />
 

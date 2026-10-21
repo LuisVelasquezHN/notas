@@ -1,20 +1,33 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
-import { ColorSwatch, Sheet, SheetItem, afterSheetClose, isIconName } from '@/components/ui';
+import {
+  ColorSwatch,
+  Sheet,
+  SheetItem,
+  afterSheetClose,
+  isIconName,
+  type IconName,
+} from '@/components/ui';
 import type { Note } from '@/db/schema';
+import { exportNote, type ExportFormat } from '@/features/export/actions';
+import { canShareText } from '@/features/export/share';
 import { foldersQuery } from '@/features/folders/repository';
 import * as reminderActions from '@/features/reminders/actions';
 import { ReminderEditor } from '@/features/reminders/components/reminder-sheet';
 import { noteReminderQuery } from '@/features/reminders/repository';
 import { buildFolderTree, flattenFolderTree } from '@/features/folders/tree';
+import * as securityActions from '@/features/security/actions';
 import { TagPicker } from '@/features/tags/components/tag-picker';
+import { capabilities } from '@/lib/capabilities';
+import { useEntitlement } from '@/lib/entitlements';
 import { NOTE_COLOR_TOKENS, spacing } from '@/theme';
 
 import * as actions from '../actions';
 
-export type NoteActionsPage = 'main' | 'color' | 'folder' | 'tags' | 'reminder';
+export type NoteActionsPage = 'main' | 'color' | 'folder' | 'tags' | 'reminder' | 'export';
 type Page = NoteActionsPage;
 
 type NoteActionsSheetProps = {
@@ -46,6 +59,7 @@ export function NoteActionsSheet({
   showPin = true,
   initialPage = 'main',
 }: NoteActionsSheetProps) {
+  const { t } = useTranslation();
   const [pageState, setPage] = useState<Page | null>(null);
   const page = pageState ?? initialPage;
   const { data: folders } = useLiveQuery(foldersQuery());
@@ -71,19 +85,25 @@ export function NoteActionsSheet({
   const { data: reminderRows } = useLiveQuery(noteReminderQuery(single?.id ?? ''), [single?.id]);
   const reminder = single ? reminderRows[0] : undefined;
   const count = notes?.length ?? 0;
-  const mainTitle = single ? single.title || 'Nota' : `${count} notas seleccionadas`;
+  const mainTitle = single
+    ? single.title || t('common.note')
+    : t('noteActions.selected', { count });
   const title = {
     main: mainTitle,
-    color: 'Color',
-    folder: 'Mover a carpeta',
-    tags: 'Etiquetas',
-    reminder: 'Recordatorio',
+    color: t('noteActions.color'),
+    folder: t('noteActions.move'),
+    tags: t('noteActions.tags'),
+    reminder: t('reminders.reminder'),
+    export: t('export.title'),
   }[page];
 
   const inTrash = notes?.every((n) => n.deletedAt !== null) ?? false;
   const allPinned = notes?.every((n) => n.isPinned) ?? false;
   const allFavorite = notes?.every((n) => n.isFavorite) ?? false;
   const allArchived = notes?.every((n) => n.isArchived) ?? false;
+  const allLocked = notes?.every((n) => n.isLocked) ?? false;
+  const canLock = useEntitlement('noteLock') && capabilities.biometrics;
+  const canExport = useEntitlement('export');
   const sameColor = notes && notes.every((n) => n.color === notes[0].color) ? notes[0].color : null;
   const sameFolder =
     notes && notes.every((n) => n.folderId === notes[0].folderId) ? notes[0].folderId : undefined;
@@ -95,12 +115,12 @@ export function NoteActionsSheet({
           <>
             <SheetItem
               icon="restore"
-              label="Restaurar"
+              label={t('common.restore')}
               onPress={run(() => actions.restore(notes), true)}
             />
             <SheetItem
               icon="trash"
-              label="Eliminar definitivamente"
+              label={t('noteActions.deleteForever')}
               destructive
               onPress={run(async () => {
                 if (await actions.deleteForever(notes)) onRemoved?.();
@@ -112,58 +132,84 @@ export function NoteActionsSheet({
             {showPin ? (
               <SheetItem
                 icon={allPinned ? 'pinFill' : 'pin'}
-                label={allPinned ? 'Desanclar' : 'Anclar'}
+                label={allPinned ? t('noteActions.unpin') : t('noteActions.pin')}
                 onPress={run(() => actions.togglePin(notes))}
               />
             ) : null}
             <SheetItem
               icon={allFavorite ? 'starFill' : 'star'}
-              label={allFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+              label={allFavorite ? t('noteActions.unfavorite') : t('noteActions.favorite')}
               onPress={run(() => actions.toggleFavorite(notes))}
             />
             {single ? (
               <SheetItem
                 icon={reminder ? 'bellFill' : 'bell'}
-                label={reminder ? 'Cambiar recordatorio' : 'Añadir recordatorio'}
+                label={reminder ? t('editor.changeReminder') : t('editor.addReminder')}
                 onPress={() => setPage('reminder')}
               />
             ) : null}
-            <SheetItem icon="palette" label="Color" onPress={() => setPage('color')} />
-            <SheetItem icon="tag" label="Etiquetas" onPress={() => setPage('tags')} />
-            <SheetItem icon="move" label="Mover a carpeta" onPress={() => setPage('folder')} />
+            <SheetItem
+              icon="palette"
+              label={t('noteActions.color')}
+              onPress={() => setPage('color')}
+            />
+            <SheetItem icon="tag" label={t('noteActions.tags')} onPress={() => setPage('tags')} />
+            <SheetItem
+              icon="move"
+              label={t('noteActions.move')}
+              onPress={() => setPage('folder')}
+            />
             {single ? (
               <>
                 <SheetItem
                   icon="copy"
-                  label="Duplicar"
+                  label={t('noteActions.duplicate')}
                   onPress={run(async () => {
                     const id = await actions.duplicate(single);
                     if (id) onDuplicated?.(id);
                   })}
                 />
+                {canExport ? (
+                  <SheetItem
+                    icon="share"
+                    label={t('export.title')}
+                    onPress={() => setPage('export')}
+                  />
+                ) : null}
                 <SheetItem
                   icon={single.type === 'checklist' ? 'text' : 'checklist'}
-                  label={single.type === 'checklist' ? 'Convertir en texto' : 'Convertir en lista'}
+                  label={
+                    single.type === 'checklist'
+                      ? t('noteActions.toText')
+                      : t('noteActions.toChecklist')
+                  }
                   onPress={run(() => actions.convert(single))}
                 />
               </>
             ) : null}
+            {canLock || allLocked ? (
+              <SheetItem
+                icon={allLocked ? 'lockOpen' : 'lock'}
+                label={allLocked ? t('lock.unlockNote') : t('lock.lockNote')}
+                onPress={run(() => securityActions.toggleLock(notes))}
+              />
+            ) : null}
             {allArchived ? (
               <SheetItem
                 icon="unarchive"
-                label="Desarchivar"
+                label={t('noteActions.unarchive')}
                 onPress={run(() => actions.unarchive(notes), true)}
               />
             ) : (
               <SheetItem
                 icon="archive"
-                label="Archivar"
+                label={t('noteActions.archive')}
                 onPress={run(() => actions.archive(notes.filter((n) => !n.isArchived)), true)}
               />
             )}
             <SheetItem
               icon="trash"
-              label="Mover a la papelera"
+              label={t('noteActions.trash')}
               destructive
               onPress={run(() => actions.trash(notes), true)}
             />
@@ -187,6 +233,17 @@ export function NoteActionsSheet({
 
       {notes && page === 'tags' ? <TagPicker notes={notes} /> : null}
 
+      {single && page === 'export'
+        ? EXPORT_OPTIONS.filter((o) => o.format !== 'share' || canShareText).map((option) => (
+            <SheetItem
+              key={option.format}
+              icon={option.icon}
+              label={t(`export.${option.format}`)}
+              onPress={run(() => exportNote(single, option.format))}
+            />
+          ))
+        : null}
+
       {single && page === 'reminder' ? (
         <ReminderEditor
           current={reminder}
@@ -201,7 +258,7 @@ export function NoteActionsSheet({
         <>
           <SheetItem
             icon="note"
-            label="Sin carpeta"
+            label={t('noteActions.noFolder')}
             selected={sameFolder === null}
             onPress={run(() => actions.move(notes, null, null))}
           />
@@ -220,6 +277,13 @@ export function NoteActionsSheet({
     </Sheet>
   );
 }
+
+const EXPORT_OPTIONS: { format: ExportFormat; icon: IconName }[] = [
+  { format: 'share', icon: 'share' },
+  { format: 'markdown', icon: 'markdown' },
+  { format: 'text', icon: 'text' },
+  { format: 'pdf', icon: 'pdf' },
+];
 
 const styles = StyleSheet.create({
   colors: {

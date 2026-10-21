@@ -29,6 +29,24 @@ export async function storeFile(
   return { localUri: `${DIR_NAME}/${name}`, size: target.size || null };
 }
 
+/** Contenido de un adjunto en base64 (copias de seguridad, imágenes del PDF). */
+export async function readFileBase64(localUri: string): Promise<string> {
+  return new File(resolveUri(localUri)).base64();
+}
+
+/** Guarda en el almacén un fichero que llega en base64 (al importar una copia). */
+export async function storeBase64(
+  name: string,
+  base64: string,
+  _mime: string | null,
+): Promise<StoredFile> {
+  const target = new File(directory(), name);
+  if (target.exists) target.delete();
+  target.create();
+  target.write(base64, { encoding: 'base64' });
+  return { localUri: `${DIR_NAME}/${name}`, size: target.size || null };
+}
+
 /** URI que entienden `expo-image` y `expo-audio`. */
 export function resolveUri(localUri: string): string {
   if (/^[a-z]+:/i.test(localUri)) return localUri;

@@ -1,5 +1,7 @@
 import { RRule } from 'rrule';
 
+import { currentLocale, t, type TFunction } from '@/i18n';
+
 import { fromFakeUtc, toFakeUtc, type WallTime } from './zoned-time';
 
 /**
@@ -148,47 +150,28 @@ export function latestOccurrenceBetween(
   return at > from && at <= to ? at : null;
 }
 
-const WEEKDAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-const MONTH_NAMES = [
-  'enero',
-  'febrero',
-  'marzo',
-  'abril',
-  'mayo',
-  'junio',
-  'julio',
-  'agosto',
-  'septiembre',
-  'octubre',
-  'noviembre',
-  'diciembre',
-];
-
 /** Etiqueta de una recurrencia para una fecha de inicio: "Cada semana, el lunes". */
-export function recurrenceLabel(kind: RecurrenceKind, start: WallTime): string {
-  const weekday = new Date(Date.UTC(start.year, start.month, start.day)).getUTCDay();
+export function recurrenceLabel(kind: RecurrenceKind, start: WallTime, tr: TFunction = t): string {
+  const date = new Date(Date.UTC(start.year, start.month, start.day));
+  const format = (options: Intl.DateTimeFormatOptions) =>
+    date.toLocaleDateString(currentLocale(), { ...options, timeZone: 'UTC' });
   switch (kind) {
     case 'none':
-      return 'No se repite';
+      return tr('recurrence.none');
     case 'daily':
-      return 'Cada día';
+      return tr('recurrence.daily');
     case 'weekdays':
-      return 'De lunes a viernes';
+      return tr('recurrence.weekdays');
     case 'weekly':
-      return `Cada semana, el ${WEEKDAY_NAMES[weekday]}`;
+      return tr('recurrence.weekly', { weekday: format({ weekday: 'long' }) });
     case 'monthly':
-      return `Cada mes, el día ${start.day}`;
+      return tr('recurrence.monthly', { day: start.day });
     case 'yearly':
-      return `Cada año, el ${start.day} de ${MONTH_NAMES[start.month]}`;
+      return tr('recurrence.yearly', { date: format({ day: 'numeric', month: 'long' }) });
   }
 }
 
 /** Etiqueta corta (tarjetas y lista de recordatorios). */
-export const RECURRENCE_SHORT_LABELS: Record<RecurrenceKind, string> = {
-  none: '',
-  daily: 'Diario',
-  weekdays: 'Lun–vie',
-  weekly: 'Semanal',
-  monthly: 'Mensual',
-  yearly: 'Anual',
-};
+export function recurrenceShortLabel(kind: RecurrenceKind, tr: TFunction = t): string {
+  return kind === 'none' ? '' : tr(`recurrence.short.${kind}`);
+}

@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon, Text } from '@/components/ui';
@@ -46,7 +47,7 @@ export function NoteCard({
   note,
   items = [],
   tags = [],
-  image,
+  image: imageProp,
   attachments,
   reminder,
   now,
@@ -57,22 +58,27 @@ export function NoteCard({
   onLongPress,
 }: NoteCardProps) {
   const { colors, noteColor } = useTheme();
+  const { t } = useTranslation();
   const hasTitle = note.title.trim().length > 0;
   const isChecklist = note.type === 'checklist';
+  // Bloqueada: solo título, etiquetas y recordatorio; nada del contenido ni de los adjuntos.
+  const locked = note.isLocked;
+  const image = locked ? undefined : imageProp;
   const pending = items.filter((i) => !i.isChecked);
   const done = items.length - pending.length;
   // Si quedan pendientes se muestran solo esos; si todo está hecho, los completados.
   const shown = pending.length > 0 ? pending : items;
   const preview = shown.slice(0, PREVIEW_ITEMS);
   const footer = [
-    shown.length > preview.length ? `+${shown.length - preview.length} más` : null,
-    pending.length > 0 && done > 0 ? `${done} completado${done === 1 ? '' : 's'}` : null,
+    shown.length > preview.length ? t('card.more', { count: shown.length - preview.length }) : null,
+    pending.length > 0 && done > 0 ? t('card.completed', { count: done }) : null,
   ]
     .filter(Boolean)
     .join(' · ');
-  const imageCount = attachments?.image ?? 0;
-  const audioCount = attachments?.audio ?? 0;
+  const imageCount = locked ? 0 : (attachments?.image ?? 0);
+  const audioCount = locked ? 0 : (attachments?.audio ?? 0);
   const isEmpty =
+    !locked &&
     !hasTitle &&
     !image &&
     audioCount === 0 &&
@@ -120,18 +126,23 @@ export function NoteCard({
         </View>
       ) : null}
 
-      {hasTitle || note.isPinned || note.isFavorite || selected ? (
+      {hasTitle || note.isPinned || note.isFavorite || locked || selected ? (
         <View style={styles.header}>
           <Text variant="bodyStrong" numberOfLines={2} style={styles.title}>
             {note.title}
           </Text>
           {note.isFavorite ? <Icon name="starFill" size={14} color={colors.primary} /> : null}
+          {locked ? <Icon name="lock" size={14} color={colors.textSecondary} /> : null}
           {note.isPinned ? <Icon name="pinFill" size={14} color={colors.textSecondary} /> : null}
           {selected ? <Icon name="checkboxChecked" size={18} color={colors.primary} /> : null}
         </View>
       ) : null}
 
-      {isChecklist ? (
+      {locked ? (
+        <Text tone="muted" style={styles.empty}>
+          {t('card.locked')}
+        </Text>
+      ) : isChecklist ? (
         <View style={styles.items}>
           {preview.map((item) => (
             <View key={item.id} style={[styles.item, item.indent > 0 && styles.itemIndented]}>
@@ -162,7 +173,7 @@ export function NoteCard({
 
       {isEmpty ? (
         <Text tone="muted" style={styles.empty}>
-          Nota vacía
+          {t('card.empty')}
         </Text>
       ) : null}
 
@@ -170,7 +181,7 @@ export function NoteCard({
         <View style={styles.audio}>
           <Icon name="mic" size={14} color={colors.textSecondary} />
           <Text variant="caption" tone="secondary">
-            {audioCount === 1 ? 'Nota de voz' : `${audioCount} notas de voz`}
+            {t('card.voiceNotes', { count: audioCount })}
           </Text>
         </View>
       ) : null}
@@ -201,12 +212,13 @@ export function NoteCard({
   );
 
   const label = [
-    note.title || 'Nota sin título',
-    note.isPinned ? 'anclada' : null,
-    note.isFavorite ? 'favorita' : null,
-    reminder ? 'con recordatorio' : null,
-    imageCount > 0 ? (imageCount === 1 ? 'con una imagen' : `con ${imageCount} imágenes`) : null,
-    audioCount > 0 ? 'con nota de voz' : null,
+    note.title || t('card.untitled'),
+    note.isPinned ? t('card.a11yPinned') : null,
+    note.isFavorite ? t('card.a11yFavorite') : null,
+    locked ? t('card.a11yLocked') : null,
+    reminder ? t('card.a11yReminder') : null,
+    imageCount > 0 ? t('card.a11yImages', { count: imageCount }) : null,
+    audioCount > 0 ? t('card.a11yVoice') : null,
   ]
     .filter(Boolean)
     .join(', ');
@@ -228,7 +240,7 @@ export function NoteCard({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
-      accessibilityHint="Mantén pulsado para seleccionar"
+      accessibilityHint={t('card.a11yHint')}
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={350}

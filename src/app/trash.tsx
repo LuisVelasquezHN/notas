@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, Screen, Text } from '@/components/ui';
@@ -12,6 +13,7 @@ import { spacing } from '@/theme';
 
 export default function TrashScreen() {
   const layout = useSettingsStore((s) => s.notesLayout);
+  const { t } = useTranslation();
   const { data: notes } = useLiveQuery(notesQuery({ scope: 'trash' }));
 
   return (
@@ -21,7 +23,7 @@ export default function TrashScreen() {
           headerRight: () =>
             notes.length > 0 ? (
               <Button
-                title="Vaciar"
+                title={t('trash.empty')}
                 variant="ghost"
                 onPress={() => void emptyTrashWithConfirm(notes.length)}
               />
@@ -33,14 +35,13 @@ export default function TrashScreen() {
         layout={layout}
         meta={(note) => {
           const days = daysLeftInTrash(note.deletedAt ?? Date.now());
-          return days <= 1 ? 'Se elimina hoy' : `Se elimina en ${days} días`;
+          return days <= 1 ? t('trash.deletesToday') : t('trash.deletesIn', { count: days });
         }}
         ListHeaderComponent={
           notes.length > 0 ? (
             <View style={styles.hint}>
               <Text variant="caption" tone="secondary">
-                Las notas se eliminan definitivamente {TRASH_RETENTION_DAYS} días después de
-                moverlas aquí. Mantén pulsada una nota para seleccionarla y restaurarla.
+                {t('trash.hint', { count: TRASH_RETENTION_DAYS })}
               </Text>
             </View>
           ) : null
@@ -48,8 +49,8 @@ export default function TrashScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="trash"
-            title="Papelera vacía"
-            description={`Las notas eliminadas se guardan aquí ${TRASH_RETENTION_DAYS} días.`}
+            title={t('trash.emptyState')}
+            description={t('trash.emptyStateHint', { count: TRASH_RETENTION_DAYS })}
           />
         }
       />

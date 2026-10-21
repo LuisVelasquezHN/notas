@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { router } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, IconButton, Screen, Text } from '@/components/ui';
@@ -25,6 +26,7 @@ import { tagNoteCountsQuery, tagsQuery } from '@/features/tags/repository';
 import { radius, spacing, useTheme } from '@/theme';
 
 export default function FoldersScreen() {
+  const { t } = useTranslation();
   const { data: folders } = useLiveQuery(foldersQuery());
   const { data: counts } = useLiveQuery(folderNoteCountsQuery());
   const { data: smartFolders } = useLiveQuery(savedFiltersQuery());
@@ -50,10 +52,10 @@ export default function FoldersScreen() {
   return (
     <Screen scroll>
       <View style={styles.header}>
-        <Text variant="largeTitle">Carpetas</Text>
+        <Text variant="largeTitle">{t('folders.title')}</Text>
         <IconButton
           icon="folderAdd"
-          accessibilityLabel="Nueva carpeta"
+          accessibilityLabel={t('folders.newFolder')}
           onPress={() => setForm({ mode: 'create', parentId: null })}
         />
       </View>
@@ -77,11 +79,11 @@ export default function FoldersScreen() {
         <View style={styles.empty}>
           <EmptyState
             icon="folder"
-            title="Sin carpetas"
-            description="Agrupa tus notas en carpetas (hasta 3 niveles) con su propio color e icono."
+            title={t('folders.empty')}
+            description={t('folders.emptyHint')}
             action={
               <Button
-                title="Crear carpeta"
+                title={t('folders.create')}
                 icon="folderAdd"
                 onPress={() => setForm({ mode: 'create', parentId: null })}
               />
@@ -92,13 +94,13 @@ export default function FoldersScreen() {
 
       {rows.length > 0 ? (
         <Text variant="caption" tone="muted" style={styles.hint}>
-          Mantén pulsada una carpeta para editarla, crear subcarpetas o eliminarla.
+          {t('folders.longPressHint')}
         </Text>
       ) : null}
 
       <SectionHeader
-        title="Carpetas inteligentes"
-        addLabel="Nueva carpeta inteligente"
+        title={t('folders.smart')}
+        addLabel={t('folders.newSmart')}
         onAdd={() => setSmartForm({ mode: 'create', filter: {} })}
       />
       {smartFolders.length > 0 ? (
@@ -115,14 +117,13 @@ export default function FoldersScreen() {
         </Group>
       ) : (
         <Text variant="caption" tone="muted" style={styles.sectionHint}>
-          Guarda una búsqueda con filtros (p. ej. «listas rojas de esta semana») para tenerla
-          siempre a mano. Se actualiza sola.
+          {t('folders.smartHint')}
         </Text>
       )}
 
       <SectionHeader
-        title="Etiquetas"
-        addLabel="Nueva etiqueta"
+        title={t('folders.tags')}
+        addLabel={t('folders.newTag')}
         onAdd={() => setTagForm({ mode: 'create' })}
       />
       {tags.length > 0 ? (
@@ -141,27 +142,27 @@ export default function FoldersScreen() {
         </Group>
       ) : (
         <Text variant="caption" tone="muted" style={styles.sectionHint}>
-          Una nota puede tener varias etiquetas. Añádelas desde el menú de la nota o desde aquí.
+          {t('folders.tagsHint')}
         </Text>
       )}
 
       <View style={styles.system}>
         <Group>
           <FolderRow
-            name="Favoritas"
+            name={t('screens.favorites')}
             icon="star"
             color="default"
             count={Number(favorites[0]?.count ?? 0)}
             onPress={() => router.push('/favorites')}
           />
           <FolderRow
-            name="Archivo"
+            name={t('screens.archive')}
             icon="archive"
             color="default"
             onPress={() => router.push('/archive')}
           />
           <FolderRow
-            name="Papelera"
+            name={t('screens.trash')}
             icon="trash"
             color="default"
             onPress={() => router.push('/trash')}

@@ -44,6 +44,8 @@ type Props = {
   content: EditorDoc;
   editable: boolean;
   placeholder: string;
+  /** Nombre accesible del área de texto (lectores de pantalla dentro de la webview). */
+  label: string;
   autoFocus: boolean;
   theme: TipTapTheme;
   onChange: (doc: EditorDoc) => Promise<void> | void;
@@ -61,6 +63,7 @@ export default function TipTapDom({
   content,
   editable,
   placeholder,
+  label,
   autoFocus,
   theme,
   onChange,
@@ -108,6 +111,9 @@ export default function TipTapDom({
     immediatelyRender: false,
     editable,
     autofocus: autoFocus ? 'end' : false,
+    editorProps: {
+      attributes: { role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },
+    },
     content,
     extensions: [
       StarterKit.configure({

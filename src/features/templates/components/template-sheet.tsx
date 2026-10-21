@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { Sheet, SheetItem, Text } from '@/components/ui';
 
 import { TEMPLATES, type NoteTemplate } from '../templates';
@@ -10,17 +12,18 @@ type TemplateSheetProps = {
 
 /** Elegir una plantilla para la nota nueva. */
 export function TemplateSheet({ visible, onClose, onPick }: TemplateSheetProps) {
+  const { t } = useTranslation();
   return (
-    <Sheet visible={visible} onClose={onClose} title="Nueva desde plantilla">
+    <Sheet visible={visible} onClose={onClose} title={t('newNote.template')}>
       {TEMPLATES.map((template) => (
         <SheetItem
           key={template.id}
           icon={template.icon}
-          label={template.name}
+          label={t(`templates.${template.id}.name`)}
           onPress={() => onPick(template)}
           trailing={
             <Text variant="caption" tone="muted" numberOfLines={1} style={{ maxWidth: '55%' }}>
-              {template.description}
+              {t(`templates.${template.id}.description`)}
             </Text>
           }
         />

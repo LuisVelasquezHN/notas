@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
 import { Icon, Text, type IconName } from '@/components/ui';
@@ -5,24 +6,21 @@ import { radius, spacing, useTheme } from '@/theme';
 
 import type { FormatCommand, FormatState } from '../format';
 
-type FormatButton = {
-  command: FormatCommand;
-  label: string;
-} & ({ icon: IconName } | { text: string });
+type FormatButton = { command: FormatCommand } & ({ icon: IconName } | { text: string });
 
 const BUTTONS: FormatButton[] = [
-  { command: 'heading1', label: 'Título', text: 'H1' },
-  { command: 'heading2', label: 'Subtítulo', text: 'H2' },
-  { command: 'bold', label: 'Negrita', icon: 'bold' },
-  { command: 'italic', label: 'Cursiva', icon: 'italic' },
-  { command: 'underline', label: 'Subrayado', icon: 'underline' },
-  { command: 'strike', label: 'Tachado', icon: 'strike' },
-  { command: 'bulletList', label: 'Lista con viñetas', icon: 'listBullet' },
-  { command: 'orderedList', label: 'Lista numerada', icon: 'listNumber' },
-  { command: 'taskList', label: 'Casillas', icon: 'checklist' },
-  { command: 'blockquote', label: 'Cita', icon: 'quote' },
-  { command: 'code', label: 'Código', icon: 'code' },
-  { command: 'clear', label: 'Quitar formato', icon: 'formatClear' },
+  { command: 'heading1', text: 'H1' },
+  { command: 'heading2', text: 'H2' },
+  { command: 'bold', icon: 'bold' },
+  { command: 'italic', icon: 'italic' },
+  { command: 'underline', icon: 'underline' },
+  { command: 'strike', icon: 'strike' },
+  { command: 'bulletList', icon: 'listBullet' },
+  { command: 'orderedList', icon: 'listNumber' },
+  { command: 'taskList', icon: 'checklist' },
+  { command: 'blockquote', icon: 'quote' },
+  { command: 'code', icon: 'code' },
+  { command: 'clear', icon: 'formatClear' },
 ];
 
 type FormatBarProps = {
@@ -33,6 +31,7 @@ type FormatBarProps = {
 /** Botones de formato del editor enriquecido; resalta los formatos activos en la selección. */
 export function FormatBar({ state, onFormat }: FormatBarProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   return (
     <ScrollView
       horizontal
@@ -46,7 +45,7 @@ export function FormatBar({ state, onFormat }: FormatBarProps) {
           <Pressable
             key={button.command}
             accessibilityRole="button"
-            accessibilityLabel={button.label}
+            accessibilityLabel={t(`format.${button.command}`)}
             accessibilityState={button.command === 'clear' ? undefined : { selected: active }}
             onPress={() => onFormat(button.command)}
             style={({ pressed }) => [

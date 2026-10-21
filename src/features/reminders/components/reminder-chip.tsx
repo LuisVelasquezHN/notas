@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon, Text } from '@/components/ui';
@@ -17,9 +18,10 @@ type ReminderChipProps = {
 /** Fecha de un recordatorio con campana; en rojo si está vencido. */
 export function ReminderChip({ fireAt, recurring, now, compact, onPress }: ReminderChipProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const overdue = fireAt <= now;
   const color = overdue ? colors.danger : colors.textSecondary;
-  const label = formatReminder(fireAt, now);
+  const label = formatReminder(fireAt, now, t);
   const content = (
     <View
       style={[
@@ -34,7 +36,12 @@ export function ReminderChip({ fireAt, recurring, now, compact, onPress }: Remin
       {recurring ? <Icon name="repeat" size={compact ? 11 : 13} color={color} /> : null}
     </View>
   );
-  const a11y = `Recordatorio ${overdue ? 'vencido, ' : ''}${label}${recurring ? ', se repite' : ''}`;
+  const a11y = [
+    overdue ? t('reminders.chipOverdue', { when: label }) : t('reminders.chip', { when: label }),
+    recurring ? t('reminders.chipRepeats') : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
   if (!onPress) {
     return (
       <View accessible accessibilityLabel={a11y} style={styles.wrap}>
@@ -46,7 +53,7 @@ export function ReminderChip({ fireAt, recurring, now, compact, onPress }: Remin
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={a11y}
-      accessibilityHint="Cambiar el recordatorio"
+      accessibilityHint={t('reminders.chipHint')}
       onPress={onPress}
       style={({ pressed }) => [styles.wrap, pressed && { opacity: 0.6 }]}>
       {content}

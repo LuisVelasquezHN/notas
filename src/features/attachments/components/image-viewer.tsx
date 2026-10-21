@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   Modal,
@@ -13,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IconButton, Text } from '@/components/ui';
 import type { Attachment } from '@/db/schema';
+import { useAppLocked } from '@/stores/security-store';
 import { spacing } from '@/theme';
 
 import { deleteAttachment } from '../actions';
@@ -30,10 +32,12 @@ type ImageViewerProps = {
 export function ImageViewer({ images, index, editable, onClose }: ImageViewerProps) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   // La galería vuelve a montar el visor en cada apertura (`key`): parte de la imagen tocada.
   const [current, setCurrent] = useState(index ?? 0);
 
-  const visible = index !== null && images.length > 0;
+  const appLocked = useAppLocked();
+  const visible = index !== null && images.length > 0 && !appLocked;
   const shown = Math.min(current, images.length - 1);
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -67,7 +71,12 @@ export function ImageViewer({ images, index, editable, onClose }: ImageViewerPro
           />
         ) : null}
         <View style={[styles.bar, { paddingTop: insets.top + spacing.sm }]}>
-          <IconButton icon="close" accessibilityLabel="Cerrar" color="#FFFFFF" onPress={onClose} />
+          <IconButton
+            icon="close"
+            accessibilityLabel={t('common.close')}
+            color="#FFFFFF"
+            onPress={onClose}
+          />
           {images.length > 1 ? (
             <Text style={styles.counter}>
               {shown + 1} / {images.length}
@@ -78,7 +87,7 @@ export function ImageViewer({ images, index, editable, onClose }: ImageViewerPro
           {editable ? (
             <IconButton
               icon="trash"
-              accessibilityLabel="Eliminar imagen"
+              accessibilityLabel={t('attachments.deleteImage')}
               color="#FFFFFF"
               onPress={() => {
                 const image = images[shown];

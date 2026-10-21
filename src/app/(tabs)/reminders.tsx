@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import {
@@ -17,32 +18,34 @@ import {
 import * as reminderActions from '@/features/reminders/actions';
 import { ReminderSheet } from '@/features/reminders/components/reminder-sheet';
 import { formatReminder, formatTime } from '@/features/reminders/format';
-import { REMINDER_GROUP_LABELS, groupReminders } from '@/features/reminders/groups';
+import { groupReminders, reminderGroupLabel } from '@/features/reminders/groups';
 import { useNotificationPermission } from '@/features/reminders/hooks/use-notification-permission';
-import { RECURRENCE_SHORT_LABELS, recurrenceKind } from '@/features/reminders/recurrence';
+import { recurrenceKind, recurrenceShortLabel } from '@/features/reminders/recurrence';
 import {
   activeRemindersQuery,
   notificationContent,
   type ActiveReminderRow,
 } from '@/features/reminders/repository';
+import type { TFunction } from '@/i18n';
 import { capabilities } from '@/lib/capabilities';
 import { useNow } from '@/lib/use-now';
 import { radius, spacing, useTheme } from '@/theme';
 
 /** Atajos de "Posponer" desde la lista. */
-function snoozeOptions(now: number) {
+function snoozeOptions(now: number, t: TFunction) {
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(9, 0, 0, 0);
   return [
-    { key: '10m', label: 'Posponer 10 min', minutes: 10 },
-    { key: '1h', label: 'Posponer 1 hora', minutes: 60 },
-    { key: 'tomorrow', label: 'Mañana a las 9:00', at: tomorrow.getTime() },
+    { key: '10m', label: t('reminders.snooze10'), minutes: 10 },
+    { key: '1h', label: t('reminders.snooze1h'), minutes: 60 },
+    { key: 'tomorrow', label: t('reminders.tomorrowAt9'), at: tomorrow.getTime() },
   ];
 }
 
 export default function RemindersScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const now = useNow();
   const { data: rows, updatedAt } = useLiveQuery(activeRemindersQuery());
   const permission = useNotificationPermission();
@@ -58,7 +61,7 @@ export default function RemindersScreen() {
   return (
     <Screen scroll>
       <Text variant="largeTitle" style={styles.title}>
-        Recordatorios
+        {t('reminders.title')}
       </Text>
 
       {permission.state === 'denied' || permission.state === 'undetermined' ? (
@@ -66,33 +69,32 @@ export default function RemindersScreen() {
           icon="bellOff"
           text={
             permission.state === 'denied'
-              ? 'Las notificaciones están desactivadas. Los recordatorios solo se verán aquí.'
-              : 'Activa las notificaciones para recibir los avisos.'
+              ? t('reminders.notificationsDenied')
+              : t('reminders.notificationsOff')
           }
-          action={permission.state === 'denied' ? 'Abrir ajustes' : 'Activar'}
+          action={permission.state === 'denied' ? t('common.openSettings') : t('common.enable')}
           onPress={() => void permission.request()}
         />
       ) : null}
       {permission.state === 'granted' && !permission.exactAlarms ? (
         <Banner
           icon="clock"
-          text="Permite las alarmas exactas para que los avisos lleguen a su hora."
-          action="Permitir"
+          text={t('reminders.exactAlarmsHint')}
+          action={t('common.allow')}
           onPress={() => void permission.requestExactAlarms()}
         />
       ) : null}
       {!capabilities.localNotifications && rows.length > 0 ? (
         <Text variant="caption" tone="muted" style={styles.webNote}>
-          En la web no hay notificaciones del sistema: los avisos aparecen mientras la app está
-          abierta.
+          {t('reminders.webHint')}
         </Text>
       ) : null}
 
       {rows.length === 0 && updatedAt ? (
         <EmptyState
           icon="bell"
-          title="Nada pendiente"
-          description="Añade un recordatorio desde el menú de una nota o con la campana del editor."
+          title={t('reminders.empty')}
+          description={t('reminders.emptyHint')}
         />
       ) : null}
 
@@ -101,7 +103,7 @@ export default function RemindersScreen() {
           <Text
             variant="label"
             style={{ color: group === 'overdue' ? colors.danger : colors.textSecondary }}>
-            {REMINDER_GROUP_LABELS[group].toUpperCase()} · {items.length}
+            {reminderGroupLabel(group, t).toUpperCase()} · {items.length}
           </Text>
           <View style={[styles.sectionBody, { backgroundColor: colors.surface }]}>
             {items.map((row) => (
@@ -124,7 +126,7 @@ export default function RemindersScreen() {
         title={menuFor ? notificationContent(menuFor).title : undefined}>
         {menuFor ? (
           <>
-            {snoozeOptions(now).map((option) => (
+            {snoozeOptions(now, t).map((option) => (
               <SheetItem
                 key={option.key}
                 icon="snooze"
@@ -140,12 +142,12 @@ export default function RemindersScreen() {
             ))}
             <SheetItem
               icon="edit"
-              label={menuFor.checklistItemId ? 'Cambiar fecha límite' : 'Cambiar recordatorio'}
+              label={menuFor.checklistItemId ? t('reminders.changeDue') : t('reminders.change')}
               onPress={() => runFromMenu(() => setEditing(menuFor))}
             />
             <SheetItem
               icon="note"
-              label="Abrir nota"
+              label={t('reminders.openNote')}
               onPress={() =>
                 runFromMenu(() =>
                   router.push({ pathname: '/note/[id]', params: { id: menuFor.noteId } }),
@@ -154,7 +156,7 @@ export default function RemindersScreen() {
             />
             <SheetItem
               icon="bellOff"
-              label="Quitar"
+              label={t('common.remove')}
               destructive
               onPress={() => runFromMenu(() => void reminderActions.remove(menuFor.id))}
             />
@@ -164,7 +166,7 @@ export default function RemindersScreen() {
 
       <ReminderSheet
         visible={editing !== null}
-        title={editing?.checklistItemId ? 'Fecha límite' : 'Recordatorio'}
+        title={editing?.checklistItemId ? t('reminders.due') : t('reminders.reminder')}
         allowRecurrence={!editing?.checklistItemId}
         current={editing ? { fireAt: editing.fireAt, rrule: editing.rrule } : null}
         onClose={() => setEditing(null)}
@@ -203,16 +205,17 @@ function ReminderRow({
   onMore: () => void;
 }) {
   const { colors, noteColor } = useTheme();
+  const { t } = useTranslation();
   const { title } = notificationContent(row);
   const overdue = row.fireAt <= now;
   const kind = recurrenceKind(row.rrule);
-  const when = timeOnly ? formatTime(row.fireAt) : formatReminder(row.fireAt, now);
+  const when = timeOnly ? formatTime(row.fireAt) : formatReminder(row.fireAt, now, t);
   const details = [
     when,
-    kind !== 'none' ? RECURRENCE_SHORT_LABELS[kind] : null,
-    row.status === 'snoozed' ? 'Pospuesto' : null,
-    row.checklistItemId ? row.noteTitle.trim() || 'Lista' : null,
-    row.isArchived ? 'Archivada' : null,
+    kind !== 'none' ? recurrenceShortLabel(kind, t) : null,
+    row.status === 'snoozed' ? t('reminders.snoozed') : null,
+    row.checklistItemId ? row.noteTitle.trim() || t('common.list') : null,
+    row.isArchived ? t('reminders.archived') : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -221,14 +224,17 @@ function ReminderRow({
     <View style={styles.row}>
       <IconButton
         icon="checkbox"
-        accessibilityLabel={`Marcar como hecho: ${title}`}
+        accessibilityLabel={t('reminders.markDone', { title })}
         color={colors.textSecondary}
         onPress={() => void reminderActions.done(row.id)}
       />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${title}, ${overdue ? 'vencido, ' : ''}${details}`}
-        accessibilityHint="Abre la nota"
+        accessibilityLabel={t(overdue ? 'reminders.rowLabelOverdue' : 'reminders.rowLabel', {
+          title,
+          details,
+        })}
+        accessibilityHint={t('reminders.opensNote')}
         onPress={() => router.push({ pathname: '/note/[id]', params: { id: row.noteId } })}
         onLongPress={onMore}
         style={({ pressed }) => [styles.rowBody, pressed && { opacity: 0.6 }]}>
@@ -255,7 +261,7 @@ function ReminderRow({
       </Pressable>
       <IconButton
         icon="more"
-        accessibilityLabel="Más opciones"
+        accessibilityLabel={t('common.moreOptions')}
         color={colors.textSecondary}
         onPress={onMore}
       />

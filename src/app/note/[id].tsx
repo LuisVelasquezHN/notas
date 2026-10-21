@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -36,6 +37,7 @@ import {
   updateNote,
 } from '@/features/notes/repository';
 import { ReminderChip } from '@/features/reminders/components/reminder-chip';
+import { LockedNote } from '@/features/security/components/locked-note';
 import { noteReminderQuery } from '@/features/reminders/repository';
 import { TagPill } from '@/features/tags/components/tag-pill';
 import { tagsForNoteQuery } from '@/features/tags/repository';
@@ -44,6 +46,7 @@ import { consumeWebEnter } from '@/lib/keyboard';
 import { useAutoGrow } from '@/lib/use-auto-grow';
 import { useKeyboardVisible } from '@/lib/use-keyboard-visible';
 import { useNow } from '@/lib/use-now';
+import { useSecurityStore } from '@/stores/security-store';
 import { MAX_CONTENT_WIDTH, fonts, radius, spacing, typography, useTheme } from '@/theme';
 
 /** Margen bajo el cursor al hacer scroll para seguirlo (deja ver la línea siguiente). */
@@ -52,24 +55,29 @@ const CARET_MARGIN = 48;
 export default function NoteScreen() {
   // `record=1`: abrir la grabadora al entrar (acción rápida "Nota de voz").
   const { id, record } = useLocalSearchParams<{ id: string; record?: string }>();
+  const { t } = useTranslation();
   const { data, updatedAt } = useLiveQuery(noteQuery(id), [id]);
   const note = data[0];
+  const unlocked = useSecurityStore((s) => (note ? s.unlockedNoteIds.includes(note.id) : false));
 
   if (!note) {
     return (
       <Screen edges={[]}>
         <Stack.Screen options={{ title: '' }} />
         {/* `updatedAt` indica que la consulta ya respondió: antes no se muestra "no encontrada". */}
-        {updatedAt ? <EmptyState icon="note" title="Nota no encontrada" /> : null}
+        {updatedAt ? <EmptyState icon="note" title={t('editor.notFound')} /> : null}
       </Screen>
     );
   }
+  // Bloqueada: no se monta el editor (ni se lee el contenido) hasta verificar.
+  if (note.isLocked && !unlocked) return <LockedNote note={note} />;
   // Al convertir texto ↔ checklist se vuelve a montar el editor con el contenido nuevo.
   return <NoteEditor key={`${note.id}:${note.type}`} note={note} autoRecord={record === '1'} />;
 }
 
 function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
   const { colors, noteColor } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const [menu, setMenu] = useState<NoteActionsPage | null>(null);
@@ -139,14 +147,14 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
                 <>
                   <IconButton
                     icon="undo"
-                    accessibilityLabel="Deshacer"
+                    accessibilityLabel={t('common.undo')}
                     disabled={!canUndo}
                     color={canUndo ? colors.text : colors.textMuted}
                     onPress={undo}
                   />
                   <IconButton
                     icon="redo"
-                    accessibilityLabel="Rehacer"
+                    accessibilityLabel={t('common.redo')}
                     disabled={!canRedo}
                     color={canRedo ? colors.text : colors.textMuted}
                     onPress={redo}
@@ -156,21 +164,23 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
               {editable ? (
                 <IconButton
                   icon={reminder ? 'bellFill' : 'bell'}
-                  accessibilityLabel={reminder ? 'Cambiar recordatorio' : 'Añadir recordatorio'}
+                  accessibilityLabel={
+                    reminder ? t('editor.changeReminder') : t('editor.addReminder')
+                  }
                   onPress={() => openMenu('reminder')}
                 />
               ) : null}
               {editable ? (
                 <IconButton
                   icon={note.isPinned ? 'pinFill' : 'pin'}
-                  accessibilityLabel={note.isPinned ? 'Desanclar' : 'Anclar'}
+                  accessibilityLabel={note.isPinned ? t('editor.unpin') : t('editor.pin')}
                   accessibilityState={{ selected: note.isPinned }}
                   onPress={() => void actions.togglePin([note])}
                 />
               ) : null}
               <IconButton
                 icon="more"
-                accessibilityLabel="Más acciones"
+                accessibilityLabel={t('common.moreActions')}
                 onPress={() => openMenu()}
               />
             </View>
@@ -196,10 +206,10 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
           {inTrash ? (
             <View style={[styles.banner, { backgroundColor: colors.surfaceMuted }]}>
               <Text tone="secondary" style={styles.bannerText}>
-                En la papelera · se eliminará en {daysLeftInTrash(note.deletedAt!)} días
+                {t('editor.inTrash', { count: daysLeftInTrash(note.deletedAt!) })}
               </Text>
               <Button
-                title="Restaurar"
+                title={t('common.restore')}
                 variant="secondary"
                 icon="restore"
                 onPress={() => void actions.restore([note])}
@@ -210,11 +220,11 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
           <ImageGallery images={images} editable={editable} />
 
           <TextInput
-            accessibilityLabel="Título"
+            accessibilityLabel={t('editor.titlePlaceholder')}
             value={draft.title}
             onChangeText={setTitle}
             editable={editable}
-            placeholder="Título"
+            placeholder={t('editor.titlePlaceholder')}
             placeholderTextColor={colors.textMuted}
             selectionColor={colors.primary}
             multiline
@@ -264,8 +274,8 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
               accessibilityRole="button"
               accessibilityLabel={
                 tags.length > 0
-                  ? `Etiquetas: ${tags.map((t) => t.name).join(', ')}`
-                  : 'Añadir etiquetas'
+                  ? t('editor.tagsLabel', { tags: tags.map((tag) => tag.name).join(', ') })
+                  : t('editor.addTags')
               }
               disabled={!editable}
               onPress={() => openMenu('tags')}
@@ -277,7 +287,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
                 <>
                   <Icon name="tag" size={14} color={colors.textMuted} />
                   <Text variant="caption" tone="muted">
-                    Añadir etiquetas
+                    {t('editor.addTags')}
                   </Text>
                 </>
               ) : null}
@@ -285,7 +295,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
           ) : null}
 
           <Text variant="caption" tone="muted" style={styles.meta}>
-            Editada {formatRelativeDate(note.updatedAt).toLowerCase()}
+            {t('editor.edited', { when: formatRelativeDate(note.updatedAt, now, t).toLowerCase() })}
           </Text>
         </Animated.ScrollView>
 

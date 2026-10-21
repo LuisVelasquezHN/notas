@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { EmptyState, Screen } from '@/components/ui';
@@ -14,6 +15,7 @@ const FAVORITES = { favorite: true } as const;
 export default function FavoritesScreen() {
   const layout = useSettingsStore((s) => s.notesLayout);
   const sortBy = useSettingsStore((s) => s.notesSortBy);
+  const { t } = useTranslation();
   const { data: notes } = useFilteredNotes(FAVORITES, { sortBy });
 
   return (
@@ -34,8 +36,8 @@ export default function FavoritesScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="star"
-            title="Sin favoritas"
-            description="Marca una nota como favorita desde su menú para tenerla a mano aquí."
+            title={t('notes.favoritesEmpty')}
+            description={t('notes.favoritesEmptyHint')}
           />
         }
       />

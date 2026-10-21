@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import {
@@ -19,19 +20,6 @@ import { radius, spacing, useTheme } from '@/theme';
 import { isFilterEmpty, type NoteFilter } from '../filter';
 import { createSavedFilter, updateSavedFilter } from '../repository';
 
-const ICON_LABELS: Record<(typeof SMART_FOLDER_ICONS)[number], string> = {
-  smartFolder: 'Búsqueda',
-  filter: 'Filtro',
-  tag: 'Etiqueta',
-  star: 'Estrella',
-  checklist: 'Lista',
-  work: 'Trabajo',
-  home: 'Casa',
-  idea: 'Idea',
-  book: 'Libro',
-  cart: 'Compra',
-};
-
 export type SmartFolderFormTarget =
   { mode: 'create'; filter: NoteFilter } | { mode: 'edit'; saved: SavedFilter };
 
@@ -44,16 +32,17 @@ type SmartFolderFormSheetProps = {
 
 /** Guardar un filtro como carpeta inteligente, o renombrarla y cambiar su icono. */
 export function SmartFolderFormSheet({ target, onClose, onCreated }: SmartFolderFormSheetProps) {
+  const { t } = useTranslation();
   return (
     <Sheet
       visible={target !== null}
       onClose={onClose}
       title={
         target?.mode === 'edit'
-          ? 'Editar carpeta inteligente'
+          ? t('smart.edit')
           : target && isFilterEmpty(target.filter)
-            ? 'Nueva carpeta inteligente'
-            : 'Guardar como carpeta inteligente'
+            ? t('folders.newSmart')
+            : t('search.saveAsSmart')
       }>
       {target ? (
         <SmartFolderForm
@@ -77,6 +66,7 @@ function SmartFolderForm({
   onCreated?: (saved: SavedFilter) => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const initial = target.mode === 'edit' ? target.saved : null;
   // Al guardar una búsqueda, el texto buscado es un buen nombre por defecto.
   const [name, setName] = useState(
@@ -100,8 +90,8 @@ function SmartFolderForm({
       onCreated(saved);
       return;
     }
-    showSnackbar('Carpeta inteligente creada', {
-      label: 'Abrir',
+    showSnackbar(t('smart.created'), {
+      label: t('common.open'),
       onPress: () => router.push({ pathname: '/smart/[id]', params: { id: saved.id } }),
     });
   }
@@ -111,8 +101,8 @@ function SmartFolderForm({
       <TextField
         value={name}
         onChangeText={setName}
-        placeholder="Nombre"
-        accessibilityLabel="Nombre de la carpeta inteligente"
+        placeholder={t('smart.namePlaceholder')}
+        accessibilityLabel={t('smart.nameLabel')}
         autoFocus
         maxLength={60}
         returnKeyType="done"
@@ -120,21 +110,19 @@ function SmartFolderForm({
       />
       {target.mode === 'create' ? (
         <Text variant="caption" tone="secondary">
-          {isFilterEmpty(target.filter)
-            ? 'Después podrás elegir los filtros: tipo, color, etiquetas, carpeta, fecha…'
-            : 'Mostrará siempre las notas que cumplan estos filtros, también las que crees más adelante.'}
+          {isFilterEmpty(target.filter) ? t('smart.emptyFormHint') : t('smart.formHint')}
         </Text>
       ) : null}
 
       <Text variant="label" tone="secondary">
-        ICONO
+        {t('icons.title').toUpperCase()}
       </Text>
       <View style={styles.wrap}>
         {SMART_FOLDER_ICONS.map((option) => (
           <Pressable
             key={option}
             accessibilityRole="radio"
-            accessibilityLabel={ICON_LABELS[option]}
+            accessibilityLabel={t(`icons.${option}`)}
             accessibilityState={{ selected: option === icon }}
             onPress={() => setIcon(option)}
             style={[
@@ -151,7 +139,7 @@ function SmartFolderForm({
       </View>
 
       <Button
-        title={target.mode === 'edit' ? 'Guardar' : 'Crear carpeta inteligente'}
+        title={target.mode === 'edit' ? t('common.save') : t('smart.create')}
         disabled={!valid}
         onPress={() => void submit()}
         style={styles.submit}

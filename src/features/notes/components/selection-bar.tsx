@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,6 +21,7 @@ type SelectionBarProps = {
 export function SelectionBar({ selected, total, onSelectAll, onClear, onMore }: SelectionBarProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const inTrash = selected.every((n) => n.deletedAt !== null);
   const allPinned = selected.every((n) => n.isPinned);
   const allArchived = selected.every((n) => n.isArchived);
@@ -39,32 +41,34 @@ export function SelectionBar({ selected, total, onSelectAll, onClear, onMore }: 
           bottom: insets.bottom + spacing.lg,
         },
       ]}>
-      <IconButton icon="close" accessibilityLabel="Cancelar selección" onPress={onClear} />
+      <IconButton icon="close" accessibilityLabel={t('selection.cancel')} onPress={onClear} />
       <Text variant="bodyStrong" style={styles.count} numberOfLines={1}>
         {selected.length}
       </Text>
       <IconButton
         icon="selectAll"
-        accessibilityLabel={selected.length === total ? 'Deseleccionar todo' : 'Seleccionar todo'}
+        accessibilityLabel={
+          selected.length === total ? t('selection.deselectAll') : t('selection.selectAll')
+        }
         onPress={onSelectAll}
       />
       <View style={styles.spacer} />
       {inTrash ? (
         <IconButton
           icon="restore"
-          accessibilityLabel="Restaurar"
+          accessibilityLabel={t('common.restore')}
           onPress={runAndClear(() => actions.restore(selected))}
         />
       ) : (
         <>
           <IconButton
             icon={allPinned ? 'pinFill' : 'pin'}
-            accessibilityLabel={allPinned ? 'Desanclar' : 'Anclar'}
+            accessibilityLabel={allPinned ? t('noteActions.unpin') : t('noteActions.pin')}
             onPress={runAndClear(() => actions.togglePin(selected))}
           />
           <IconButton
             icon={allArchived ? 'unarchive' : 'archive'}
-            accessibilityLabel={allArchived ? 'Desarchivar' : 'Archivar'}
+            accessibilityLabel={allArchived ? t('noteActions.unarchive') : t('noteActions.archive')}
             onPress={runAndClear(() =>
               allArchived
                 ? actions.unarchive(selected)
@@ -73,12 +77,12 @@ export function SelectionBar({ selected, total, onSelectAll, onClear, onMore }: 
           />
           <IconButton
             icon="trash"
-            accessibilityLabel="Mover a la papelera"
+            accessibilityLabel={t('noteActions.trash')}
             onPress={runAndClear(() => actions.trash(selected))}
           />
         </>
       )}
-      <IconButton icon="more" accessibilityLabel="Más acciones" onPress={onMore} />
+      <IconButton icon="more" accessibilityLabel={t('common.moreActions')} onPress={onMore} />
     </View>
   );
 }

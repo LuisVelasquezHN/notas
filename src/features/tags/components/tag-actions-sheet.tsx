@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { Sheet, SheetItem, afterSheetClose } from '@/components/ui';
 import type { Tag } from '@/db/schema';
 import { confirm } from '@/lib/confirm';
@@ -15,17 +17,18 @@ type TagActionsSheetProps = {
 };
 
 export function TagActionsSheet({ tag, onClose, onEdit, onDeleted }: TagActionsSheetProps) {
+  const { t } = useTranslation();
   async function remove(target: Tag) {
     const ok = await confirm({
-      title: `¿Eliminar la etiqueta «${target.name}»?`,
-      message: 'Las notas no se borran: solo pierden esta etiqueta.',
-      confirmLabel: 'Eliminar',
+      title: t('tags.deleteTitle', { name: target.name }),
+      message: t('tags.deleteMessage'),
+      confirmLabel: t('common.delete'),
       destructive: true,
     });
     if (!ok) return;
     await deleteTag(target.id);
     onDeleted?.();
-    showUndo('Etiqueta eliminada', () => restoreTag(target.id));
+    showUndo(t('tags.deleted'), () => restoreTag(target.id));
   }
 
   return (
@@ -34,7 +37,7 @@ export function TagActionsSheet({ tag, onClose, onEdit, onDeleted }: TagActionsS
         <>
           <SheetItem
             icon="edit"
-            label="Editar"
+            label={t('common.edit')}
             onPress={() => {
               onClose();
               afterSheetClose(() => onEdit({ mode: 'edit', tag }));
@@ -42,7 +45,7 @@ export function TagActionsSheet({ tag, onClose, onEdit, onDeleted }: TagActionsS
           />
           <SheetItem
             icon="trash"
-            label="Eliminar"
+            label={t('common.delete')}
             destructive
             onPress={() => {
               onClose();

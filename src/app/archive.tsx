@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { EmptyState, Screen } from '@/components/ui';
@@ -12,6 +13,7 @@ import { spacing } from '@/theme';
 export default function ArchiveScreen() {
   const layout = useSettingsStore((s) => s.notesLayout);
   const sortBy = useSettingsStore((s) => s.notesSortBy);
+  const { t } = useTranslation();
   const { data: notes } = useLiveQuery(notesQuery({ scope: 'archived', sortBy }), [sortBy]);
 
   return (
@@ -32,8 +34,8 @@ export default function ArchiveScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="archive"
-            title="Archivo vacío"
-            description="Archiva las notas que quieras conservar sin verlas en la lista principal."
+            title={t('notes.archiveEmpty')}
+            description={t('notes.archiveEmptyHint')}
           />
         }
       />

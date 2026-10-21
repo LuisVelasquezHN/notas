@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import {
@@ -17,19 +18,6 @@ import { NOTE_COLOR_TOKENS, radius, spacing, useTheme, type NoteColor } from '@/
 
 import { createFolder, updateFolder } from '../repository';
 
-const ICON_LABELS: Record<(typeof FOLDER_ICONS)[number], string> = {
-  folder: 'Carpeta',
-  home: 'Casa',
-  work: 'Trabajo',
-  star: 'Estrella',
-  heart: 'Corazón',
-  book: 'Libro',
-  cart: 'Compra',
-  idea: 'Idea',
-  travel: 'Viaje',
-  school: 'Estudios',
-};
-
 export type FolderFormTarget =
   { mode: 'create'; parentId: string | null } | { mode: 'edit'; folder: Folder };
 
@@ -41,11 +29,12 @@ type FolderFormSheetProps = {
 
 /** Crear o editar una carpeta: nombre, color e icono. */
 export function FolderFormSheet({ target, onClose, onSaved }: FolderFormSheetProps) {
+  const { t } = useTranslation();
   return (
     <Sheet
       visible={target !== null}
       onClose={onClose}
-      title={target?.mode === 'edit' ? 'Editar carpeta' : 'Nueva carpeta'}>
+      title={target?.mode === 'edit' ? t('folders.edit') : t('folders.newFolder')}>
       {target ? (
         // Se vuelve a montar con cada destino para reiniciar el formulario.
         <FolderForm
@@ -69,6 +58,7 @@ function FolderForm({
   onDone: (folder: Folder | null) => void;
 }) {
   const { colors, noteColor } = useTheme();
+  const { t } = useTranslation();
   const initial = target.mode === 'edit' ? target.folder : null;
   const [name, setName] = useState(initial?.name ?? '');
   const [color, setColor] = useState<NoteColor>(initial?.color ?? 'default');
@@ -90,8 +80,8 @@ function FolderForm({
       <TextField
         value={name}
         onChangeText={setName}
-        placeholder="Nombre de la carpeta"
-        accessibilityLabel="Nombre de la carpeta"
+        placeholder={t('folders.nameLabel')}
+        accessibilityLabel={t('folders.nameLabel')}
         autoFocus
         maxLength={60}
         returnKeyType="done"
@@ -99,7 +89,7 @@ function FolderForm({
       />
 
       <Text variant="label" tone="secondary">
-        COLOR
+        {t('filters.color').toUpperCase()}
       </Text>
       <View style={styles.wrap}>
         {NOTE_COLOR_TOKENS.map((token) => (
@@ -113,14 +103,14 @@ function FolderForm({
       </View>
 
       <Text variant="label" tone="secondary">
-        ICONO
+        {t('icons.title').toUpperCase()}
       </Text>
       <View style={styles.wrap}>
         {FOLDER_ICONS.map((name) => (
           <Pressable
             key={name}
             accessibilityRole="radio"
-            accessibilityLabel={ICON_LABELS[name]}
+            accessibilityLabel={t(`icons.${name}`)}
             accessibilityState={{ selected: name === icon }}
             onPress={() => setIcon(name)}
             style={[
@@ -137,7 +127,7 @@ function FolderForm({
       </View>
 
       <Button
-        title={target.mode === 'edit' ? 'Guardar' : 'Crear carpeta'}
+        title={target.mode === 'edit' ? t('common.save') : t('folders.create')}
         disabled={!valid}
         onPress={() => void submit()}
         style={styles.submit}

@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { Chip } from '@/components/ui';
@@ -17,16 +18,18 @@ type FilterBarProps = {
 
 /** Botón "Filtros" seguido de un chip por cada criterio activo (tocarlo lo quita). */
 export function FilterBar({ filter, onChange, onOpen }: FilterBarProps) {
+  const { t } = useTranslation();
   const { data: tags } = useLiveQuery(tagsQuery());
   const { data: folders } = useLiveQuery(foldersQuery());
   const parts = useMemo(() => {
-    const tagNames = new Map(tags.map((t) => [t.id, t.name]));
+    const tagNames = new Map(tags.map((tag) => [tag.id, tag.name]));
     const folderNames = new Map(folders.map((f) => [f.id, f.name]));
-    return describeFilter(filter, {
-      tag: (id) => tagNames.get(id),
-      folder: (id) => folderNames.get(id),
-    });
-  }, [filter, tags, folders]);
+    return describeFilter(
+      filter,
+      { tag: (id) => tagNames.get(id), folder: (id) => folderNames.get(id) },
+      t,
+    );
+  }, [filter, tags, folders, t]);
   const count = activeCriteriaCount(filter);
 
   return (
@@ -36,7 +39,7 @@ export function FilterBar({ filter, onChange, onOpen }: FilterBarProps) {
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={styles.row}>
       <Chip
-        label={count > 0 ? `Filtros · ${count}` : 'Filtros'}
+        label={count > 0 ? t('filters.titleCount', { count }) : t('filters.title')}
         icon="filter"
         selected={count > 0}
         onPress={onOpen}
@@ -46,7 +49,7 @@ export function FilterBar({ filter, onChange, onOpen }: FilterBarProps) {
           key={part.key}
           label={part.label}
           icon="close"
-          accessibilityLabel={`Quitar filtro ${part.label}`}
+          accessibilityLabel={t('filters.removeFilter', { label: part.label })}
           onPress={() => onChange(part.without)}
         />
       ))}

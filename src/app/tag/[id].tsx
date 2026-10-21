@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { EmptyState, IconButton, Screen } from '@/components/ui';
@@ -20,6 +21,7 @@ export default function TagScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const layout = useSettingsStore((s) => s.notesLayout);
   const sortBy = useSettingsStore((s) => s.notesSortBy);
+  const { t } = useTranslation();
   const { data, updatedAt } = useLiveQuery(tagQuery(id), [id]);
   const tag = data[0];
   const { data: notes } = useFilteredNotes({ tagIds: [id] }, { sortBy });
@@ -30,7 +32,7 @@ export default function TagScreen() {
     return (
       <Screen edges={[]}>
         <Stack.Screen options={{ title: '' }} />
-        {updatedAt ? <EmptyState icon="tag" title="Etiqueta no encontrada" /> : null}
+        {updatedAt ? <EmptyState icon="tag" title={t('tags.notFound')} /> : null}
       </Screen>
     );
   }
@@ -45,7 +47,7 @@ export default function TagScreen() {
               <ListControls />
               <IconButton
                 icon="more"
-                accessibilityLabel="Opciones de la etiqueta"
+                accessibilityLabel={t('tags.options')}
                 onPress={() => setMenuOpen(true)}
               />
             </View>
@@ -60,8 +62,8 @@ export default function TagScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="tag"
-            title="Ninguna nota con esta etiqueta"
-            description="Mantén pulsada una nota y elige «Etiquetas», o crea una nota aquí."
+            title={t('notes.tagEmpty')}
+            description={t('notes.tagEmptyHint')}
           />
         }
       />

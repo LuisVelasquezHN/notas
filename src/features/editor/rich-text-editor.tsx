@@ -1,4 +1,5 @@
 import { useMemo, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { fonts, typography, useTheme } from '@/theme';
@@ -21,7 +22,7 @@ export function RichTextEditor({
   value,
   onChange,
   editable = true,
-  placeholder = 'Escribe algo…',
+  placeholder,
   autoFocus = false,
   textColor,
   onFormatChange,
@@ -29,6 +30,7 @@ export function RichTextEditor({
   onCaret,
 }: EditorAdapterProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const theme = useMemo<TipTapTheme>(
     () => ({
       text: textColor ?? colors.text,
@@ -44,7 +46,7 @@ export function RichTextEditor({
   );
 
   return (
-    <View style={styles.root} accessibilityLabel="Contenido de la nota">
+    <View style={styles.root}>
       <TipTapDom
         // `EditorHandle` es la misma forma, con el comando ya tipado.
         ref={ref as Ref<TipTapHandle> | undefined}
@@ -59,7 +61,8 @@ export function RichTextEditor({
         }}
         content={value}
         editable={editable}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t('editor.placeholder')}
+        label={t('editor.contentLabel')}
         autoFocus={autoFocus}
         theme={theme}
         onChange={onChange}

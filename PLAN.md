@@ -83,7 +83,7 @@ App de notas **local-first** en React Native (Expo) para **iOS, Android y web**:
 | Tema claro, oscuro o del sistema                    | P0        |
 | Bloqueo con biometría o PIN (por nota o de la app)  | P1        |
 | Exportar (Markdown, PDF, texto) y compartir         | P1        |
-| Copia de seguridad e importación en JSON o ZIP      | P1        |
+| Copia de seguridad e importación en JSON            | P1        |
 | i18n (es/en) y accesibilidad                        | P1        |
 | Quick actions en el icono                           | P1        |
 | Historial de versiones                              | P2        |
@@ -113,9 +113,9 @@ App de notas **local-first** en React Native (Expo) para **iOS, Android y web**:
 | Editor                  | **TipTap 3** (StarterKit + listas de tareas) en un DOM component de Expo                                     |
 | Multimedia              | expo-image, expo-image-picker, expo-audio, expo-file-system                                                  |
 | Acciones rápidas        | expo-quick-actions (no es del SDK oficial)                                                                   |
-| Seguridad               | expo-local-authentication, expo-secure-store                                                                 |
-| Exportación             | expo-print, expo-sharing                                                                                     |
-| i18n                    | i18next + expo-localization                                                                                  |
+| Seguridad               | expo-local-authentication (biometría o código del dispositivo; sin PIN propio ni expo-secure-store)          |
+| Exportación y copias    | expo-print, expo-sharing, expo-document-picker                                                               |
+| i18n                    | i18next + react-i18next + expo-localization (claves tipadas contra el catálogo en español)                   |
 | Tests                   | Jest (jest-expo) + React Native Testing Library; Maestro para E2E                                            |
 | Monitorización          | Sentry                                                                                                       |
 | Pagos (futuro)          | RevenueCat, detrás de la capa `entitlements`                                                                 |
@@ -132,6 +132,8 @@ App de notas **local-first** en React Native (Expo) para **iOS, Android y web**:
 - **Adjuntos:** sin sistema de ficheros, las imágenes (reducidas a 1600 px, JPEG) y los audios (WebM) se guardan como data URI en la propia base de datos. Las grabaciones WebM de Chrome no traen duración: se usa la medida al grabar. El micrófono exige contexto seguro (HTTPS o localhost).
 - **Notificaciones:** expo-notifications no programa notificaciones locales en web. Allí los recordatorios se muestran en la app (pantalla y badge), sin aviso del sistema.
 - **No disponibles en web:** biometría, widgets, share extension y quick actions. Las funciones se ocultan con `Platform.OS` o con capacidades (`capabilities.ts`).
+- **Bloqueo en web:** sin biometría ni código del dispositivo, no se ofrece bloquear la app ni las notas. Una nota bloqueada (p. ej. importada de una copia) se muestra oculta y se abre tocando "Desbloquear": oculta el contenido a la vista, no lo protege.
+- **Exportar en web:** los ficheros (Markdown, texto, copia JSON) se descargan; el PDF se genera con el diálogo de impresión del navegador ("Guardar como PDF"). "Compartir texto" solo aparece si el navegador tiene `navigator.share`.
 - **Despliegue:** EAS Hosting.
 
 ---
@@ -233,7 +235,7 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 | **2. Organización**       | Etiquetas, filtros, carpetas inteligentes, selección múltiple, drag & drop, favoritos                                                    | 2 semanas   | ✅ hecha |
 | **3. Recordatorios**      | Selector, scheduler con ventana, RRULE, acciones, pantalla de próximos, badge                                                            | 2 semanas   | ✅ hecha |
 | **4. Contenido rico**     | Editor TipTap, imágenes, voz, plantillas, quick actions                                                                                  | 2–3 semanas | ✅ hecha |
-| **5. Seguridad y pulido** | Biometría, export/import y backup, i18n, accesibilidad, onboarding                                                                       | 2 semanas   |          |
+| **5. Seguridad y pulido** | Biometría, export/import y backup, i18n, accesibilidad, onboarding                                                                       | 2 semanas   | ✅ hecha |
 | **6. Lanzamiento**        | E2E, Sentry, betas, fichas de las tiendas, privacidad, despliegue web                                                                    | 1–2 semanas |          |
 | **7. Post-lanzamiento**   | Sincronización, pagos, widgets, share extension, versiones, IA                                                                           | continuo    |          |
 
@@ -314,6 +316,22 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 - [ ] **Pendiente:** probar en iOS y Android con un development build (nuevos módulos nativos: expo-image-picker, expo-audio, expo-file-system, expo-quick-actions): teclado y foco del editor en la webview, seguir el cursor, fondo transparente de la webview, grabar y reproducir, permisos, acciones rápidas (en Android, sin icono propio todavía). En web no se pudo grabar audio (requiere conceder el micrófono) ni comprobar las reglas de Markdown al teclear (los eventos sintéticos no las disparan)
 - [ ] **Conocido (anterior a esta fase):** en orden manual, una nota creada mientras la lista está montada no aparece en la rejilla (react-native-sortables) hasta volver a cargar la pantalla
 - [ ] **No incluido:** plantillas propias del usuario, enlaces dentro del texto con diálogo, transcripción de voz, recortar/anotar imágenes
+
+### Fase 5: checklist
+
+- [x] i18n (`src/i18n`): i18next + react-i18next + expo-localization, español (catálogo de referencia) e inglés. Todas las pantallas, hojas, snackbars, diálogos, notificaciones (botones y canal), acciones rápidas, plantillas y nombres de colores/iconos. Las claves se comprueban en TypeScript contra `es.ts` y `en.ts` debe tener las mismas. Fechas, horas, calendario (primer día de la semana de la región) y recurrencias con `Intl` en el idioma activo. Ajuste "Idioma": Sistema, Español o English (se aplica al momento, también `<html lang>` en web); "Sistema" sigue al dispositivo (incluido el idioma por app de iOS/Android 13+, `supportedLocales`). Textos de permisos de iOS traducidos (`locales/*.json`)
+- [x] Bloqueo de la app (`src/features/security`, iOS y Android): biometría o código del dispositivo (expo-local-authentication; el "PIN" es el del sistema, no se guarda uno propio). Al arrancar y al volver tras "Al salir / 1 min / 5 min" en segundo plano; tapa el contenido en el selector de apps; el navegador sigue montado debajo y las hojas modales se ocultan mientras está bloqueada. Activarlo y desactivarlo pide verificación; sin código en el dispositivo se explica cómo configurarlo
+- [x] Notas bloqueadas (columna `is_locked`, sin migración): "Bloquear"/"Quitar bloqueo" en el menú (también en lote). Ocultan contenido, imágenes y audio en tarjetas; en la búsqueda solo cuentan por el título; la notificación muestra solo el título. Abrirla pide verificación y queda desbloqueada hasta salir de la app; exportarla también la pide. Capa `entitlements` (`noteLock`, `export`)
+- [x] Exportar una nota (`src/features/export`): Markdown (títulos, formato, listas anidadas, casillas, citas, código, etiquetas como `#tag`), texto plano, PDF (expo-print, con las imágenes) y "Compartir texto". Nativo: hoja de compartir del sistema; web: descarga o impresión
+- [x] Copia de seguridad (`src/features/backup`): JSON con todas las tablas (también papelera) y los adjuntos en base64 (un fichero compartido se guarda una vez). Exportar pide verificación si hay notas bloqueadas. Importar (expo-document-picker) valida el formato y la versión, descarta filas incompletas y **fusiona**: añade lo que falta, sustituye solo lo que es más reciente en la copia, no borra nada (importar dos veces no cambia nada), funde etiquetas con el mismo nombre (y corrige las carpetas inteligentes que las usan), suelta referencias rotas y regenera las notificaciones
+- [x] Onboarding (`/onboarding`, `Stack.Protected`): tres páginas (local-first, organización, recordatorios) con selector de idioma y botón para activar notificaciones; "Saltar" y "Ver la presentación" en Ajustes. Quien ya usaba la app no la ve (migración del store de ajustes v1 → v2)
+- [x] Accesibilidad: los títulos (`largeTitle`, `title`, `heading`) se anuncian como encabezado; grupos de opciones como `radiogroup`; el editor TipTap tiene nombre accesible dentro de la webview; chips con área táctil de 44 pt; el snackbar se anuncia en iOS y dura el triple con lector de pantalla; las hojas no se deslizan con "Reducir movimiento"; textos de accesibilidad traducidos en todas las pantallas
+- [x] Ajustes reorganizados: Apariencia, Idioma, Seguridad (solo nativo), Recordatorios, Datos (exportar/importar copia), Notas, Ayuda
+- [x] Tests: catálogos (mismas claves, mismas variables, plurales), cambio de idioma en textos y fechas, conversión a Markdown/texto/HTML y nombres de fichero, lectura y validación de copias, fusión (más reciente gana, idempotencia, orden de carpetas, referencias rotas, etiquetas fundidas, notificaciones), migración de ajustes
+- [x] Web verificada en el navegador: presentación y cambio de idioma en vivo, Ajustes en ambos idiomas, crear nota y exportar a Markdown, exportar la copia, importar una copia modificada (nueva + actualizada, con etiqueta e ítems), nota bloqueada importada (tarjeta oculta, búsqueda solo por título, pantalla de desbloqueo, quitar bloqueo)
+- [x] Dependencias del SDK al día (`expo install --fix`); `expo-doctor` sin avisos
+- [ ] **Pendiente:** probar en iOS y Android con un development build (nuevos módulos nativos: expo-local-authentication, expo-localization, expo-print, expo-sharing, expo-document-picker): Face ID/huella y código, bloqueo al volver de segundo plano y cubierta en el selector de apps, diálogo de Face ID sin que salte la cubierta, compartir Markdown/PDF/copia, importar desde Archivos/Drive, idioma por app del sistema, VoiceOver/TalkBack. En web no se probó el PDF (abre el diálogo de impresión) ni "Compartir texto" (el navegador del panel no tiene `navigator.share`)
+- [ ] **No incluido:** copia en ZIP (el JSON ya incluye los adjuntos), PIN propio de la app (se usa el del dispositivo), exportar varias notas a la vez, copias automáticas programadas
 
 ---
 

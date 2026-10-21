@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 
 import { SheetItem, Text, TextField } from '@/components/ui';
@@ -14,6 +15,7 @@ import { MAX_TAG_LENGTH, cleanTagName, createTag, noteTagsQuery, tagsQuery } fro
  * Con varias notas, una etiqueta que solo tienen algunas se marca en todas al tocarla.
  */
 export function TagPicker({ notes }: { notes: Note[] }) {
+  const { t } = useTranslation();
   const { data: tags } = useLiveQuery(tagsQuery());
   const { data: pairs } = useLiveQuery(noteTagsQuery());
   const [query, setQuery] = useState('');
@@ -29,8 +31,8 @@ export function TagPicker({ notes }: { notes: Note[] }) {
 
   const name = cleanTagName(query);
   const needle = name.toLocaleLowerCase();
-  const shown = needle ? tags.filter((t) => t.name.toLocaleLowerCase().includes(needle)) : tags;
-  const exact = tags.some((t) => t.name.toLocaleLowerCase() === needle);
+  const shown = needle ? tags.filter((tag) => tag.name.toLocaleLowerCase().includes(needle)) : tags;
+  const exact = tags.some((tag) => tag.name.toLocaleLowerCase() === needle);
 
   async function create() {
     if (!name) return;
@@ -45,8 +47,8 @@ export function TagPicker({ notes }: { notes: Note[] }) {
         <TextField
           value={query}
           onChangeText={setQuery}
-          placeholder={tags.length > 0 ? 'Buscar o crear etiqueta' : 'Nueva etiqueta'}
-          accessibilityLabel="Buscar o crear etiqueta"
+          placeholder={tags.length > 0 ? t('tags.searchOrCreate') : t('folders.newTag')}
+          accessibilityLabel={t('tags.searchOrCreate')}
           maxLength={MAX_TAG_LENGTH}
           autoCorrect={false}
           returnKeyType="done"
@@ -61,7 +63,11 @@ export function TagPicker({ notes }: { notes: Note[] }) {
       </View>
 
       {name && !exact ? (
-        <SheetItem icon="tagAdd" label={`Crear «${name}»`} onPress={() => void create()} />
+        <SheetItem
+          icon="tagAdd"
+          label={t('tags.createNamed', { name })}
+          onPress={() => void create()}
+        />
       ) : null}
 
       {shown.map((tag) => {
@@ -76,7 +82,7 @@ export function TagPicker({ notes }: { notes: Note[] }) {
             trailing={
               count > 0 && !all ? (
                 <Text variant="caption" tone="muted">
-                  {count} de {notes.length}
+                  {t('tags.someOf', { count, total: notes.length })}
                 </Text>
               ) : null
             }
@@ -86,7 +92,7 @@ export function TagPicker({ notes }: { notes: Note[] }) {
 
       {tags.length === 0 && !name ? (
         <Text tone="muted" style={styles.hint}>
-          Escribe un nombre para crear tu primera etiqueta.
+          {t('tags.firstHint')}
         </Text>
       ) : null}
     </View>

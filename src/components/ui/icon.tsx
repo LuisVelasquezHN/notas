@@ -115,6 +115,19 @@ const ICONS = {
   },
   formatClear: { ios: 'eraser', android: 'format_clear', web: 'format_clear' },
   template: { ios: 'doc.text', android: 'description', web: 'description' },
+  lock: { ios: 'lock', android: 'lock', web: 'lock' },
+  lockOpen: { ios: 'lock.open', android: 'lock_open', web: 'lock_open' },
+  faceId: { ios: 'faceid', android: 'face', web: 'face' },
+  fingerprint: { ios: 'touchid', android: 'fingerprint', web: 'fingerprint' },
+  share: { ios: 'square.and.arrow.up', android: 'share', web: 'share' },
+  markdown: { ios: 'doc.plaintext', android: 'article', web: 'article' },
+  pdf: { ios: 'doc.richtext', android: 'picture_as_pdf', web: 'picture_as_pdf' },
+  backup: { ios: 'externaldrive', android: 'backup', web: 'backup' },
+  importFile: { ios: 'square.and.arrow.down', android: 'upload_file', web: 'upload_file' },
+  language: { ios: 'globe', android: 'language', web: 'language' },
+  shield: { ios: 'lock.shield', android: 'shield', web: 'shield' },
+  sparkles: { ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' },
+  info: { ios: 'info.circle', android: 'info', web: 'info' },
 } satisfies Record<string, SymbolName>;
 
 export type IconName = keyof typeof ICONS;

@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { Attachment } from '@/db/schema';
@@ -19,6 +20,7 @@ type ImageGalleryProps = {
 /** Imágenes de la nota, encima del título (como en Keep). Tocar abre el visor. */
 export function ImageGallery({ images, editable }: ImageGalleryProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   if (images.length === 0) return null;
 
@@ -34,7 +36,7 @@ export function ImageGallery({ images, editable }: ImageGalleryProps) {
             <Pressable
               key={image.id}
               accessibilityRole="imagebutton"
-              accessibilityLabel={`Imagen ${index + 1} de ${images.length}`}
+              accessibilityLabel={t('attachments.imageN', { n: index + 1, total: images.length })}
               onPress={() => setOpenIndex(index)}
               style={({ pressed }) => [
                 single

@@ -71,8 +71,7 @@ function scopeCondition(scope: NoteScope): SQL | undefined {
   }
 }
 
-function searchCondition(search: string | undefined): SQL | undefined {
-  if (!search?.trim()) return undefined;
+function contentSearchCondition(search: string): SQL | undefined {
   if (capabilities.fullTextSearch) {
     const match = buildFtsMatch(search);
     if (!match) return undefined;
@@ -84,6 +83,22 @@ function searchCondition(search: string | undefined): SQL | undefined {
       const pattern = likePattern(term);
       return sql`(${notes.title} LIKE ${pattern} ESCAPE '\\' OR ${notes.contentText} LIKE ${pattern} ESCAPE '\\')`;
     }),
+  );
+}
+
+/** Cada palabra debe aparecer en el título. */
+function titleSearchCondition(search: string): SQL | undefined {
+  return and(
+    ...searchTerms(search).map((term) => sql`${notes.title} LIKE ${likePattern(term)} ESCAPE '\\'`),
+  );
+}
+
+/** Búsqueda en título y contenido; en las notas bloqueadas, solo en el título. */
+function searchCondition(search: string | undefined): SQL | undefined {
+  if (!search?.trim() || searchTerms(search).length === 0) return undefined;
+  return or(
+    and(eq(notes.isLocked, false), contentSearchCondition(search)),
+    and(eq(notes.isLocked, true), titleSearchCondition(search)),
   );
 }
 
@@ -261,6 +276,7 @@ type NotePatch = Partial<
     | 'pinnedAt'
     | 'isArchived'
     | 'isFavorite'
+    | 'isLocked'
     | 'deletedAt'
     | 'type'
   >
@@ -314,6 +330,10 @@ export async function moveNoteBetween(id: string, before: string | null, after: 
     .update(notes)
     .set({ sortKey: sortKeyForMove(before, after) })
     .where(eq(notes.id, id));
+}
+
+export function setLocked(ids: string[], locked: boolean) {
+  return updateNotes(ids, { isLocked: locked });
 }
 
 export function setColor(ids: string[], color: NoteColor) {

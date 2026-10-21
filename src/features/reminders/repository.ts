@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, isNull, or, type SQL } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { checklistItems, notes, reminders, type ChecklistItem, type Reminder } from '@/db/schema';
 import { setItemChecked } from '@/features/checklist/repository';
+import { t } from '@/i18n';
 import { uuidv7 } from '@/lib/ids';
 
 import { SNOOZE_MINUTES } from './format';
@@ -52,6 +53,7 @@ export function activeRemindersQuery() {
       noteColor: notes.color,
       noteType: notes.type,
       isArchived: notes.isArchived,
+      isLocked: notes.isLocked,
       itemText: checklistItems.text,
     })
     .from(reminders)
@@ -99,15 +101,22 @@ const firstLine = (text: string) =>
     .map((l) => l.trim())
     .find(Boolean) ?? '';
 
-/** Título y cuerpo de la notificación de un recordatorio. */
+/**
+ * Título y cuerpo de la notificación de un recordatorio. De una nota bloqueada solo se muestra el
+ * título (ni su texto ni el de sus ítems).
+ */
 export function notificationContent(row: ActiveReminderRow): { title: string; body: string } {
+  if (row.isLocked) return { title: row.noteTitle.trim() || t('card.locked'), body: '' };
   if (row.checklistItemId) {
-    return { title: row.itemText?.trim() || 'Elemento de la lista', body: row.noteTitle.trim() };
+    return {
+      title: row.itemText?.trim() || t('notifications.listItem'),
+      body: row.noteTitle.trim(),
+    };
   }
   const title = row.noteTitle.trim();
   const text = row.noteText.trim();
   if (title) return { title, body: text.slice(0, 180) };
-  return { title: firstLine(text) || 'Recordatorio', body: '' };
+  return { title: firstLine(text) || t('reminders.reminder'), body: '' };
 }
 
 /** Recordatorios activos listos para planificar la ventana de notificaciones. */
