@@ -1,0 +1,25 @@
+Notas is a simple, private notes app. Everything is stored on your device: no accounts, no servers and no ads.
+
+WRITE YOUR WAY
+• Rich notes: headings, bold, lists, checkboxes, quotes and code.
+• Checklists: drag to reorder, add subtasks and hide completed items.
+• Voice notes and photos inside any note.
+• Templates for meetings, groceries, journaling, recipes or a trip.
+
+EVERYTHING IN ITS PLACE
+• Nested folders with color and icon.
+• Tags, colors, pinned notes and favorites.
+• Instant search and combinable filters (type, color, tag, date…).
+• Smart folders: save a search and it keeps itself up to date.
+
+NEVER FORGET
+• Reminders on any note, including repeating ones (daily, weekdays, weekly, monthly or yearly).
+• Due dates on checklist items.
+• Right from the notification: Done, Snooze 10 minutes or Open.
+
+TRULY PRIVATE
+• Your notes never leave your device.
+• Lock the app or just some notes with Face ID, fingerprint or your device passcode.
+• Full backup to a file you keep wherever you want, plus export to Markdown, plain text or PDF.
+
+Plus: light and dark themes, Spanish and English, quick actions from the app icon, and undo everywhere.

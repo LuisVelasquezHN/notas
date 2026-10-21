@@ -55,7 +55,12 @@ export default function OnboardingScreen() {
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={styles.top}>
         {!last ? (
-          <Button title={t('onboarding.skip')} variant="ghost" onPress={() => setOnboarded(true)} />
+          <Button
+            title={t('onboarding.skip')}
+            variant="ghost"
+            testID="onboarding-skip"
+            onPress={() => setOnboarded(true)}
+          />
         ) : null}
       </View>
 

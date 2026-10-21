@@ -41,3 +41,29 @@ jobs:
 
       - name: Expo Doctor
         run: npx expo-doctor
+
+  e2e-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Navegador de Playwright
+        run: npx playwright install --with-deps chromium
+
+      # Compila la web de producción, la sirve y prueba los flujos principales (ver playwright.config.ts).
+      - name: E2E web
+        run: npm run e2e:web
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

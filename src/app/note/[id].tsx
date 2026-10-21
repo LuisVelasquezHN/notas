@@ -174,7 +174,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
                 <IconButton
                   icon={note.isPinned ? 'pinFill' : 'pin'}
                   accessibilityLabel={note.isPinned ? t('editor.unpin') : t('editor.pin')}
-                  accessibilityState={{ selected: note.isPinned }}
+                  aria-selected={note.isPinned}
                   onPress={() => void actions.togglePin([note])}
                 />
               ) : null}
@@ -221,6 +221,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
 
           <TextInput
             accessibilityLabel={t('editor.titlePlaceholder')}
+            testID="note-title"
             value={draft.title}
             onChangeText={setTitle}
             editable={editable}

@@ -126,6 +126,7 @@ const ICONS = {
   importFile: { ios: 'square.and.arrow.down', android: 'upload_file', web: 'upload_file' },
   language: { ios: 'globe', android: 'language', web: 'language' },
   shield: { ios: 'lock.shield', android: 'shield', web: 'shield' },
+  bug: { ios: 'ladybug', android: 'bug_report', web: 'bug_report' },
   sparkles: { ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' },
   info: { ios: 'info.circle', android: 'info', web: 'info' },
 } satisfies Record<string, SymbolName>;

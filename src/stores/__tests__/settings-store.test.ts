@@ -14,6 +14,7 @@ describe('ajustes', () => {
     expect(state.theme).toBe('dark');
     expect(state.language).toBe('system');
     expect(state.appLock).toBe(false);
+    expect(state.crashReports).toBe(true);
   });
 
   it('una instalación nueva empieza con la presentación', async () => {

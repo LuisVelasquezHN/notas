@@ -8,6 +8,9 @@ export const DATABASE_NAME = 'notas.db';
 
 export type Database = ReturnType<typeof drizzle<typeof schema>>;
 
+const OPEN_ATTEMPTS = 5;
+const RETRY_DELAY_MS = 300;
+
 let instance: Database | null = null;
 let opening: Promise<Database> | null = null;
 
@@ -19,7 +22,9 @@ let opening: Promise<Database> | null = null;
 export function openDatabase(): Promise<Database> {
   opening ??= (async () => {
     // `enableChangeListener` es necesario para que `useLiveQuery` reaccione a los cambios.
-    const sqlite = await openDatabaseAsync(DATABASE_NAME, { enableChangeListener: true });
+    const sqlite = await withRetry(() =>
+      openDatabaseAsync(DATABASE_NAME, { enableChangeListener: true }),
+    );
     await sqlite.execAsync('PRAGMA foreign_keys = ON;');
     if (Platform.OS !== 'web') {
       await sqlite.execAsync('PRAGMA journal_mode = WAL;');
@@ -28,6 +33,21 @@ export function openDatabase(): Promise<Database> {
     return instance;
   })();
   return opening;
+}
+
+/**
+ * En web, al cerrarse otra pestaña su candado (`tab-lock.web.ts`) puede liberarse un instante
+ * antes que el fichero de OPFS: se reintenta la apertura unas cuantas veces.
+ */
+async function withRetry<T>(open: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await open();
+    } catch (e) {
+      if (Platform.OS !== 'web' || attempt >= OPEN_ATTEMPTS) throw e;
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    }
+  }
 }
 
 /** Base de datos ya abierta. Solo se puede usar dentro de `<AppBootstrap>` (o tras `openDatabase()`). */

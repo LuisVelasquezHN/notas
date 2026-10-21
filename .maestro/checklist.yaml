@@ -1,0 +1,26 @@
+# Crear una lista, añadir elementos y marcar uno.
+appId: com.novotechn.notas
+name: Listas
+tags:
+  - smoke
+---
+- runFlow: subflows/launch-fresh.yaml
+- tapOn:
+    id: new-checklist
+- tapOn:
+    id: note-title
+- inputText: Compra
+- tapOn:
+    id: checklist-add-item
+- inputText: Leche
+- pressKey: Enter
+- inputText: Pan
+- hideKeyboard
+- tapOn:
+    id: checklist-item-toggle
+    index: 0
+- assertVisible:
+    id: checklist-item-toggle
+    checked: true
+- runFlow: subflows/go-back.yaml
+- assertVisible: Compra

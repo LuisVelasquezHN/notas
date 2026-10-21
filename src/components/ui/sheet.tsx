@@ -95,7 +95,7 @@ export function SheetItem({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      aria-selected={selected}
       onPress={onPress}
       style={({ pressed }) => [
         styles.item,

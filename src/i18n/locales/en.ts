@@ -73,6 +73,8 @@ const en: Catalog = {
   },
   boot: {
     dbError: "Couldn't open the database",
+    otherTab: 'Notas is already open in another tab',
+    otherTabHint: 'Close it to use Notas here. This tab will continue on its own.',
   },
   notes: {
     title: 'Notes',
@@ -575,6 +577,50 @@ const en: Catalog = {
     snooze_other: 'Snooze {{count}} min',
     listItem: 'List item',
   },
+  privacy: {
+    title: 'Privacy',
+    updated: 'Last updated: {{date}}',
+    intro:
+      'Notas is a local-first notes app. This policy explains what data it handles and where that data stays.',
+    sections: {
+      notes: {
+        title: 'Your notes stay on your device',
+        body: 'Notes, lists, folders, tags, reminders, images and voice notes are stored only on your device (on the web, in your browser’s storage). There are no accounts or sync servers: nobody else, including us, can read them.',
+      },
+      permissions: {
+        title: 'Permissions',
+        body: 'The app only asks for a permission when you use the feature that needs it: camera and photos to attach images, microphone to record voice notes, notifications for reminders, and Face ID or fingerprint to lock the app or some notes. Whatever you capture stays on the device; biometrics are checked by the system and never reach the app.',
+      },
+      crashReports: {
+        title: 'Error reports',
+        body: 'If the app crashes, it sends a technical report to Sentry (our monitoring provider): error type, stack trace, app and system version, device model and the screen where it happened. It never includes the content or titles of your notes, or anything that identifies you, and it is not used for advertising or tracking. You can turn reports off in Settings → Privacy.',
+      },
+      files: {
+        title: 'Backups and export',
+        body: 'Backup, Markdown and PDF files are created by you, and you decide where to save them or who to share them with. From then on they are governed by the app or service you choose.',
+      },
+      web: {
+        title: 'Web version',
+        body: 'The web version is served from EAS Hosting (Expo). As with any website, the server receives technical connection data (IP address, browser) to deliver the page. Your notes never leave the browser.',
+      },
+      sharing: {
+        title: 'No ads, no selling data',
+        body: 'The app shows no ads, uses no advertising identifiers, and does not sell or share data with third parties.',
+      },
+      children: {
+        title: 'Children',
+        body: 'The app does not collect personal data, including from children.',
+      },
+      changes: {
+        title: 'Changes',
+        body: 'If this policy changes, we will publish the new version on this page with its date.',
+      },
+      contact: {
+        title: 'Contact',
+        body: 'For any privacy question, write to us:',
+      },
+    },
+  },
   settings: {
     title: 'Settings',
     appearance: 'Appearance',
@@ -604,6 +650,10 @@ const en: Catalog = {
     reminders: 'Reminders',
     data: 'Data',
     notes: 'Notes',
+    privacy: 'Privacy',
+    crashReports: 'Send error reports',
+    crashReportsHint: 'Technical crash data, never the content of your notes',
+    privacyPolicy: 'Privacy policy',
     help: 'Help',
     showOnboarding: 'Show the introduction',
     notifications: 'Notifications',

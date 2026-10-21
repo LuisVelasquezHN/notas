@@ -142,7 +142,8 @@ export function DateTimePicker({ value, onChange, min }: DateTimePickerProps) {
                   locale,
                   { weekday: 'long', day: 'numeric', month: 'long' },
                 )}
-                accessibilityState={{ selected: isSelected, disabled }}
+                aria-selected={isSelected}
+                aria-disabled={disabled}
                 disabled={disabled}
                 onPress={() => onChange(withDate(value, month.year, month.month, day))}
                 style={({ pressed }) => [

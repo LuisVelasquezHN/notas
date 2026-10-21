@@ -11,15 +11,23 @@ type FabProps = {
   onPress: () => void;
   /** Espacio extra para no quedar bajo la tab bar. */
   bottomOffset?: number;
+  testID?: string;
 };
 
-export function Fab({ icon = 'add', accessibilityLabel, onPress, bottomOffset = 0 }: FabProps) {
+export function Fab({
+  icon = 'add',
+  accessibilityLabel,
+  onPress,
+  bottomOffset = 0,
+  testID,
+}: FabProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      testID={testID}
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,

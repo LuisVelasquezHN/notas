@@ -74,6 +74,8 @@ const es = {
   },
   boot: {
     dbError: 'No se pudo abrir la base de datos',
+    otherTab: 'Notas ya está abierta en otra pestaña',
+    otherTabHint: 'Ciérrala para usar Notas aquí. Esta pestaña continuará sola.',
   },
   notes: {
     title: 'Notas',
@@ -580,6 +582,50 @@ const es = {
     snooze_other: 'Posponer {{count}} min',
     listItem: 'Elemento de la lista',
   },
+  privacy: {
+    title: 'Privacidad',
+    updated: 'Última actualización: {{date}}',
+    intro:
+      'Notas es una app de notas local-first. Esta política explica qué datos maneja y dónde quedan.',
+    sections: {
+      notes: {
+        title: 'Tus notas se quedan en tu dispositivo',
+        body: 'Las notas, listas, carpetas, etiquetas, recordatorios, imágenes y notas de voz se guardan solo en tu dispositivo (en la web, en el almacenamiento de tu navegador). No hay cuentas ni servidores de sincronización: nadie más, tampoco nosotros, puede leerlas.',
+      },
+      permissions: {
+        title: 'Permisos',
+        body: 'La app solo pide permisos cuando usas la función que los necesita: cámara y fotos para adjuntar imágenes, micrófono para grabar notas de voz, notificaciones para los recordatorios y Face ID o huella para bloquear la app o algunas notas. Lo que captures se guarda en el dispositivo; la biometría la comprueba el sistema y la app nunca la recibe.',
+      },
+      crashReports: {
+        title: 'Informes de errores',
+        body: 'Si la app falla, envía un informe técnico a Sentry (nuestro proveedor de monitorización): tipo de error, traza del código, versión de la app y del sistema, modelo del dispositivo y la pantalla en la que ocurrió. Nunca incluye el contenido ni los títulos de tus notas, ni datos que te identifiquen, y no se usa para publicidad ni para rastrearte. Puedes desactivarlos en Ajustes → Privacidad.',
+      },
+      files: {
+        title: 'Copias de seguridad y exportación',
+        body: 'Los ficheros de copia, Markdown o PDF los creas tú y decides dónde guardarlos o con quién compartirlos. A partir de ahí se rigen por la app o el servicio que elijas.',
+      },
+      web: {
+        title: 'Versión web',
+        body: 'La versión web se sirve desde EAS Hosting (Expo). Como en cualquier web, el servidor recibe datos técnicos de la conexión (dirección IP, navegador) para entregar la página. Tus notas no salen del navegador.',
+      },
+      sharing: {
+        title: 'Sin publicidad ni venta de datos',
+        body: 'La app no muestra publicidad, no usa identificadores de publicidad y no vende ni comparte datos con terceros.',
+      },
+      children: {
+        title: 'Menores',
+        body: 'La app no recoge datos personales, tampoco de menores.',
+      },
+      changes: {
+        title: 'Cambios',
+        body: 'Si esta política cambia, publicaremos la nueva versión en esta misma página con su fecha.',
+      },
+      contact: {
+        title: 'Contacto',
+        body: 'Para cualquier duda sobre privacidad, escríbenos:',
+      },
+    },
+  },
   settings: {
     title: 'Ajustes',
     appearance: 'Apariencia',
@@ -609,6 +655,10 @@ const es = {
     reminders: 'Recordatorios',
     data: 'Datos',
     notes: 'Notas',
+    privacy: 'Privacidad',
+    crashReports: 'Enviar informes de errores',
+    crashReportsHint: 'Datos técnicos de los fallos, nunca el contenido de tus notas',
+    privacyPolicy: 'Política de privacidad',
     help: 'Ayuda',
     showOnboarding: 'Ver la presentación',
     notifications: 'Notificaciones',

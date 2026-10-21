@@ -111,7 +111,7 @@ function FolderForm({
             key={name}
             accessibilityRole="radio"
             accessibilityLabel={t(`icons.${name}`)}
-            accessibilityState={{ selected: name === icon }}
+            aria-selected={name === icon}
             onPress={() => setIcon(name)}
             style={[
               styles.icon,

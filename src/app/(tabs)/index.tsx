@@ -25,6 +25,7 @@ export default function NotesScreen() {
           <IconButton
             icon="search"
             accessibilityLabel={t('common.search')}
+            testID="open-search"
             onPress={() => router.push('/search')}
           />
           <ListControls />

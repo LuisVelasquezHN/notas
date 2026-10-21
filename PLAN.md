@@ -116,25 +116,27 @@ App de notas **local-first** en React Native (Expo) para **iOS, Android y web**:
 | Seguridad               | expo-local-authentication (biometría o código del dispositivo; sin PIN propio ni expo-secure-store)          |
 | Exportación y copias    | expo-print, expo-sharing, expo-document-picker                                                               |
 | i18n                    | i18next + react-i18next + expo-localization (claves tipadas contra el catálogo en español)                   |
-| Tests                   | Jest (jest-expo) + React Native Testing Library; Maestro para E2E                                            |
-| Monitorización          | Sentry                                                                                                       |
+| Tests                   | Jest (jest-expo) + React Native Testing Library; E2E con Maestro (iOS/Android) y Playwright (web)            |
+| Monitorización          | Sentry (`@sentry/react-native`): solo errores, sin contenido de las notas, desactivable                      |
 | Pagos (futuro)          | RevenueCat, detrás de la capa `entitlements`                                                                 |
 | Sincronización (futuro) | Supabase + PowerSync u otra opción equivalente                                                               |
 
 ### 3.1 Web: viabilidad y limitaciones
 
 - **Base de datos:** expo-sqlite funciona en web con WASM (OPFS, persistente). El driver de Drizzle usa la API síncrona, que en web necesita `SharedArrayBuffer`, es decir, las cabeceras `COOP: same-origin` y `COEP: credentialless`.
-  - **En desarrollo:** se añaden desde `metro.config.js`. En modo `single` el CLI sirve el HTML antes que el middleware de Metro, así que `enhanceMiddleware` no basta.
-  - **En producción:** las pone el hosting. Están declaradas en el plugin de `expo-router` para EAS Hosting; **hay que verificarlo en la fase 6**.
+  - **En desarrollo:** las pone el propio servidor de Expo a partir del plugin de `expo-router` (con `output: "server"`; en `single` no las enviaba).
+  - **En producción:** las aplica `expo-server` en EAS Hosting a partir del plugin de `expo-router`. **Verificado en la fase 6:** con `output: "single"` la exportación es estática y **no** lleva las cabeceras (la base de datos no abriría); con `output: "server"` sí, en todas las rutas. Lo comprueban los E2E web.
   - **Arranque:** la base de datos y el kv-store se abren primero de forma **asíncrona** (`AppBootstrap`), porque la primera operación síncrona falla si el worker de SQLite aún no ha cargado.
-  - **Salida web:** `output: "single"` (SPA). El renderizado estático o en servidor ejecutaría SQLite en Node.
+  - **Salida web:** `output: "server"`. El servidor solo renderiza la pantalla vacía: la base de datos se abre en un efecto, en el navegador, y `AppBootstrap` no pinta nada hasta hidratar (el servidor no conoce el tema del usuario).
+  - **Varias pestañas:** OPFS solo admite una conexión por fichero. La pestaña que abre primero se queda un candado (Web Locks, `src/db/tab-lock.web.ts`); las demás muestran "Notas ya está abierta en otra pestaña" y continúan solas al cerrarse aquella.
+  - **Límite de expo-sqlite:** cada operación síncrona espera al worker solo unos milisegundos (`Sync operation timeout`). Con la CPU saturada (p. ej. muchas páginas arrancando a la vez) puede fallar al migrar; por eso los E2E web corren en serie.
 - **FTS5 en web:** el WASM por defecto **no incluye FTS**. En web, la búsqueda usa `LIKE` sobre `content_text`. Si hiciera falta más adelante, se compila un `wa-sqlite` con FTS y se carga con `SQLite.configureWeb({ wasmURL })`.
 - **Adjuntos:** sin sistema de ficheros, las imágenes (reducidas a 1600 px, JPEG) y los audios (WebM) se guardan como data URI en la propia base de datos. Las grabaciones WebM de Chrome no traen duración: se usa la medida al grabar. El micrófono exige contexto seguro (HTTPS o localhost).
 - **Notificaciones:** expo-notifications no programa notificaciones locales en web. Allí los recordatorios se muestran en la app (pantalla y badge), sin aviso del sistema.
 - **No disponibles en web:** biometría, widgets, share extension y quick actions. Las funciones se ocultan con `Platform.OS` o con capacidades (`capabilities.ts`).
 - **Bloqueo en web:** sin biometría ni código del dispositivo, no se ofrece bloquear la app ni las notas. Una nota bloqueada (p. ej. importada de una copia) se muestra oculta y se abre tocando "Desbloquear": oculta el contenido a la vista, no lo protege.
 - **Exportar en web:** los ficheros (Markdown, texto, copia JSON) se descargan; el PDF se genera con el diálogo de impresión del navegador ("Guardar como PDF"). "Compartir texto" solo aparece si el navegador tiene `navigator.share`.
-- **Despliegue:** EAS Hosting.
+- **Despliegue:** EAS Hosting (`.eas/workflows/deploy-web.yml`: producción con cada push a `main`).
 
 ---
 
@@ -228,16 +230,16 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 
 ## 7. Roadmap (1 desarrollador)
 
-| Fase                      | Contenido                                                                                                                                | Duración    | Estado   |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------- | -------- |
-| **0. Fundaciones**        | Expo + TypeScript, lint y formato, tema y tokens, Drizzle y migraciones, rutas y tabs, UI base, Jest, EAS y CI                           | 1 semana    | ✅ hecha |
-| **1. Núcleo (MVP)**       | CRUD de texto y checklist, carpetas, colores, anclar, archivar, papelera, lista/cuadrícula, ordenación, búsqueda, autoguardado, deshacer | 3–4 semanas | ✅ hecha |
-| **2. Organización**       | Etiquetas, filtros, carpetas inteligentes, selección múltiple, drag & drop, favoritos                                                    | 2 semanas   | ✅ hecha |
-| **3. Recordatorios**      | Selector, scheduler con ventana, RRULE, acciones, pantalla de próximos, badge                                                            | 2 semanas   | ✅ hecha |
-| **4. Contenido rico**     | Editor TipTap, imágenes, voz, plantillas, quick actions                                                                                  | 2–3 semanas | ✅ hecha |
-| **5. Seguridad y pulido** | Biometría, export/import y backup, i18n, accesibilidad, onboarding                                                                       | 2 semanas   | ✅ hecha |
-| **6. Lanzamiento**        | E2E, Sentry, betas, fichas de las tiendas, privacidad, despliegue web                                                                    | 1–2 semanas |          |
-| **7. Post-lanzamiento**   | Sincronización, pagos, widgets, share extension, versiones, IA                                                                           | continuo    |          |
+| Fase                      | Contenido                                                                                                                                | Duración    | Estado            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ----------------- |
+| **0. Fundaciones**        | Expo + TypeScript, lint y formato, tema y tokens, Drizzle y migraciones, rutas y tabs, UI base, Jest, EAS y CI                           | 1 semana    | ✅ hecha          |
+| **1. Núcleo (MVP)**       | CRUD de texto y checklist, carpetas, colores, anclar, archivar, papelera, lista/cuadrícula, ordenación, búsqueda, autoguardado, deshacer | 3–4 semanas | ✅ hecha          |
+| **2. Organización**       | Etiquetas, filtros, carpetas inteligentes, selección múltiple, drag & drop, favoritos                                                    | 2 semanas   | ✅ hecha          |
+| **3. Recordatorios**      | Selector, scheduler con ventana, RRULE, acciones, pantalla de próximos, badge                                                            | 2 semanas   | ✅ hecha          |
+| **4. Contenido rico**     | Editor TipTap, imágenes, voz, plantillas, quick actions                                                                                  | 2–3 semanas | ✅ hecha          |
+| **5. Seguridad y pulido** | Biometría, export/import y backup, i18n, accesibilidad, onboarding                                                                       | 2 semanas   | ✅ hecha          |
+| **6. Lanzamiento**        | E2E, Sentry, betas, fichas de las tiendas, privacidad, despliegue web                                                                    | 1–2 semanas | 🟡 falta publicar |
+| **7. Post-lanzamiento**   | Sincronización, pagos, widgets, share extension, versiones, IA                                                                           | continuo    |                   |
 
 ### Fase 0: checklist
 
@@ -332,6 +334,22 @@ drizzle/                    # SQL de migraciones generado por drizzle-kit
 - [x] Dependencias del SDK al día (`expo install --fix`); `expo-doctor` sin avisos
 - [ ] **Pendiente:** probar en iOS y Android con un development build (nuevos módulos nativos: expo-local-authentication, expo-localization, expo-print, expo-sharing, expo-document-picker): Face ID/huella y código, bloqueo al volver de segundo plano y cubierta en el selector de apps, diálogo de Face ID sin que salte la cubierta, compartir Markdown/PDF/copia, importar desde Archivos/Drive, idioma por app del sistema, VoiceOver/TalkBack. En web no se probó el PDF (abre el diálogo de impresión) ni "Compartir texto" (el navegador del panel no tiene `navigator.share`)
 - [ ] **No incluido:** copia en ZIP (el JSON ya incluye los adjuntos), PIN propio de la app (se usa el del dispositivo), exportar varias notas a la vez, copias automáticas programadas
+
+### Fase 6: checklist
+
+- [x] Web lista para producción: `output: "server"` para que EAS Hosting envíe COOP/COEP (verificado con la exportación de producción y `expo serve`: en `single` no se enviaban y la base de datos no abría); se quita el parche de cabeceras de `metro.config.js`. Sin errores de hidratación (`AppBootstrap` espera a hidratar)
+- [x] Varias pestañas en web: candado con Web Locks; la segunda pestaña espera con un aviso y continúa al cerrarse la primera (antes: "No se pudo abrir la base de datos"). Reintentos al abrir por si el fichero de OPFS tarda en liberarse. La pantalla de error de arranque muestra también la causa
+- [x] Sentry (`@sentry/react-native` + plugin + `getSentryExpoConfig`, `src/lib/monitoring.ts`): solo con `EXPO_PUBLIC_SENTRY_DSN`; solo errores (sin trazas, capturas ni Session Replay); sin datos personales; descarta migas que pueden llevar texto del usuario (consola, toques, UI) y los parámetros de las consultas de Drizzle en los mensajes. Pantalla de error de Expo Router y fallos de arranque informados. Ajuste "Enviar informes de errores" (activado por defecto; los eventos se descartan hasta cargar los ajustes)
+- [x] Privacidad: política en la app (`/privacy`, pública también en web, es/en) enlazada desde Ajustes → Privacidad; manifiesto de privacidad de iOS (datos de fallos y diagnóstico sin vincular ni rastreo + APIs de motivo obligatorio de las dependencias); `usesNonExemptEncryption: false`. Respuestas para "Privacidad de la app" y "Seguridad de los datos" en `store/README.md`
+- [x] E2E web (Playwright, `e2e/web/`, `npm run e2e:web`, job `e2e-web` en CI): cabeceras en todas las rutas y aislamiento, segunda pestaña, presentación, crear nota y persistir, búsqueda, lista con casilla, cambio de idioma, política pública en es/en. Corre contra la compilación de producción. 10/10 en verde
+- [x] E2E nativos (Maestro, `.maestro/`): notas (crear, persistir tras reiniciar, buscar), listas (añadir y marcar) y privacidad; selectores por `testID` para no depender del idioma del simulador. Workflow `.eas/workflows/e2e.yml` (perfil `e2e-test`) al etiquetar un PR con `e2e`
+- [x] Accesibilidad en web: `accessibilityState` no llega al DOM con react-native-web; se usan `aria-checked/selected/expanded/disabled` (casillas, chips, opciones, tarjetas seleccionadas, formato activo)
+- [x] Betas: perfiles con entornos de EAS (`environment`, `EXPO_PUBLIC_APP_ENV`), envío a TestFlight y a la pista interna de Google Play (`eas.json`), workflow manual `.eas/workflows/beta.yml`
+- [x] Fichas: App Store en `store.config.json` (EAS Metadata, es-ES y en-US: título, subtítulo, descripción, palabras clave, categorías, edad 4+) y Google Play en `store/google-play/`. Guía de lanzamiento en `store/README.md`
+- [x] Tests unitarios: limpieza de mensajes de error, ajuste de informes por defecto
+- [ ] **Pendiente (necesita cuentas):** `eas init`, variables de Sentry en EAS, crear las apps en App Store Connect y Google Play (primera subida a Play a mano), primer `eas deploy` (las URL de las fichas asumen `notas.expo.app`), datos de contacto para la revisión de Apple, capturas de pantalla. Revisar el email de contacto de la política (`src/lib/app-info.ts`) y que el nombre de la ficha esté libre
+- [ ] **Pendiente:** ejecutar los flujos de Maestro (no hay simulador ni Maestro en esta máquina: solo se validó su sintaxis) y probar Sentry con una compilación real (sin DSN no se envía nada)
+- [ ] **No incluido:** EAS Update (necesita `eas init`; los canales ya están en `eas.json`), source maps de la web en Sentry, PWA/manifest
 
 ---
 

@@ -225,11 +225,7 @@ export function NoteCard({
 
   if (!onPress) {
     return (
-      <View
-        accessible
-        accessibilityLabel={label}
-        accessibilityState={{ selected }}
-        style={cardStyle}>
+      <View accessible accessibilityLabel={label} aria-selected={selected} style={cardStyle}>
         {content}
       </View>
     );
@@ -239,8 +235,9 @@ export function NoteCard({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ selected }}
+      aria-selected={selected}
       accessibilityHint={t('card.a11yHint')}
+      testID="note-card"
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={350}

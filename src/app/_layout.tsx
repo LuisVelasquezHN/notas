@@ -1,4 +1,10 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  ErrorBoundary as RouterErrorBoundary,
+  Stack,
+  ThemeProvider,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
@@ -11,16 +17,23 @@ import '@/features/reminders/background';
 import { QuickActionsRuntime } from '@/features/quick-actions/quick-actions-runtime';
 import { ReminderRuntime } from '@/features/reminders/components/reminder-runtime';
 import { AppLockGate } from '@/features/security/components/app-lock-gate';
+import { initMonitoring, wrapErrorBoundary, wrapRoot } from '@/lib/monitoring';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useTheme } from '@/theme';
 
+initMonitoring();
 SplashScreen.preventAutoHideAsync();
 
 // Los enlaces que entran directamente en una pantalla (p. ej. `notas://new`) tienen las pestañas
 // debajo, para poder volver.
 export const unstable_settings = { anchor: '(tabs)' };
 
-export default function RootLayout() {
+// Los errores de renderizado que llegan a la pantalla de error de Expo Router también se informan.
+export const ErrorBoundary = wrapErrorBoundary(RouterErrorBoundary);
+
+export default wrapRoot(RootLayout);
+
+function RootLayout() {
   const { scheme, colors } = useTheme();
   const { t } = useTranslation();
   const onboarded = useSettingsStore((s) => s.onboarded);
@@ -43,6 +56,8 @@ export default function RootLayout() {
         <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
         <AppBootstrap>
           <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal' }}>
+            {/* Pública también en la web (enlace de las fichas de las tiendas). */}
+            <Stack.Screen name="privacy" options={{ title: t('privacy.title') }} />
             {/* Primer arranque: solo la presentación; al terminarla, el resto de la app. */}
             <Stack.Protected guard={!onboarded}>
               <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />

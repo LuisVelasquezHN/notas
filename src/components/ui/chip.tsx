@@ -17,7 +17,7 @@ export function Chip({ label, selected = false, icon, style, ...rest }: ChipProp
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      aria-selected={selected}
       // 32 pt de alto: el área táctil llega a 44 pt.
       hitSlop={{ top: 6, bottom: 6 }}
       style={(state) => [

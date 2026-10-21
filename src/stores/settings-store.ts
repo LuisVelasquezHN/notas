@@ -26,6 +26,8 @@ type SettingsState = {
   lockAfter: LockAfter;
   /** Ya se ha visto la presentación inicial. */
   onboarded: boolean;
+  /** Enviar informes de errores (sin contenido de las notas; ver `lib/monitoring`). */
+  crashReports: boolean;
   setTheme: (theme: ThemePreference) => void;
   setLanguage: (language: LanguagePreference) => void;
   setNotesLayout: (layout: NotesLayout) => void;
@@ -33,6 +35,7 @@ type SettingsState = {
   setAppLock: (enabled: boolean) => void;
   setLockAfter: (lockAfter: LockAfter) => void;
   setOnboarded: (onboarded: boolean) => void;
+  setCrashReports: (enabled: boolean) => void;
 };
 
 /**
@@ -49,6 +52,7 @@ export const useSettingsStore = create<SettingsState>()(
       appLock: false,
       lockAfter: 'immediately',
       onboarded: false,
+      crashReports: true,
       setTheme: (theme) => set({ theme }),
       setLanguage: (language) => set({ language }),
       setNotesLayout: (notesLayout) => set({ notesLayout }),
@@ -56,6 +60,7 @@ export const useSettingsStore = create<SettingsState>()(
       setAppLock: (appLock) => set({ appLock }),
       setLockAfter: (lockAfter) => set({ lockAfter }),
       setOnboarded: (onboarded) => set({ onboarded }),
+      setCrashReports: (crashReports) => set({ crashReports }),
     }),
     {
       name: 'settings',

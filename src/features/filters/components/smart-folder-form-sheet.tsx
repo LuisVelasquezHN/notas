@@ -123,7 +123,7 @@ function SmartFolderForm({
             key={option}
             accessibilityRole="radio"
             accessibilityLabel={t(`icons.${option}`)}
-            accessibilityState={{ selected: option === icon }}
+            aria-selected={option === icon}
             onPress={() => setIcon(option)}
             style={[
               styles.icon,

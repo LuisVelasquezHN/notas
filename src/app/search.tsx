@@ -45,6 +45,7 @@ export default function SearchScreen() {
           returnKeyType="search"
           clearButtonMode="while-editing"
           accessibilityLabel={t('common.search')}
+          testID="search-input"
           style={styles.input}
         />
         {/* iOS ya muestra su propio botón de borrar (`clearButtonMode`). */}

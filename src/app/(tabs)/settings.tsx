@@ -83,6 +83,11 @@ export default function SettingsScreen() {
         />
       </Section>
 
+      <Section title={t('settings.privacy')}>
+        <CrashReportsRow />
+        <LinkRow href="/privacy" icon="shield" label={t('settings.privacyPolicy')} />
+      </Section>
+
       <Section title={t('settings.notes')}>
         <LinkRow href="/archive" icon="archive" label={t('screens.archive')} />
         <LinkRow href="/trash" icon="trash" label={t('screens.trash')} />
@@ -227,6 +232,30 @@ function NotificationsRow() {
         </View>
       ) : null}
     </>
+  );
+}
+
+function CrashReportsRow() {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const crashReports = useSettingsStore((s) => s.crashReports);
+  const setCrashReports = useSettingsStore((s) => s.setCrashReports);
+  return (
+    <View style={styles.row}>
+      <Icon name="bug" size={20} color={colors.textSecondary} />
+      <View style={styles.rowLabel}>
+        <Text>{t('settings.crashReports')}</Text>
+        <Text variant="caption" tone="secondary">
+          {t('settings.crashReportsHint')}
+        </Text>
+      </View>
+      <Switch
+        value={crashReports}
+        onValueChange={setCrashReports}
+        accessibilityLabel={t('settings.crashReports')}
+        trackColor={{ true: colors.primary }}
+      />
+    </View>
   );
 }
 

@@ -50,9 +50,19 @@ export function NewNoteButtons({ folderId = null, tagId, favorite = false }: New
 
   if (selecting) return null;
 
-  const secondary: { icon: IconName; label: string; onPress: () => void }[] = [
-    { icon: 'checklist', label: t('newNote.checklist'), onPress: () => void create('checklist') },
-    { icon: 'template', label: t('newNote.template'), onPress: () => setTemplatesOpen(true) },
+  const secondary: { icon: IconName; label: string; testID: string; onPress: () => void }[] = [
+    {
+      icon: 'checklist',
+      label: t('newNote.checklist'),
+      testID: 'new-checklist',
+      onPress: () => void create('checklist'),
+    },
+    {
+      icon: 'template',
+      label: t('newNote.template'),
+      testID: 'new-from-template',
+      onPress: () => setTemplatesOpen(true),
+    },
   ];
 
   return (
@@ -62,6 +72,7 @@ export function NewNoteButtons({ folderId = null, tagId, favorite = false }: New
           key={button.icon}
           accessibilityRole="button"
           accessibilityLabel={button.label}
+          testID={button.testID}
           onPress={button.onPress}
           style={({ pressed }) => [
             styles.secondary,
@@ -75,7 +86,11 @@ export function NewNoteButtons({ folderId = null, tagId, favorite = false }: New
           <Icon name={button.icon} size={22} color={colors.text} />
         </Pressable>
       ))}
-      <Fab accessibilityLabel={t('newNote.text')} onPress={() => void create('text')} />
+      <Fab
+        accessibilityLabel={t('newNote.text')}
+        testID="new-note"
+        onPress={() => void create('text')}
+      />
       <TemplateSheet
         visible={templatesOpen}
         onClose={() => setTemplatesOpen(false)}

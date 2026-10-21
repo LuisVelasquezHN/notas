@@ -125,6 +125,7 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('checklist.addItem')}
+          testID="checklist-add-item"
           onPress={() => void addAfter(null)}
           style={({ pressed }) => [styles.addRow, pressed && { opacity: 0.6 }]}>
           <Icon name="add" size={20} color={colors.textSecondary} />
@@ -137,7 +138,7 @@ export function ChecklistEditor({ note, editable, scrollableRef }: ChecklistEdit
           <View style={styles.checkedHeader}>
             <Pressable
               accessibilityRole="button"
-              accessibilityState={{ expanded: showChecked }}
+              aria-expanded={showChecked}
               onPress={() => setShowChecked((v) => !v)}
               style={styles.checkedToggle}>
               <View style={{ transform: [{ rotate: showChecked ? '0deg' : '-90deg' }] }}>
@@ -242,8 +243,9 @@ function ChecklistRow({
       )}
       <Pressable
         accessibilityRole="checkbox"
-        accessibilityState={{ checked: item.isChecked }}
+        aria-checked={item.isChecked}
         accessibilityLabel={item.text || t('checklist.item')}
+        testID="checklist-item-toggle"
         disabled={!editable}
         hitSlop={6}
         onPress={() => {
@@ -259,6 +261,7 @@ function ChecklistRow({
       <View style={styles.body}>
         <TextInput
           ref={inputRef}
+          testID="checklist-item-input"
           value={text}
           onChangeText={setText}
           editable={editable}

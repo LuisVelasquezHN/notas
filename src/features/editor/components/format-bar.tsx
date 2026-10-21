@@ -46,7 +46,7 @@ export function FormatBar({ state, onFormat }: FormatBarProps) {
             key={button.command}
             accessibilityRole="button"
             accessibilityLabel={t(`format.${button.command}`)}
-            accessibilityState={button.command === 'clear' ? undefined : { selected: active }}
+            aria-selected={button.command === 'clear' ? undefined : active}
             onPress={() => onFormat(button.command)}
             style={({ pressed }) => [
               styles.button,

@@ -1,0 +1,10 @@
+# La política de privacidad se abre desde Ajustes (en el idioma del dispositivo).
+appId: com.novotechn.notas
+name: Privacidad
+---
+- runFlow: subflows/launch-fresh.yaml
+- tapOn: 'Ajustes|Settings'
+- scrollUntilVisible:
+    element: 'Política de privacidad|Privacy policy'
+- tapOn: 'Política de privacidad|Privacy policy'
+- assertVisible: 'Tus notas se quedan en tu dispositivo|Your notes stay on your device'

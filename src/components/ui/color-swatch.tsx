@@ -19,7 +19,7 @@ export function ColorSwatch({ color, selected = false, size = 36, onPress }: Col
     <Pressable
       accessibilityRole="radio"
       accessibilityLabel={t(`colors.${color}`)}
-      accessibilityState={{ selected }}
+      aria-selected={selected}
       onPress={onPress}
       style={[
         styles.base,
