@@ -1,0 +1,34 @@
+# Beta: compila las versiones de tienda y las sube a TestFlight y a la pista interna de Google Play.
+# Sin `on`: solo se lanza a mano, con npx eas-cli@latest workflow:run .eas/workflows/beta.yml
+name: Beta
+
+jobs:
+  build_ios:
+    name: Build iOS
+    type: build
+    params:
+      platform: ios
+      profile: production
+
+  build_android:
+    name: Build Android
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  submit_ios:
+    name: Subir a TestFlight
+    needs: [build_ios]
+    type: submit
+    params:
+      build_id: ${{ needs.build_ios.outputs.build_id }}
+      profile: production
+
+  submit_android:
+    name: Subir a Google Play (interna)
+    needs: [build_android]
+    type: submit
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      profile: production

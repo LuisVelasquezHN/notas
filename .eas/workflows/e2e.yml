@@ -1,0 +1,38 @@
+# E2E nativos con Maestro (flujos en .maestro/). Cada ejecución gasta dos builds de EAS, así que
+# solo corre al etiquetar un PR con "e2e" o a mano: npx eas-cli@latest workflow:run .eas/workflows/e2e.yml
+name: E2E (iOS y Android)
+
+on:
+  pull_request_labeled:
+    labels: ['e2e']
+
+jobs:
+  build_android:
+    name: Build Android (e2e)
+    type: build
+    params:
+      platform: android
+      profile: e2e-test
+
+  build_ios:
+    name: Build iOS (e2e)
+    type: build
+    params:
+      platform: ios
+      profile: e2e-test
+
+  maestro_android:
+    name: Maestro Android
+    needs: [build_android]
+    type: maestro
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      flow_path: ['.maestro/notes.yaml', '.maestro/checklist.yaml', '.maestro/privacy.yaml']
+
+  maestro_ios:
+    name: Maestro iOS
+    needs: [build_ios]
+    type: maestro
+    params:
+      build_id: ${{ needs.build_ios.outputs.build_id }}
+      flow_path: ['.maestro/notes.yaml', '.maestro/checklist.yaml', '.maestro/privacy.yaml']

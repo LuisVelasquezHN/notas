@@ -1,0 +1,27 @@
+# Crear una nota de texto, que persista tras reiniciar la app y encontrarla en la búsqueda.
+appId: com.novotechn.notas
+name: Notas
+tags:
+  - smoke
+---
+- runFlow: subflows/launch-fresh.yaml
+- tapOn:
+    id: new-note
+- tapOn:
+    id: note-title
+- inputText: Presupuesto de octubre
+- runFlow: subflows/go-back.yaml
+- assertVisible: Presupuesto de octubre
+
+# Persistencia: los datos siguen ahí tras cerrar y abrir la app.
+- stopApp
+- launchApp
+- assertVisible: Presupuesto de octubre
+
+- tapOn:
+    id: open-search
+- tapOn:
+    id: search-input
+- inputText: presupuesto
+- assertVisible:
+    id: note-card

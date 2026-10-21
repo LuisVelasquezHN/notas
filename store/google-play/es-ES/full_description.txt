@@ -1,0 +1,25 @@
+Notas es una app de notas sencilla y privada. Todo se guarda en tu dispositivo y, si quieres, se sincroniza con tu cuenta de Google. Sin publicidad.
+
+ESCRIBE COMO QUIERAS
+• Notas con formato: títulos, negrita, listas, casillas, citas y código.
+• Listas con casillas: reordénalas arrastrando, crea subtareas y oculta lo completado.
+• Notas de voz y fotos dentro de cualquier nota.
+• Plantillas para reuniones, la compra, el diario, recetas o un viaje.
+
+TODO EN SU SITIO
+• Carpetas anidadas con color e icono.
+• Etiquetas, colores, notas ancladas y favoritas.
+• Búsqueda instantánea y filtros combinables (tipo, color, etiqueta, fecha…).
+• Carpetas inteligentes: guarda una búsqueda y se actualiza sola.
+
+QUE NO SE TE OLVIDE
+• Recordatorios en cualquier nota, también repetidos (cada día, entre semana, cada semana, mes o año).
+• Fechas límite en los elementos de una lista.
+• Desde la notificación: Hecho, Posponer 10 minutos o Abrir.
+
+PRIVADA DE VERDAD
+• Sin cuenta, tus notas no salen del dispositivo; con ella, se sincronizan entre el móvil, el ordenador y la web.
+• Bloquea la app o solo algunas notas con Face ID, huella o el código del dispositivo.
+• Copia de seguridad completa en un fichero que guardas donde quieras, y exportación a Markdown, texto o PDF.
+
+Y además: tema claro y oscuro, español e inglés, acciones rápidas desde el icono y deshacer en todas partes.
