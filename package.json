@@ -94,5 +94,8 @@
     "e2e:web": "playwright test",
     "e2e:native": "maestro test .maestro"
   },
-  "private": true
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  }
 }
