@@ -2,7 +2,8 @@ import { and, asc, eq, inArray, like, sql } from 'drizzle-orm';
 import Storage from 'expo-sqlite/kv-store';
 
 import { getDb } from '@/db/client';
-import { noteTags, savedFilters, syncOutbox, syncState, tags } from '@/db/schema';
+import { noteTags, noteVersions, savedFilters, syncOutbox, syncState, tags } from '@/db/schema';
+import { cleanupAfterDelete } from '@/features/attachments/repository';
 import { parseFilter, serializeFilter } from '@/features/filters/filter';
 
 import { downloadAttachment, uploadAttachment } from './files';
@@ -19,7 +20,13 @@ import {
 } from './plan';
 import { getSupabase } from './supabase';
 import { enqueueAll } from './tracking';
-import { SYNC_TABLES, splitNoteTagId, tableKeyFromName, type SyncTableKey } from './tables';
+import {
+  SYNC_TABLES,
+  SYNC_TABLE_KEYS,
+  splitNoteTagId,
+  tableKeyFromName,
+  type SyncTableKey,
+} from './tables';
 import { useSyncStore } from './store';
 
 /**
@@ -98,6 +105,24 @@ export function forgetAccount(userId: string) {
   Storage.removeItemSync(kv.cursor(userId));
   Storage.removeItemSync(kv.lastSync(userId));
   if (Storage.getItemSync(kv.user) === userId) Storage.removeItemSync(kv.user);
+}
+
+/**
+ * Quita del dispositivo todos los datos de la cuenta (al cerrar sesión): siguen en el servidor.
+ * Así, si otra persona entra después con su cuenta en este dispositivo, no se le suben ni ve las
+ * notas de la anterior. No se apunta nada para subir (no son borrados de verdad).
+ */
+export async function wipeLocalData(userId: string): Promise<void> {
+  getDb().transaction((tx) => {
+    setApplying(tx, true);
+    tx.delete(noteVersions).run();
+    for (const key of [...SYNC_TABLE_KEYS].reverse()) tx.delete(SYNC_TABLES[key].table).run();
+    tx.delete(syncOutbox).run();
+    setApplying(tx, false);
+  });
+  forgetAccount(userId);
+  // Ficheros de los adjuntos; las notificaciones se cancelan solas (el scheduler ve el cambio).
+  await cleanupAfterDelete();
 }
 
 /** Sincroniza solo si hay cambios locales sin subir (tras editar, al salir de la app). */
@@ -335,6 +360,27 @@ type PushChange = {
   data: Row | null;
 };
 
+/** Errores de Postgres por una fila que no cumple los límites del servidor (no se reintentan). */
+const REJECTED_CODES = new Set(['23514', 'P0001']);
+
+/**
+ * Sube un lote. Si el servidor rechaza alguna fila por sus límites (tamaño, número de filas), se
+ * suben una a una y las rechazadas se descartan con un aviso: si no, el lote fallaría siempre y
+ * la sincronización se quedaría atascada.
+ */
+async function pushChanges(changes: PushChange[]) {
+  const rpc = (batch: PushChange[]) => getSupabase().rpc('push_changes', { changes: batch });
+  const { error } = await rpc(changes);
+  if (!error) return;
+  if (!REJECTED_CODES.has(error.code)) throw error;
+  for (const change of changes) {
+    const single = await rpc([change]);
+    if (!single.error) continue;
+    if (!REJECTED_CODES.has(single.error.code)) throw single.error;
+    console.warn('Sync: el servidor rechazó una fila', change.tbl, single.error.message);
+  }
+}
+
 async function push(userId: string) {
   const db = getDb();
   for (;;) {
@@ -388,8 +434,7 @@ async function push(userId: string) {
       });
     }
 
-    const { error } = await getSupabase().rpc('push_changes', { changes });
-    if (error) throw error;
+    await pushChanges(changes);
 
     // Solo se quita lo subido: si la fila cambió mientras tanto, `changed_at` ya es otro.
     db.transaction((tx) => {

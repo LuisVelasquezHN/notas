@@ -31,7 +31,7 @@ export default function TabsLayout() {
   const { t } = useTranslation();
   return (
     <Tabs>
-      {compact ? <TabSlot /> : null}
+      {compact ? <TabSlot style={styles.slot} /> : null}
       {/* Los TabTrigger deben ser hijos directos de la lista para que TabList registre las rutas. */}
       <TabList asChild>
         <TabBar>
@@ -51,7 +51,7 @@ export default function TabsLayout() {
           </TabTrigger>
         </TabBar>
       </TabList>
-      {compact ? null : <TabSlot />}
+      {compact ? null : <TabSlot style={styles.slot} />}
     </Tabs>
   );
 }
@@ -123,6 +123,9 @@ function TabButton({
 }
 
 const styles = StyleSheet.create({
+  // El contenedor de TabSlot no encoge (`flexShrink: 0`): crecía con la pantalla y los
+  // ScrollView de las pestañas nunca se desplazaban. Se limita al alto disponible.
+  slot: { flexShrink: 1, flexBasis: 0, minHeight: 0 },
   bar: { alignItems: 'center' },
   barWide: { borderBottomWidth: StyleSheet.hairlineWidth },
   barCompact: { borderTopWidth: StyleSheet.hairlineWidth },

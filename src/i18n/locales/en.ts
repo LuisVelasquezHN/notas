@@ -589,7 +589,7 @@ const en: Catalog = {
       },
       sync: {
         title: 'Account and sync (optional)',
-        body: 'If you sign in with Google to sync, we receive your name and email from Google, and a copy of your notes, attachments, folders, tags and reminders is stored with Supabase (our database provider) to bring it to your other devices. Each account can only read its own data and the connection is encrypted. Signing out keeps your notes on the device; to delete your account and its server copy, email us at the contact address.',
+        body: 'If you sign in with Google to sync, we receive your name and email from Google, and a copy of your notes, attachments, folders, tags and reminders is stored with Supabase (our database provider) to bring it to your other devices. Each account can only read its own data and the connection is encrypted. Signing out removes the account’s notes from the device; they stay in the account. You can delete your account and its server copy in Settings → Account and sync, or ask us at the contact address.',
       },
       permissions: {
         title: 'Permissions',
@@ -642,8 +642,10 @@ const en: Catalog = {
     syncNow: 'Sync now',
     signOut: 'Sign out',
     signOutTitle: 'Sign out?',
-    signOutMessage: 'Your notes stay on this device, but they won’t sync until you sign in again.',
+    signOutMessage:
+      'Your notes will be removed from this device but stay in your account: they’ll come back when you sign in again. That way nobody who uses this device later can see them.',
     signedOut: 'Signed out',
+    signOutPending: 'Couldn’t upload your latest changes. Connect to the internet and try again.',
     deleteAccount: 'Delete account',
     deleteTitle: 'Delete your account?',
     deleteMessage:

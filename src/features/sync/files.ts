@@ -53,7 +53,14 @@ export async function uploadAttachment(
       contentType: attachment.mime ?? 'application/octet-stream',
       upsert: false,
     });
-  if (error && statusOf(error) !== 409 && !/exists|duplicate/i.test(error.message)) throw error;
+  if (!error || statusOf(error) === 409 || /exists|duplicate/i.test(error.message)) return;
+  // Rechazado por el servidor (tipo o tamaño no permitidos): no se reintenta para no bloquear la
+  // sincronización; los demás dispositivos no lo tendrán.
+  if ([400, 413, 415].includes(statusOf(error))) {
+    console.warn('Sync: el servidor rechazó un adjunto', error.message);
+    return;
+  }
+  throw error;
 }
 
 /**

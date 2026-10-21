@@ -70,6 +70,12 @@ export type PullPlan = {
 
 export const rowKey = (tbl: string, rowId: string) => `${tbl}:${rowId}`;
 
+/**
+ * Ids que se aceptan del servidor (UUID v7 y similares; en `note_tags`, `nota|etiqueta`). El id de
+ * un adjunto forma parte del nombre de su fichero: así no puede salirse de la carpeta.
+ */
+const SAFE_ID = /^[A-Za-z0-9_-]{1,64}(\|[A-Za-z0-9_-]{1,64})?$/;
+
 export function rowIdOf(key: SyncTableKey, row: Row): string {
   return key === 'noteTags' ? noteTagId(String(row.noteId), String(row.tagId)) : String(row.id);
 }
@@ -117,7 +123,7 @@ export function planPull(changes: RemoteChange[], local: LocalSnapshot): PullPla
 
   for (const change of latest.values()) {
     const key = tableKeyFromName(change.tbl);
-    if (!key) continue;
+    if (!key || !SAFE_ID.test(change.rowId)) continue;
     const k = rowKey(change.tbl, change.rowId);
     const localRow = local.rows.get(k);
     const pending = local.pending.get(k);

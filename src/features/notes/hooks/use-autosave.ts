@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
+/** Espera antes de reintentar un guardado que falló, y cuántas veces seguidas como mucho. */
+const RETRY_MS = 1000;
+const MAX_RETRIES = 5;
+
 type AutosaveOptions = {
   delay?: number;
   /** Se ejecuta al desmontar, después del último guardado. */
@@ -23,6 +27,7 @@ export function useAutosave<T>(
   const onUnmountRef = useRef(onUnmount);
   /** Último valor guardado (o el inicial): si `value` vuelve a él, no hay nada que guardar. */
   const saved = useRef(value);
+  const retries = useRef(0);
 
   useEffect(() => {
     saveRef.current = save;
@@ -36,9 +41,24 @@ export function useAutosave<T>(
     }
     if (!dirty.current) return;
     dirty.current = false;
-    saved.current = latest.current;
-    await saveRef.current(latest.current);
+    const previous = saved.current;
+    const value = latest.current;
+    saved.current = value;
+    try {
+      await saveRef.current(value);
+      retries.current = 0;
+    } catch (e) {
+      // Si falla (p. ej. en web, el worker de SQLite tarda en responder), el cambio sigue
+      // pendiente y se reintenta: no se pierde lo escrito.
+      console.warn('Autoguardado: error, se reintentará', e);
+      if (saved.current === value) saved.current = previous;
+      if (Object.is(latest.current, saved.current)) return;
+      dirty.current = true;
+      if (++retries.current > MAX_RETRIES) return;
+      if (!timer.current) timer.current = setTimeout(() => void flushRef.current(), RETRY_MS);
+    }
   }, []);
+  const flushRef = useRef(flush);
 
   useEffect(() => {
     latest.current = value;

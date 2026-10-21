@@ -78,10 +78,11 @@ export function AccountSection() {
       destructive: true,
     });
     if (!ok) return;
-    // Se intenta subir lo pendiente antes de salir.
-    await syncNow().catch(() => undefined);
-    await signOut();
-    showSnackbar(t('account.signedOut'));
+    const result = await signOut().catch((e: unknown) => {
+      console.warn('Cuenta: error al cerrar sesión', e);
+      return 'pending' as const;
+    });
+    showSnackbar(result === 'ok' ? t('account.signedOut') : t('account.signOutPending'));
   };
 
   const onDelete = async () => {
