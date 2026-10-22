@@ -1,5 +1,5 @@
 # Crear una nota de texto, que persista tras reiniciar la app y encontrarla en la búsqueda.
-appId: com.novotechn.notas
+appId: com.lavg.notas
 name: Notas
 tags:
   - smoke

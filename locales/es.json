@@ -1,9 +1,9 @@
 {
   "ios": {
-    "NSCameraUsageDescription": "Notas usa la cámara para adjuntar fotos a las notas.",
-    "NSPhotoLibraryUsageDescription": "Notas usa tus fotos para adjuntar imágenes a las notas.",
-    "NSMicrophoneUsageDescription": "Notas usa el micrófono para grabar notas de voz.",
-    "NSFaceIDUsageDescription": "Notas usa Face ID para desbloquear la app y las notas bloqueadas."
+    "NSCameraUsageDescription": "LV Notes usa la cámara para adjuntar fotos a las notas.",
+    "NSPhotoLibraryUsageDescription": "LV Notes usa tus fotos para adjuntar imágenes a las notas.",
+    "NSMicrophoneUsageDescription": "LV Notes usa el micrófono para grabar notas de voz.",
+    "NSFaceIDUsageDescription": "LV Notes usa Face ID para desbloquear la app y las notas bloqueadas y las notas seguras."
   },
   "android": {}
 }

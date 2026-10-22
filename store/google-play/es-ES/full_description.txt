@@ -1,4 +1,4 @@
-Notas es una app de notas sencilla y privada. Todo se guarda en tu dispositivo y, si quieres, se sincroniza con tu cuenta de Google. Sin publicidad.
+LV Notes es una app de notas sencilla y privada. Todo se guarda en tu dispositivo y, si quieres, se sincroniza con tu cuenta de Google. Sin publicidad.
 
 ESCRIBE COMO QUIERAS
 • Notas con formato: títulos, negrita, listas, casillas, citas y código.
@@ -19,6 +19,7 @@ QUE NO SE TE OLVIDE
 
 PRIVADA DE VERDAD
 • Sin cuenta, tus notas no salen del dispositivo; con ella, se sincronizan entre el móvil, el ordenador y la web.
+• Notas seguras para contraseñas y datos delicados: cifradas con tu contraseña maestra, nadie más puede leerlas.
 • Bloquea la app o solo algunas notas con Face ID, huella o el código del dispositivo.
 • Copia de seguridad completa en un fichero que guardas donde quieras, y exportación a Markdown, texto o PDF.
 

@@ -1,7 +1,7 @@
-# Notas
+# LV Notes
 
-App de notas local-first para iOS, Android, web y escritorio (PWA), con cuenta de Google y
-sincronización opcional (Expo SDK 58 + Expo Router + SQLite/Drizzle + Supabase).
+App de notas local-first para iOS, Android, web y escritorio (PWA), con cuenta de Google,
+sincronización opcional y notas seguras cifradas de extremo a extremo (Expo SDK 58 + Expo Router + SQLite/Drizzle + Supabase).
 El plan completo del producto está en [PLAN.md](PLAN.md); la puesta en marcha de cuentas, web
 (Vercel) y APK de Android, en [store/README.md](store/README.md) §0.
 
@@ -42,3 +42,7 @@ public/          manifiesto e iconos de la PWA
 - Las migraciones se aplican al arrancar (`AppBootstrap`).
 - Usa siempre `getDb()` dentro de la app.
 - Convenciones: IDs UUID v7, fechas en ms UTC, borrado lógico (`deleted_at`) y colores como token.
+
+## Autor
+
+© 2026 [Luis Velasquez](https://portfolio-lavg.vercel.app/). Todos los derechos reservados (ver [LICENSE](LICENSE)).

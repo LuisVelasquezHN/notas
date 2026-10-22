@@ -8,7 +8,9 @@ import {
   notes,
   reminders,
   savedFilters,
+  secureNotes,
   tags,
+  vaults,
 } from '@/db/schema';
 
 /**
@@ -25,6 +27,9 @@ export const SYNC_TABLES = {
   reminders: { table: reminders, name: 'reminders' },
   attachments: { table: attachments, name: 'attachments' },
   savedFilters: { table: savedFilters, name: 'saved_filters' },
+  // Notas seguras: viajan cifradas (el servidor no puede leerlas, ver PLAN.md §10).
+  vaults: { table: vaults, name: 'vaults' },
+  secureNotes: { table: secureNotes, name: 'secure_notes' },
 } satisfies Record<string, { table: Table; name: string }>;
 
 export type SyncTableKey = keyof typeof SYNC_TABLES;

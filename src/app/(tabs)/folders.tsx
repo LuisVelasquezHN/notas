@@ -156,6 +156,12 @@ export default function FoldersScreen() {
             onPress={() => router.push('/favorites')}
           />
           <FolderRow
+            name={t('vault.title')}
+            icon="vault"
+            color="default"
+            onPress={() => router.push('/vault')}
+          />
+          <FolderRow
             name={t('screens.archive')}
             icon="archive"
             color="default"

@@ -1,5 +1,5 @@
 # La política de privacidad se abre desde Ajustes (en el idioma del dispositivo).
-appId: com.novotechn.notas
+appId: com.lavg.notas
 name: Privacidad
 ---
 - runFlow: subflows/launch-fresh.yaml

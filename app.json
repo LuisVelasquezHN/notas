@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Notas",
+    "name": "LV Notes",
     "slug": "notas",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.novotechn.notas",
+      "bundleIdentifier": "com.lavg.notas",
       "supportsTablet": true,
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true
@@ -99,9 +99,9 @@
       }
     },
     "android": {
-      "package": "com.novotechn.notas",
+      "package": "com.lavg.notas",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#121211",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -126,9 +126,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#FAFAF7",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 160,
+          "dark": {
+            "backgroundColor": "#121211",
+            "image": "./assets/images/splash-icon.png"
+          }
         }
       ],
       [
@@ -148,14 +152,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Notas usa tus fotos para adjuntar imágenes a las notas.",
-          "cameraPermission": "Notas usa la cámara para adjuntar fotos a las notas."
+          "photosPermission": "LV Notes usa tus fotos para adjuntar imágenes a las notas.",
+          "cameraPermission": "LV Notes usa la cámara para adjuntar fotos a las notas."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "Notas usa el micrófono para grabar notas de voz.",
+          "microphonePermission": "LV Notes usa el micrófono para grabar notas de voz.",
           "enableBackgroundPlayback": false,
           "enableBackgroundRecording": false
         }
@@ -172,11 +176,18 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Notas usa Face ID para desbloquear la app y las notas bloqueadas."
+          "faceIDPermission": "LV Notes usa Face ID para desbloquear la app, las notas bloqueadas y las notas seguras."
         }
       ],
       "expo-image",
-      "@sentry/react-native"
+      "@sentry/react-native",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "LV Notes usa Face ID para desbloquear la app, las notas bloqueadas y las notas seguras."
+        }
+      ],
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -99,6 +99,38 @@ describe('exportar', () => {
     expect(html).toContain('lang="es"');
   });
 
+  it('exporta color, resaltado, tamaño e "Importante"', () => {
+    const styled = (value: string, mark: { type: string; attrs?: Record<string, unknown> }) => ({
+      type: 'text' as const,
+      text: value,
+      marks: [mark],
+    });
+    const doc = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            styled('rojo', { type: 'textStyle', attrs: { color: 'var(--lv-text-red)' } }),
+            styled('grande', { type: 'textStyle', attrs: { fontSize: 'var(--lv-size-large)' } }),
+            styled('marca', { type: 'highlight', attrs: { color: 'var(--lv-mark-yellow)' } }),
+            styled('ojo', { type: 'important' }),
+            // Un valor que no es un token de la app no llega al HTML.
+            styled('x', { type: 'textStyle', attrs: { color: 'red;background:url(evil)' } }),
+          ],
+        },
+      ],
+    } as EditorDoc;
+    const html = noteToHtml({ title: '', doc, tags: [] }, 'es');
+    expect(html).toContain('<span style="color:#D13B3B">rojo</span>');
+    expect(html).toContain('<span style="font-size:1.25em">grande</span>');
+    expect(html).toContain('<mark style="background-color:#FFF3A3">marca</mark>');
+    expect(html).toContain('<span class="important">ojo</span>');
+    expect(html).not.toContain('evil');
+    // En Markdown: resaltado como ==texto== e "Importante" como negrita; color y tamaño se pierden.
+    expect(docToMarkdown(doc)).toBe('rojogrande==marca==**ojo**x');
+  });
+
   it('genera nombres de fichero seguros', () => {
     expect(exportFileName('Ideas: 2026/10', 'md', 'Nota')).toBe('Ideas 2026 10.md');
     expect(exportFileName('   ', 'pdf', 'Nota')).toBe('Nota.pdf');

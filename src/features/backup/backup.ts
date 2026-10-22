@@ -23,17 +23,29 @@ const fileKey = (a: { id: string; localUri: string }) =>
 /** Reúne todas las tablas y el contenido de los adjuntos. */
 export async function buildBackup(now: number = Date.now()): Promise<BackupFile> {
   const db = getDb();
-  const [folders, notes, checklistItems, tags, noteTags, reminders, attachmentRows, savedFilters] =
-    await Promise.all([
-      db.select().from(BACKUP_TABLES.folders),
-      db.select().from(BACKUP_TABLES.notes),
-      db.select().from(BACKUP_TABLES.checklistItems),
-      db.select().from(BACKUP_TABLES.tags),
-      db.select().from(BACKUP_TABLES.noteTags),
-      db.select().from(BACKUP_TABLES.reminders),
-      db.select().from(BACKUP_TABLES.attachments),
-      db.select().from(BACKUP_TABLES.savedFilters),
-    ]);
+  const [
+    folders,
+    notes,
+    checklistItems,
+    tags,
+    noteTags,
+    reminders,
+    attachmentRows,
+    savedFilters,
+    vaults,
+    secureNotes,
+  ] = await Promise.all([
+    db.select().from(BACKUP_TABLES.folders),
+    db.select().from(BACKUP_TABLES.notes),
+    db.select().from(BACKUP_TABLES.checklistItems),
+    db.select().from(BACKUP_TABLES.tags),
+    db.select().from(BACKUP_TABLES.noteTags),
+    db.select().from(BACKUP_TABLES.reminders),
+    db.select().from(BACKUP_TABLES.attachments),
+    db.select().from(BACKUP_TABLES.savedFilters),
+    db.select().from(BACKUP_TABLES.vaults),
+    db.select().from(BACKUP_TABLES.secureNotes),
+  ]);
 
   const files: BackupFile['files'] = {};
   const attachments: BackupAttachment[] = [];
@@ -64,6 +76,8 @@ export async function buildBackup(now: number = Date.now()): Promise<BackupFile>
       reminders,
       attachments,
       savedFilters,
+      vaults,
+      secureNotes,
     },
     files,
   };
@@ -86,20 +100,41 @@ async function stamps(table: Table & { id: unknown; updatedAt: unknown }) {
 async function localIndex(): Promise<LocalIndex> {
   const db = getDb();
   const t = BACKUP_TABLES;
-  const [folders, notes, checklistItems, tags, reminders, attachments, savedFilters] =
-    await Promise.all([
-      stamps(t.folders),
-      stamps(t.notes),
-      stamps(t.checklistItems),
-      stamps(t.tags),
-      stamps(t.reminders),
-      stamps(t.attachments),
-      stamps(t.savedFilters),
-    ]);
+  const [
+    folders,
+    notes,
+    checklistItems,
+    tags,
+    reminders,
+    attachments,
+    savedFilters,
+    vaults,
+    secureNotes,
+  ] = await Promise.all([
+    stamps(t.folders),
+    stamps(t.notes),
+    stamps(t.checklistItems),
+    stamps(t.tags),
+    stamps(t.reminders),
+    stamps(t.attachments),
+    stamps(t.savedFilters),
+    stamps(t.vaults),
+    stamps(t.secureNotes),
+  ]);
   const tagNames = await db.select({ id: t.tags.id, name: t.tags.name }).from(t.tags);
   const pairs = await db.select().from(t.noteTags);
   return {
-    stamps: { folders, notes, checklistItems, tags, reminders, attachments, savedFilters },
+    stamps: {
+      folders,
+      notes,
+      checklistItems,
+      tags,
+      reminders,
+      attachments,
+      savedFilters,
+      vaults,
+      secureNotes,
+    },
     tagNames,
     noteTagKeys: new Set(pairs.map((p) => `${p.noteId}|${p.tagId}`)),
   };
@@ -165,6 +200,8 @@ function apply(plan: ImportPlan) {
       update: plan.attachments.update.map(withoutFile),
     });
     run('savedFilters', plan.savedFilters);
+    run('vaults', plan.vaults);
+    run('secureNotes', plan.secureNotes);
   });
 }
 

@@ -1,17 +1,12 @@
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 
 import * as schema from '@/db/schema';
+import { sqliteClient } from '@/test/sqlite';
 
 /**
  * Dos dispositivos (cada uno con su SQLite real, `node:sqlite`) sincronizando contra un servidor
  * en memoria que se comporta como `sync_rows` + `push_changes` (supabase/migrations).
  */
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
-
 type ServerRow = {
   tbl: string;
   row_id: string;
@@ -43,66 +38,6 @@ class FakeServer {
   live(tbl: string) {
     return [...this.rows.values()].filter((r) => r.tbl === tbl && !r.deleted);
   }
-}
-
-/** API de better-sqlite3 (la que usa Drizzle) sobre `node:sqlite`, más la de expo-sqlite. */
-function sqliteClient() {
-  const sqlite = new DatabaseSync(':memory:');
-  sqlite.exec('PRAGMA foreign_keys = ON;');
-  const dir = join(__dirname, '../../../../drizzle');
-  for (const file of readdirSync(dir)
-    .filter((f) => f.endsWith('.sql'))
-    .sort()) {
-    for (const statement of readFileSync(join(dir, file), 'utf8').split(
-      '--> statement-breakpoint',
-    )) {
-      sqlite.exec(statement);
-    }
-  }
-  const values = (row: unknown) => (row ? Object.values(row as object) : undefined);
-  const params = (args: unknown[]) =>
-    args.map((a) => (typeof a === 'boolean' ? Number(a) : a)) as never[];
-  return {
-    sqlite,
-    prepare(sql: string) {
-      const stmt = sqlite.prepare(sql);
-      return {
-        run: (...args: unknown[]) => stmt.run(...params(args)),
-        all: (...args: unknown[]) => stmt.all(...params(args)),
-        get: (...args: unknown[]) => stmt.get(...params(args)),
-        raw: () => ({
-          all: (...args: unknown[]) => stmt.all(...params(args)).map(values),
-          get: (...args: unknown[]) => values(stmt.get(...params(args))),
-        }),
-      };
-    },
-    transaction(fn: (tx: unknown) => unknown) {
-      const run = (tx: unknown) => {
-        sqlite.exec('BEGIN');
-        try {
-          const result = fn(tx);
-          sqlite.exec('COMMIT');
-          return result;
-        } catch (e) {
-          sqlite.exec('ROLLBACK');
-          throw e;
-        }
-      };
-      return { deferred: run, immediate: run, exclusive: run };
-    },
-    execAsync: async (sql: string) => sqlite.exec(sql),
-    getAllAsync: async (sql: string) => sqlite.prepare(sql).all(),
-    withTransactionAsync: async (task: () => Promise<void>) => {
-      sqlite.exec('BEGIN');
-      try {
-        await task();
-        sqlite.exec('COMMIT');
-      } catch (e) {
-        sqlite.exec('ROLLBACK');
-        throw e;
-      }
-    },
-  };
 }
 
 type Device = {
@@ -165,6 +100,7 @@ jest.mock('../supabase', () => ({
 }));
 
 jest.mock('@/features/attachments/repository', () => ({ cleanupAfterDelete: async () => {} }));
+jest.mock('@/features/vault/biometrics', () => ({ disableBiometricUnlock: async () => {} }));
 
 // eslint-disable-next-line import/first
 import { syncNow, wipeLocalData } from '../engine';
@@ -326,7 +262,30 @@ describe('sincronización entre dos dispositivos', () => {
     await sync(a);
     warn.mockRestore();
     expect(mockServer.live('notes').map((r) => r.row_id)).toEqual(['n1']);
+    // La rechazada sigue pendiente: se sube cuando el servidor la acepte.
+    expect(all(a, 'SELECT row_id FROM sync_outbox')).toEqual([{ row_id: 'n2' }]);
+    a.client.sqlite.exec("UPDATE notes SET title = 'ya cabe', updated_at = 20 WHERE id = 'n2'");
+    await sync(a);
+    expect(mockServer.live('notes').map((r) => r.row_id)).toEqual(['n1', 'n2']);
     expect(all(a, 'SELECT count(*) AS n FROM sync_outbox')).toEqual([{ n: 0 }]);
+  });
+
+  it('las notas seguras viajan cifradas tal cual y llegan al otro dispositivo', async () => {
+    const a = await device();
+    const b = await device();
+    a.client.sqlite.exec(
+      "INSERT INTO vaults (id, kdf, wrapped_key, created_at, updated_at) VALUES ('v1', '{}', 'AAAA', 1, 1)",
+    );
+    a.client.sqlite.exec(
+      "INSERT INTO secure_notes (id, vault_id, payload, sort_key, created_at, updated_at) VALUES ('s1', 'v1', 'Q0lGUkFETw==', 'a0', 1, 1)",
+    );
+    await sync(a);
+    expect(mockServer.live('secure_notes')[0].data).toMatchObject({ payload: 'Q0lGUkFETw==' });
+    await sync(b);
+    expect(all(b, 'SELECT id, payload FROM secure_notes')).toEqual([
+      { id: 's1', payload: 'Q0lGUkFETw==' },
+    ]);
+    expect(all(b, 'SELECT id FROM vaults')).toEqual([{ id: 'v1' }]);
   });
 
   it('al cerrar sesión se quitan los datos del dispositivo y vuelven al entrar', async () => {

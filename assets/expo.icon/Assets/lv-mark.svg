@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Marca de LV Notes (Luis Velasquez): hoja de nota con la esquina doblada con las iniciales "LV". -->
+  <path fill="#F2B517" d="M318 222H642L762 342V746Q762 802 706 802H318Q262 802 262 746V278Q262 222 318 222Z"/>
+  <path fill="#B37E00" d="M642 222V302Q642 342 682 342H762Z"/>
+  <g fill="none" stroke="#161615" stroke-width="66" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M352 404V640H452"/>
+    <path d="M506 404L588 640L676 404"/>
+  </g>
+</svg>

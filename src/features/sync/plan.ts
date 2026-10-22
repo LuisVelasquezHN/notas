@@ -247,6 +247,9 @@ export function planPull(changes: RemoteChange[], local: LocalSnapshot): PullPla
       push('savedFilters', [{ ...row, queryJson }], true);
     }
   }
+  // Notas seguras: sin referencias que comprobar (el contenido va cifrado).
+  push('vaults', candidates.get('vaults') ?? []);
+  push('secureNotes', candidates.get('secureNotes') ?? []);
 
   return {
     upserts,

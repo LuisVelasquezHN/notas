@@ -223,3 +223,35 @@ export const syncState = sqliteTable('sync_state', {
 });
 
 export type SyncOutboxEntry = typeof syncOutbox.$inferSelect;
+
+/**
+ * Notas seguras (PLAN.md §10). Una bóveda guarda su clave de datos envuelta con la contraseña
+ * maestra (`kdf`: parámetros de scrypt y sal, JSON). Normalmente hay una por cuenta; si dos
+ * dispositivos crearon la suya sin conexión, al desbloquear se funden en la de id menor.
+ */
+export const vaults = sqliteTable('vaults', {
+  id: text('id').primaryKey(),
+  kdf: text('kdf').notNull(),
+  wrappedKey: text('wrapped_key').notNull(),
+  ...timestamps,
+});
+
+/**
+ * Nota segura: título y contenido van cifrados juntos en `payload` (AES-256-GCM, base64) con la
+ * clave de su bóveda. Nada de su contenido queda en claro: no entra en la búsqueda, las listas,
+ * los recordatorios ni las exportaciones normales.
+ */
+export const secureNotes = sqliteTable(
+  'secure_notes',
+  {
+    id: text('id').primaryKey(),
+    vaultId: text('vault_id').notNull(),
+    payload: text('payload').notNull(),
+    sortKey: text('sort_key').notNull(),
+    ...timestamps,
+  },
+  (t) => [index('secure_notes_vault_idx').on(t.vaultId)],
+);
+
+export type Vault = typeof vaults.$inferSelect;
+export type SecureNote = typeof secureNotes.$inferSelect;

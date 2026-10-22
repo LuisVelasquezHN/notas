@@ -11,6 +11,7 @@ Todo es gratis para empezar (planes gratuitos de Supabase, Vercel y Expo). Orden
 1. Crea un proyecto en [supabase.com](https://supabase.com) (plan Free: 500 MB de base de datos y 1 GB de ficheros). Elige una región cercana (p. ej. `eu-west`).
 2. **SQL Editor** → pega y ejecuta `supabase/migrations/20261020000000_sync.sql`. Crea la tabla `sync_rows` con seguridad por usuario (RLS), las funciones `push_changes` y `delete_account` y el bucket privado `attachments`.
    Después ejecuta también `supabase/migrations/20261021000000_hardening.sql` (refuerzo de seguridad: solo las tablas de la app, filas de 1 MB como máximo, 50 000 filas por cuenta y ficheros de 25 MB como máximo, solo imágenes y audio).
+   Y después `supabase/migrations/20261022000000_secure_notes.sql` (admite las tablas de las notas seguras; sin él, quedan en el dispositivo y se suben en cuanto se ejecute).
    - **Authentication → Sign In / Providers → Email: desactívalo.** Viene activado por defecto y permitiría crear cuentas con email y contraseña por la API aunque la app solo use Google.
 3. **Project Settings → API**: copia la _Project URL_ y la clave _publishable_ (o _anon_). Son públicas por diseño: la seguridad la ponen las políticas RLS.
 4. Copia `.env.example` a `.env.local` y rellena `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` para desarrollo.
@@ -48,6 +49,7 @@ No hace falta ningún módulo nativo ni la huella SHA-1: en el móvil se abre el
    (y lo mismo con `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, y para `production`).
 3. Compila el APK: `npx eas-cli@latest build -p android --profile preview`. Al terminar, la página de la build tiene el enlace y un QR para instalarlo (hay que permitir "instalar apps de origen desconocido"). Pon ese enlace en `EXPO_PUBLIC_ANDROID_APK_URL` en Vercel para ofrecerlo desde la web.
 4. Para Google Play, sigue §1 y §2 (perfil `production`, `.aab`).
+5. **Cambio de identificador (22-10):** la app pasó de `com.novotechn.notas` a `com.lavg.notas`. Android la trata como otra app: EAS crea un keystore nuevo en la primera build y hay que desinstalar el APK anterior (las notas sincronizadas vuelven al entrar con Google; las que solo estaban en el teléfono, no: haz antes una copia desde Ajustes → Datos).
 
 > El perfil `preview` no sube los source maps a Sentry (`SENTRY_DISABLE_AUTO_UPLOAD` en `eas.json`): sin las variables de Sentry la build fallaba en ese paso. Para `production`, configura Sentry (§1.2) o añade la misma variable a ese perfil.
 
@@ -61,8 +63,8 @@ No hace falta ningún módulo nativo ni la huella SHA-1: en el móvil se abre el
 
    Sin DSN la app no envía nada (desarrollo, tests y E2E). Los informes no llevan contenido de las notas (`src/lib/monitoring.ts`) y el usuario puede desactivarlos en Ajustes → Privacidad.
 
-3. **Apple.** Crea la app en App Store Connect con el bundle id `com.novotechn.notas`. La primera vez, `npx eas-cli@latest submit -p ios` configura la API key de App Store Connect; después las subidas van solas.
-4. **Google Play.** Crea la app con el paquete `com.novotechn.notas`. Google exige que **la primera subida sea manual**: descarga el `.aab` de la primera build de producción y súbelo a la pista de pruebas internas. Después crea una cuenta de servicio con acceso a la API de Google Play y súbela a EAS (`npx eas-cli@latest credentials -p android`) para las siguientes.
+3. **Apple.** Crea la app en App Store Connect con el bundle id `com.lavg.notas`. La primera vez, `npx eas-cli@latest submit -p ios` configura la API key de App Store Connect; después las subidas van solas.
+4. **Google Play.** Crea la app con el paquete `com.lavg.notas`. Google exige que **la primera subida sea manual**: descarga el `.aab` de la primera build de producción y súbelo a la pista de pruebas internas. Después crea una cuenta de servicio con acceso a la API de Google Play y súbela a EAS (`npx eas-cli@latest credentials -p android`) para las siguientes.
 5. **Web.** En Vercel (ver §0.3). Las URL de `store.config.json` asumen `https://notes-lavg.vercel.app`: si el dominio es otro, cámbialas allí y en las fichas de Google Play.
 
 ## 2. Betas
@@ -77,7 +79,7 @@ Compila las versiones de tienda (el número de build sube solo) y las sube a **T
 
 - **App Store:** `store.config.json` (EAS Metadata). Se sube con `npx eas-cli@latest metadata:push` y se trae lo editado en la web con `metadata:pull`. Antes de subirla, añade los datos de contacto para la revisión (`apple.review`: nombre, email y teléfono); no hace falta cuenta de prueba.
 - **Google Play:** textos en `store/google-play/<idioma>/` (título ≤ 30, descripción breve ≤ 80, descripción completa ≤ 4000). Se pegan en la consola de Google Play (EAS Metadata solo cubre el App Store).
-- **Nombre:** "Notas" a secas probablemente está ocupado en ambas tiendas; las fichas usan "Notas: listas y notas de voz". Compruébalo al crear la app.
+- **Nombre:** "Notas" a secas probablemente está ocupado en ambas tiendas; las fichas usan "LV Notes: notas y listas". Compruébalo al crear la app.
 
 ### Capturas
 

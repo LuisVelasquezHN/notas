@@ -2,8 +2,18 @@ import { and, asc, eq, inArray, like, sql } from 'drizzle-orm';
 import Storage from 'expo-sqlite/kv-store';
 
 import { getDb } from '@/db/client';
-import { noteTags, noteVersions, savedFilters, syncOutbox, syncState, tags } from '@/db/schema';
+import {
+  noteTags,
+  noteVersions,
+  savedFilters,
+  syncOutbox,
+  syncState,
+  tags,
+  vaults,
+} from '@/db/schema';
 import { cleanupAfterDelete } from '@/features/attachments/repository';
+import { disableBiometricUnlock } from '@/features/vault/biometrics';
+import { lockVault } from '@/features/vault/store';
 import { parseFilter, serializeFilter } from '@/features/filters/filter';
 
 import { downloadAttachment, uploadAttachment } from './files';
@@ -113,6 +123,10 @@ export function forgetAccount(userId: string) {
  * notas de la anterior. No se apunta nada para subir (no son borrados de verdad).
  */
 export async function wipeLocalData(userId: string): Promise<void> {
+  // Notas seguras: se bloquean y se borran las claves guardadas para la biometría.
+  lockVault();
+  const vaultIds = await getDb().select({ id: vaults.id }).from(vaults);
+  for (const { id } of vaultIds) await disableBiometricUnlock(id);
   getDb().transaction((tx) => {
     setApplying(tx, true);
     tx.delete(noteVersions).run();
@@ -364,31 +378,40 @@ type PushChange = {
 const REJECTED_CODES = new Set(['23514', 'P0001']);
 
 /**
- * Sube un lote. Si el servidor rechaza alguna fila por sus límites (tamaño, número de filas), se
- * suben una a una y las rechazadas se descartan con un aviso: si no, el lote fallaría siempre y
- * la sincronización se quedaría atascada.
+ * Sube un lote. Si el servidor rechaza alguna fila por sus límites (tamaño, número de filas o una
+ * tabla que aún no admite), se suben una a una: las demás no se quedan atascadas. Devuelve las
+ * rechazadas (`tbl:row_id`), que siguen pendientes y se reintentan en la próxima pasada (p. ej.
+ * cuando se ejecute en Supabase el SQL que las admite).
  */
-async function pushChanges(changes: PushChange[]) {
+async function pushChanges(changes: PushChange[]): Promise<Set<string>> {
+  const rejected = new Set<string>();
   const rpc = (batch: PushChange[]) => getSupabase().rpc('push_changes', { changes: batch });
   const { error } = await rpc(changes);
-  if (!error) return;
+  if (!error) return rejected;
   if (!REJECTED_CODES.has(error.code)) throw error;
   for (const change of changes) {
     const single = await rpc([change]);
     if (!single.error) continue;
     if (!REJECTED_CODES.has(single.error.code)) throw single.error;
     console.warn('Sync: el servidor rechazó una fila', change.tbl, single.error.message);
+    rejected.add(rowKey(change.tbl, change.row_id));
   }
+  return rejected;
 }
 
 async function push(userId: string) {
   const db = getDb();
+  /** Rechazadas en esta pasada: siguen en la cola, pero no se vuelven a enviar hasta la próxima. */
+  const skipped = new Set<string>();
   for (;;) {
-    const entries = await db
+    const fetched = await db
       .select()
       .from(syncOutbox)
       .orderBy(asc(syncOutbox.changedAt))
-      .limit(PUSH_BATCH);
+      .limit(PUSH_BATCH + skipped.size);
+    const entries = fetched
+      .filter((e) => !skipped.has(rowKey(e.tbl, e.rowId)))
+      .slice(0, PUSH_BATCH);
     if (entries.length === 0) return;
 
     const byTable = new Map<SyncTableKey, string[]>();
@@ -434,11 +457,13 @@ async function push(userId: string) {
       });
     }
 
-    await pushChanges(changes);
+    const rejected = await pushChanges(changes);
+    for (const key of rejected) skipped.add(key);
 
     // Solo se quita lo subido: si la fila cambió mientras tanto, `changed_at` ya es otro.
     db.transaction((tx) => {
       for (const e of entries) {
+        if (rejected.has(rowKey(e.tbl, e.rowId))) continue;
         tx.delete(syncOutbox)
           .where(
             and(
@@ -450,6 +475,6 @@ async function push(userId: string) {
           .run();
       }
     });
-    if (entries.length < PUSH_BATCH) return;
+    // Se repite hasta que no quede nada por enviar en esta pasada (lo subido sale de la cola).
   }
 }

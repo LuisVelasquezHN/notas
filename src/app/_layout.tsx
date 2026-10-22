@@ -19,6 +19,7 @@ import { QuickActionsRuntime } from '@/features/quick-actions/quick-actions-runt
 import { ReminderRuntime } from '@/features/reminders/components/reminder-runtime';
 import { AppLockGate } from '@/features/security/components/app-lock-gate';
 import { SyncRuntime } from '@/features/sync/components/sync-runtime';
+import { VaultRuntime } from '@/features/vault/components/vault-runtime';
 // En web, escucha desde el arranque si el navegador ofrece instalar la app (PWA).
 import '@/features/install/install-prompt';
 import { initMonitoring, wrapErrorBoundary, wrapRoot } from '@/lib/monitoring';
@@ -86,11 +87,14 @@ function RootLayout() {
                 <Stack.Screen name="archive" options={{ title: t('screens.archive') }} />
                 <Stack.Screen name="trash" options={{ title: t('screens.trash') }} />
                 <Stack.Screen name="new" options={{ title: '', animation: 'none' }} />
+                <Stack.Screen name="vault/index" options={{ title: t('vault.title') }} />
+                <Stack.Screen name="vault/[id]" options={{ title: '' }} />
               </Stack.Protected>
             </Stack>
             <ReminderRuntime />
             <QuickActionsRuntime />
             <SyncRuntime />
+            <VaultRuntime />
             <SnackbarHost />
             <AppLockGate />
           </AppBootstrap>

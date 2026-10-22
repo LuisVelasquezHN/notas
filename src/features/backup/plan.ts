@@ -134,6 +134,8 @@ export function planImport(data: BackupData, local: LocalIndex): ImportPlan {
     reminders: split(reminders, local.stamps.reminders),
     attachments: split(attachments, local.stamps.attachments),
     savedFilters: split(savedFilters, local.stamps.savedFilters),
+    vaults: split(data.vaults, local.stamps.vaults),
+    secureNotes: split(data.secureNotes, local.stamps.secureNotes),
     tagIdMap,
   };
 }
