@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { IconButton } from '@/components/ui';
 import { FormatBar } from '@/features/editor/components/format-bar';
-import type { FormatCommand, FormatState } from '@/features/editor/format';
+import type { FormatAction, FormatState } from '@/features/editor/format';
 import { MAX_CONTENT_WIDTH, spacing, useTheme } from '@/theme';
 
 type NoteToolbarProps = {
@@ -16,7 +16,7 @@ type NoteToolbarProps = {
     open: boolean;
     state: FormatState;
     onToggle: () => void;
-    onFormat: (command: FormatCommand) => void;
+    onFormat: (command: FormatAction) => void;
   };
 };
 

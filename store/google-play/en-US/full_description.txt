@@ -1,4 +1,4 @@
-Notas is a simple, private notes app. Everything is stored on your device and, if you want, syncs with your Google account. No ads.
+LV Notes is a simple, private notes app. Everything is stored on your device and, if you want, syncs with your Google account. No ads.
 
 WRITE YOUR WAY
 • Rich notes: headings, bold, lists, checkboxes, quotes and code.
@@ -19,6 +19,7 @@ NEVER FORGET
 
 TRULY PRIVATE
 • Without an account, your notes never leave your device; with one, they sync across your phone, computer and the web.
+• Secure notes for passwords and sensitive details: encrypted with your master password, nobody else can read them.
 • Lock the app or just some notes with Face ID, fingerprint or your device passcode.
 • Full backup to a file you keep wherever you want, plus export to Markdown, plain text or PDF.
 

@@ -1,5 +1,5 @@
 # Arranque limpio (sin datos) saltando la presentación.
-appId: com.novotechn.notas
+appId: com.lavg.notas
 ---
 - launchApp:
     clearState: true

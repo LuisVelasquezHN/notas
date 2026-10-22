@@ -29,10 +29,11 @@ export function RichTextEditor({
   onFocusChange,
   onCaret,
 }: EditorAdapterProps) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const { t } = useTranslation();
   const theme = useMemo<TipTapTheme>(
     () => ({
+      scheme,
       text: textColor ?? colors.text,
       muted: colors.textMuted,
       primary: colors.primary,
@@ -42,7 +43,7 @@ export function RichTextEditor({
       lineHeight: typography.body.lineHeight,
       minHeight: MIN_HEIGHT,
     }),
-    [textColor, colors],
+    [textColor, colors, scheme],
   );
 
   return (

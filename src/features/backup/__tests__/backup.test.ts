@@ -53,6 +53,8 @@ const empty = (): BackupData => ({
   reminders: [],
   attachments: [],
   savedFilters: [],
+  vaults: [],
+  secureNotes: [],
 });
 
 const local = (overrides: Partial<LocalIndex['stamps']> = {}, extra: Partial<LocalIndex> = {}) =>
@@ -65,6 +67,8 @@ const local = (overrides: Partial<LocalIndex['stamps']> = {}, extra: Partial<Loc
       reminders: new Map(),
       attachments: new Map(),
       savedFilters: new Map(),
+      vaults: new Map(),
+      secureNotes: new Map(),
       ...overrides,
     },
     tagNames: [],
@@ -233,5 +237,36 @@ describe('fusionar una copia', () => {
       ],
     };
     expect(planImport(data, local()).reminders.insert[0].osNotificationId).toBeNull();
+  });
+});
+
+describe('notas seguras en la copia', () => {
+  it('se importan tal cual (cifradas) y una copia antigua sin ellas sigue siendo válida', () => {
+    const vault = {
+      id: 'v1',
+      kdf: '{}',
+      wrappedKey: 'AAAA',
+      createdAt: 1,
+      updatedAt: 1,
+      deletedAt: null,
+    };
+    const secret = {
+      id: 's1',
+      vaultId: 'v1',
+      payload: 'Q0lGUkFETw==',
+      sortKey: 'a0',
+      createdAt: 1,
+      updatedAt: 2,
+      deletedAt: null,
+    };
+    const plan = planImport({ ...empty(), vaults: [vault], secureNotes: [secret] }, local());
+    expect(plan.vaults.insert).toEqual([vault]);
+    expect(plan.secureNotes.insert).toEqual([secret]);
+
+    const old = parseBackup(
+      JSON.stringify({ format: BACKUP_FORMAT, version: 1, data: { notes: [] }, files: {} }),
+    );
+    expect(old.data.vaults).toEqual([]);
+    expect(old.data.secureNotes).toEqual([]);
   });
 });

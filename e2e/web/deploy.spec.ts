@@ -24,7 +24,7 @@ test('una segunda pestaña espera y continúa al cerrar la primera', async ({ co
 
   const second = await context.newPage();
   await second.goto('/');
-  await expect(second.getByText('Notas ya está abierta en otra pestaña')).toBeVisible();
+  await expect(second.getByText('LV Notes ya está abierta en otra pestaña')).toBeVisible();
 
   await first.close();
   await expect(second.getByTestId('onboarding-skip')).toBeVisible();

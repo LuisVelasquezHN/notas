@@ -1,5 +1,5 @@
 # Volver a la pantalla anterior: botón atrás en Android, gesto desde el borde en iOS.
-appId: com.novotechn.notas
+appId: com.lavg.notas
 ---
 - hideKeyboard
 - runFlow:

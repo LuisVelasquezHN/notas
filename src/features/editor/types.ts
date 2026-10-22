@@ -1,11 +1,11 @@
 import type { ComponentType, Ref } from 'react';
 
 import type { EditorDoc } from './doc';
-import type { FormatCommand, FormatState } from './format';
+import type { FormatAction, FormatState } from './format';
 
 /** Acciones que la pantalla puede pedir al editor (barra de formato). */
 export type EditorHandle = {
-  format: (command: FormatCommand) => void;
+  format: (command: FormatAction) => void;
   focus: () => void;
 };
 

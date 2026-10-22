@@ -7,12 +7,16 @@ import {
   type TabListProps,
   type TabTriggerSlotProps,
 } from 'expo-router/ui';
+import { Image } from 'expo-image';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Icon, Text, type IconName } from '@/components/ui';
 import { useOverdueCount } from '@/features/reminders/hooks/use-overdue-count';
+import { APP_NAME } from '@/lib/app-info';
 import { MAX_CONTENT_WIDTH, radius, spacing, useTheme } from '@/theme';
+
+const LOGO = require('../../../assets/images/splash-icon.png');
 
 /** Por debajo de este ancho, la barra pasa abajo y en formato compacto (como en móvil). */
 const COMPACT_BREAKPOINT = 640;
@@ -59,7 +63,6 @@ export default function TabsLayout() {
 function TabBar({ children, ...props }: TabListProps) {
   const { colors } = useTheme();
   const compact = useCompact();
-  const { t } = useTranslation();
   return (
     <View
       {...props}
@@ -71,9 +74,10 @@ function TabBar({ children, ...props }: TabListProps) {
       ])}>
       <View style={[styles.inner, compact && styles.innerCompact]}>
         {compact ? null : (
-          <Text variant="heading" style={styles.brand}>
-            {t('tabs.notes')}
-          </Text>
+          <View style={styles.brand}>
+            <Image source={LOGO} style={styles.logo} accessibilityIgnoresInvertColors />
+            <Text variant="heading">{APP_NAME}</Text>
+          </View>
         )}
         {children}
       </View>
@@ -139,7 +143,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   innerCompact: { paddingHorizontal: spacing.xs, paddingVertical: spacing.xs },
-  brand: { marginRight: 'auto' },
+  brand: { marginRight: 'auto', flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  logo: { width: 28, height: 28 },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',

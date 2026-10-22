@@ -1,6 +1,9 @@
 'use dom';
 
+import { Mark, mergeAttributes } from '@tiptap/core';
+import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
+import { Color, FontFamily, FontSize, TextStyle } from '@tiptap/extension-text-style';
 import { Placeholder } from '@tiptap/extensions';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
@@ -8,7 +11,19 @@ import { useDOMImperativeHandle, type DOMImperativeFactory, type DOMProps } from
 import { useEffect, useRef, type Ref } from 'react';
 
 import type { EditorDoc } from '../doc';
-import { FORMAT_COMMANDS, sameFormatState, type FormatCommand, type FormatState } from '../format';
+import {
+  parseFormatAction,
+  sameFormatState,
+  styleVar,
+  styleVariables,
+  tokenFromVar,
+  type FontFamilyName,
+  type FontSizeName,
+  type FormatAction,
+  type FormatState,
+  type HighlightColor,
+  type TextColor,
+} from '../format';
 
 /**
  * Editor TipTap como DOM component (`'use dom'`): en iOS y Android se ejecuta dentro de una
@@ -28,6 +43,7 @@ export interface TipTapHandle extends DOMImperativeFactory {
 }
 
 export type TipTapTheme = {
+  scheme: 'light' | 'dark';
   text: string;
   muted: string;
   primary: string;
@@ -54,6 +70,21 @@ type Props = {
   /** Parte inferior del cursor, en px desde el borde superior del editor (para hacer scroll). */
   onCaret: (bottom: number) => Promise<void> | void;
 };
+
+/** "Importante": texto destacado (negrita en rojo sobre fondo suave). Se guarda como marca propia. */
+const Important = Mark.create({
+  name: 'important',
+  parseHTML() {
+    return [{ tag: 'span[data-important]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'span',
+      mergeAttributes(HTMLAttributes, { 'data-important': '', class: 'lv-important' }),
+      0,
+    ];
+  },
+});
 
 /** En la webview cada cambio cruza el puente: se agrupan las pulsaciones seguidas. */
 const EMIT_DELAY = process.env.EXPO_DOM_HOST_OS ? 150 : 0;
@@ -125,6 +156,12 @@ export default function TipTapDom({
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      TextStyle,
+      Color,
+      FontFamily,
+      FontSize,
+      Highlight.configure({ multicolor: true }),
+      Important,
       Placeholder.configure({ placeholder }),
     ],
     onUpdate: ({ editor }) => {
@@ -172,7 +209,8 @@ export default function TipTapDom({
     ref ?? null,
     () => ({
       format: (command: JSONValue) => {
-        if (editor && isFormatCommand(command)) applyFormat(editor, command);
+        const action = parseFormatAction(command);
+        if (editor && action) applyFormat(editor, action);
       },
       focus: () => {
         editor?.commands.focus();
@@ -196,16 +234,29 @@ export default function TipTapDom({
   );
 }
 
-function isFormatCommand(value: JSONValue): value is FormatCommand {
-  return typeof value === 'string' && (FORMAT_COMMANDS as readonly string[]).includes(value);
-}
-
 function formatState(editor: Editor): FormatState {
   return {
     bold: editor.isActive('bold'),
     italic: editor.isActive('italic'),
     underline: editor.isActive('underline'),
     strike: editor.isActive('strike'),
+    important: editor.isActive('important'),
+    textColor: tokenFromVar(
+      'textColor',
+      editor.getAttributes('textStyle').color,
+    ) as TextColor | null,
+    highlight: tokenFromVar(
+      'highlight',
+      editor.getAttributes('highlight').color,
+    ) as HighlightColor | null,
+    fontFamily: tokenFromVar(
+      'fontFamily',
+      editor.getAttributes('textStyle').fontFamily,
+    ) as FontFamilyName | null,
+    fontSize: tokenFromVar(
+      'fontSize',
+      editor.getAttributes('textStyle').fontSize,
+    ) as FontSizeName | null,
     heading1: editor.isActive('heading', { level: 1 }),
     heading2: editor.isActive('heading', { level: 2 }),
     bulletList: editor.isActive('bulletList'),
@@ -216,8 +267,27 @@ function formatState(editor: Editor): FormatState {
   };
 }
 
-function applyFormat(editor: Editor, command: FormatCommand) {
+function applyFormat(editor: Editor, command: FormatAction) {
   const chain = editor.chain().focus();
+  if (typeof command === 'object') {
+    const { style, value } = command;
+    switch (style) {
+      case 'textColor':
+        return value ? chain.setColor(styleVar(style, value)).run() : chain.unsetColor().run();
+      case 'highlight':
+        return value
+          ? chain.setHighlight({ color: styleVar(style, value) }).run()
+          : chain.unsetHighlight().run();
+      case 'fontFamily':
+        return value && value !== 'sans'
+          ? chain.setFontFamily(styleVar(style, value)).run()
+          : chain.unsetFontFamily().run();
+      case 'fontSize':
+        return value && value !== 'normal'
+          ? chain.setFontSize(styleVar(style, value)).run()
+          : chain.unsetFontSize().run();
+    }
+  }
   switch (command) {
     case 'bold':
       return chain.toggleBold().run();
@@ -227,6 +297,8 @@ function applyFormat(editor: Editor, command: FormatCommand) {
       return chain.toggleUnderline().run();
     case 'strike':
       return chain.toggleStrike().run();
+    case 'important':
+      return chain.toggleMark('important').run();
     case 'heading1':
       return chain.toggleHeading({ level: 1 }).run();
     case 'heading2':
@@ -248,6 +320,11 @@ function applyFormat(editor: Editor, command: FormatCommand) {
 
 function css(t: TipTapTheme) {
   return `
+:root {
+${styleVariables(t.scheme)}
+--lv-important-fg: ${t.scheme === 'dark' ? '#FF7B72' : '#B42318'};
+--lv-important-bg: ${t.scheme === 'dark' ? 'rgba(248, 81, 73, 0.18)' : '#FDE7E5'};
+}
 html, body { margin: 0; padding: 0; background: transparent; }
 body { -webkit-text-size-adjust: 100%; }
 .notas-editor { min-height: ${t.minHeight}px; cursor: text; }
@@ -293,6 +370,14 @@ body { -webkit-text-size-adjust: 100%; }
 }
 .notas-editor .ProseMirror pre code { background: none; padding: 0; }
 .notas-editor .ProseMirror a { color: ${t.primary}; }
+.notas-editor .ProseMirror mark { color: inherit; border-radius: 3px; padding: 0 0.1em; }
+.notas-editor .ProseMirror .lv-important {
+  color: var(--lv-important-fg);
+  background: var(--lv-important-bg);
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 0 0.2em;
+}
 .notas-editor .ProseMirror hr { border: none; border-top: 1px solid ${t.muted}; margin: 1em 0; }
 .notas-editor .ProseMirror ul[data-type="taskList"] { list-style: none; padding-left: 0.2em; }
 .notas-editor .ProseMirror ul[data-type="taskList"] li { display: flex; gap: 0.5em; align-items: flex-start; }

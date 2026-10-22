@@ -2,13 +2,14 @@ import { useTranslation } from 'react-i18next';
 import { Linking, StyleSheet, View } from 'react-native';
 
 import { Screen, Text } from '@/components/ui';
-import { CONTACT_EMAIL, PRIVACY_POLICY_DATE } from '@/lib/app-info';
+import { AUTHOR_NAME, AUTHOR_URL, CONTACT_EMAIL, PRIVACY_POLICY_DATE } from '@/lib/app-info';
 import { currentLocale } from '@/i18n';
 import { spacing } from '@/theme';
 
 const SECTIONS = [
   'notes',
   'sync',
+  'secureNotes',
   'permissions',
   'crashReports',
   'files',
@@ -42,6 +43,14 @@ export default function PrivacyScreen() {
               tone="primary"
               onPress={() => void Linking.openURL(`mailto:${CONTACT_EMAIL}`)}>
               {CONTACT_EMAIL}
+            </Text>
+          ) : null}
+          {section === 'contact' ? (
+            <Text
+              accessibilityRole="link"
+              tone="primary"
+              onPress={() => void Linking.openURL(AUTHOR_URL)}>
+              {t('privacy.owner', { name: AUTHOR_NAME })}
             </Text>
           ) : null}
         </View>

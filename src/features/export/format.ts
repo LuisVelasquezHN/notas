@@ -1,4 +1,12 @@
 import { docToText, type DocNode, type EditorDoc, type TextNode } from '@/features/editor/doc';
+import {
+  STYLE_VALUES,
+  tokenFromVar,
+  type FontFamilyName,
+  type FontSizeName,
+  type HighlightColor,
+  type TextColor,
+} from '@/features/editor/format';
 
 /**
  * Conversión de una nota a Markdown, texto plano o HTML (para el PDF). Funciones puras: los datos
@@ -35,7 +43,8 @@ function inlineMarkdown(nodes: Node[] | undefined): string {
       // El código en línea no admite otros formatos ni escapes.
       if (has('code')) return `\`${text}\``;
       let out = escapeMarkdown(text);
-      if (has('bold')) out = `**${out}**`;
+      if (has('highlight')) out = `==${out}==`;
+      if (has('bold') || has('important')) out = `**${out}**`;
       if (has('italic')) out = `*${out}*`;
       if (has('strike')) out = `~~${out}~~`;
       const link = marks.find((m) => m.type === 'link') as
@@ -154,6 +163,29 @@ const MARK_TAGS: Record<string, string> = {
   code: 'code',
 };
 
+/**
+ * Color, resaltado, tipo de letra, tamaño e "Importante". Solo se reconocen los tokens de la app
+ * (`tokenFromVar`), con los colores del tema claro (el PDF se imprime en blanco).
+ */
+function styledHtml(mark: { type: string; attrs?: Record<string, unknown> }, html: string): string {
+  if (mark.type === 'important') return `<span class="important">${html}</span>`;
+  const styles: string[] = [];
+  if (mark.type === 'highlight') {
+    const token = tokenFromVar('highlight', mark.attrs?.color) as HighlightColor | null;
+    return token
+      ? `<mark style="background-color:${STYLE_VALUES.highlight.light[token]}">${html}</mark>`
+      : `<mark>${html}</mark>`;
+  }
+  if (mark.type !== 'textStyle') return html;
+  const color = tokenFromVar('textColor', mark.attrs?.color) as TextColor | null;
+  const family = tokenFromVar('fontFamily', mark.attrs?.fontFamily) as FontFamilyName | null;
+  const size = tokenFromVar('fontSize', mark.attrs?.fontSize) as FontSizeName | null;
+  if (color) styles.push(`color:${STYLE_VALUES.textColor.light[color]}`);
+  if (family) styles.push(`font-family:${STYLE_VALUES.fontFamily[family].replace(/"/g, "'")}`);
+  if (size) styles.push(`font-size:${STYLE_VALUES.fontSize[size]}`);
+  return styles.length ? `<span style="${styles.join(';')}">${html}</span>` : html;
+}
+
 function inlineHtml(nodes: Node[] | undefined): string {
   return (nodes ?? [])
     .map((node) => {
@@ -163,6 +195,7 @@ function inlineHtml(nodes: Node[] | undefined): string {
       for (const mark of (node as TextNode).marks ?? []) {
         const tag = MARK_TAGS[mark.type];
         if (tag) out = `<${tag}>${out}</${tag}>`;
+        else out = styledHtml(mark, out);
       }
       return out;
     })
@@ -203,6 +236,8 @@ function blockHtml(node: DocNode): string {
 }
 
 const STYLES = `
+  .important { color: #B42318; background: #FDE7E5; font-weight: 700; border-radius: 3px; padding: 0 2px; }
+  mark { background: #FFF3A3; border-radius: 2px; }
   body { font-family: -apple-system, system-ui, Roboto, "Segoe UI", sans-serif; color: #1c1c1a;
          font-size: 12pt; line-height: 1.5; margin: 32px; }
   h1 { font-size: 20pt; margin: 0 0 16px; }

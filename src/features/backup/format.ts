@@ -8,14 +8,18 @@ import {
   notes,
   reminders,
   savedFilters,
+  secureNotes,
   tags,
+  vaults,
   type Attachment,
   type ChecklistItem,
   type Folder,
   type Note,
   type Reminder,
   type SavedFilter,
+  type SecureNote,
   type Tag,
+  type Vault,
 } from '@/db/schema';
 
 /**
@@ -40,6 +44,9 @@ export type BackupData = {
   reminders: Reminder[];
   attachments: BackupAttachment[];
   savedFilters: SavedFilter[];
+  /** Notas seguras: van cifradas tal cual (sin la contraseña maestra no se pueden leer). */
+  vaults: Vault[];
+  secureNotes: SecureNote[];
 };
 
 export type BackupFile = {
@@ -68,6 +75,8 @@ export const BACKUP_TABLES = {
   reminders,
   attachments,
   savedFilters,
+  vaults,
+  secureNotes,
 } satisfies Record<keyof BackupData, Table>;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -153,6 +162,8 @@ export function parseBackup(json: string): BackupFile {
         (a) => ({ ...a, file: typeof a.file === 'string' ? a.file : null }),
       ),
       savedFilters: sanitizeRows(savedFilters, data.savedFilters),
+      vaults: sanitizeRows(vaults, data.vaults),
+      secureNotes: sanitizeRows(secureNotes, data.secureNotes),
     },
     files,
   };

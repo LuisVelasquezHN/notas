@@ -1,5 +1,5 @@
 # Crear una lista, añadir elementos y marcar uno.
-appId: com.novotechn.notas
+appId: com.lavg.notas
 name: Listas
 tags:
   - smoke
