@@ -1,0 +1,49 @@
+# APK de prueba de Android en cada push a main, sin esperar 20 minutos cuando no hace falta:
+# - el fingerprint resume todo lo nativo (módulos, permisos, iconos, nombre, app.json…);
+# - si ya hay un APK con ese fingerprint, solo se publica una actualización OTA (1–2 min) que la
+#   app instalada descarga sola al abrirse;
+# - si no (cambió algo nativo), se compila un APK nuevo (perfil preview).
+# `runtimeVersion: { policy: "fingerprint" }` en app.json garantiza que una OTA solo llega a los
+# APK compatibles. Requiere el repositorio de GitHub conectado al proyecto en expo.dev.
+name: Android (APK de prueba)
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  fingerprint:
+    name: Fingerprint
+    type: fingerprint
+    environment: preview
+
+  get_android_build:
+    name: Buscar un APK compatible
+    needs: [fingerprint]
+    type: get-build
+    params:
+      platform: android
+      profile: preview
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+
+  build_android:
+    name: Compilar APK
+    needs: [get_android_build]
+    if: ${{ !needs.get_android_build.outputs.build_id }}
+    type: build
+    params:
+      platform: android
+      profile: preview
+
+  publish_android_update:
+    name: Publicar actualización OTA
+    needs: [get_android_build]
+    if: ${{ needs.get_android_build.outputs.build_id }}
+    type: update
+    environment: preview
+    env:
+      EXPO_PUBLIC_APP_ENV: preview
+    params:
+      platform: android
+      channel: preview
+      upload_sentry_sourcemaps: false

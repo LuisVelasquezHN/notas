@@ -7,6 +7,10 @@ import type { FormatAction, FormatState } from './format';
 export type EditorHandle = {
   format: (command: FormatAction) => void;
   focus: () => void;
+  /** Inserta texto en el cursor (p. ej. una contraseña generada). Solo el editor enriquecido. */
+  insertText?: (text: string) => void;
+  /** Entrega el texto seleccionado por `onSelectionText`. Solo el editor enriquecido. */
+  requestSelection?: () => void;
 };
 
 /**
@@ -31,6 +35,8 @@ export type EditorAdapterProps = {
   onFocusChange?: (focused: boolean) => void;
   /** Parte inferior del cursor, en px desde el borde superior del editor. */
   onCaret?: (bottom: number) => void;
+  /** Respuesta a `requestSelection` (cadena vacía si no hay nada seleccionado). */
+  onSelectionText?: (text: string) => void;
 };
 
 export type EditorAdapter = ComponentType<EditorAdapterProps>;
