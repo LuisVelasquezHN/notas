@@ -62,7 +62,7 @@ En Vercel, la caché de Metro se guarda en `node_modules/.cache/metro` (que Verc
 4. Para Google Play, sigue §1 y §2 (perfil `production`, `.aab`).
 5. **Cambio de identificador (22-10):** la app pasó de `com.novotechn.notas` a `com.lavg.notas`. Android la trata como otra app: EAS crea un keystore nuevo en la primera build y hay que desinstalar el APK anterior (las notas sincronizadas vuelven al entrar con Google; las que solo estaban en el teléfono, no: haz antes una copia desde Ajustes → Datos).
 
-> El perfil `preview` no sube los source maps a Sentry (`SENTRY_DISABLE_AUTO_UPLOAD` en `eas.json`): sin las variables de Sentry la build fallaba en ese paso. Para `production`, configura Sentry (§1.2) o añade la misma variable a ese perfil.
+> Los perfiles `preview` y `production` no suben los source maps a Sentry (`SENTRY_DISABLE_AUTO_UPLOAD` en `eas.json`): sin las variables de Sentry la build fallaba en ese paso. Cuando configures Sentry (§1.2), quita `SENTRY_DISABLE_AUTO_UPLOAD` del perfil `production` para tener los source maps.
 
 ## 1. Cuentas y configuración (una vez)
 
