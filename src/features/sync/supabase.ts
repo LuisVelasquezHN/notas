@@ -3,12 +3,14 @@ import 'expo-sqlite/localStorage/install';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
 
+import { normalizeSupabaseUrl } from './url';
+
 /**
  * Cliente de Supabase (cuentas y sincronización, PLAN.md §9). Sin las variables de entorno la
  * app funciona como antes, solo en local: no se muestra la sección de cuenta.
  * La sesión se guarda en `localStorage` (en iOS y Android, el de expo-sqlite).
  */
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const url = normalizeSupabaseUrl(process.env.EXPO_PUBLIC_SUPABASE_URL);
 const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 export const isSyncConfigured = Boolean(url && key);

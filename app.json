@@ -200,7 +200,7 @@
     "description": "Notas, listas y notas de voz en tu dispositivo, con carpetas, etiquetas, recordatorios y sincronización opcional.",
     "owner": "lavg",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "updates": {
       "url": "https://u.expo.dev/cb381318-8de8-4a7c-bd2d-511277b29281"

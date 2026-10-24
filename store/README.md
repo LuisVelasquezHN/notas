@@ -11,7 +11,7 @@ Todo es gratis para empezar (planes gratuitos de Supabase, Vercel y Expo). Orden
 1. Crea un proyecto en [supabase.com](https://supabase.com) (plan Free: 500 MB de base de datos y 1 GB de ficheros). Elige una región cercana (p. ej. `eu-west`).
 2. **SQL Editor** → pega y ejecuta `supabase/migrations/20261020000000_sync.sql`. Crea la tabla `sync_rows` con seguridad por usuario (RLS), las funciones `push_changes` y `delete_account` y el bucket privado `attachments`.
    Después ejecuta también `supabase/migrations/20261021000000_hardening.sql` (refuerzo de seguridad: solo las tablas de la app, filas de 1 MB como máximo, 50 000 filas por cuenta y ficheros de 25 MB como máximo, solo imágenes y audio).
-   Y después `supabase/migrations/20261022000000_secure_notes.sql` (admite las tablas de las notas seguras; sin él, quedan en el dispositivo y se suben en cuanto se ejecute).
+   Y después `supabase/migrations/20261023000000_realtime.sql` (sincronización en tiempo real: en Ajustes → Cuenta aparece "En tiempo real" cuando funciona) y `supabase/migrations/20261022000000_secure_notes.sql` (admite las tablas de las notas seguras; sin él, quedan en el dispositivo y se suben en cuanto se ejecute).
    - **Authentication → Sign In / Providers → Email: desactívalo.** Viene activado por defecto y permitiría crear cuentas con email y contraseña por la API aunque la app solo use Google.
 3. **Project Settings → API**: copia la _Project URL_ y la clave _publishable_ (o _anon_). Son públicas por diseño: la seguridad la ponen las políticas RLS.
 4. Copia `.env.example` a `.env.local` y rellena `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` para desarrollo.
@@ -38,6 +38,17 @@ No hace falta ningún módulo nativo ni la huella SHA-1: en el móvil se abre el
 4. **Escritorio:** la web es instalable (PWA, `public/manifest.json`). En Chrome o Edge (Windows, macOS, Linux) aparece "Instalar Notas" en la barra de direcciones y en Ajustes → Descargar la app; en Safari (macOS), Archivo → "Añadir al Dock". Se abre en su propia ventana y funciona con su propia base de datos local, sincronizada con la cuenta.
 
 > **Netlify** también sirve: el adaptador es `expo-server/adapter/netlify` (ver la guía de Expo "API routes → Netlify"). Está preparado solo Vercel para no mantener dos configuraciones.
+
+### 0.5 Automatizado: APK u OTA en cada push a `main`
+
+`.eas/workflows/android-preview.yml` calcula el _fingerprint_ (huella de todo lo nativo) y:
+
+- si ya existe un APK con ese fingerprint → publica una **actualización OTA** (1–2 min) que la app instalada descarga sola al abrirse;
+- si cambió algo nativo (módulos, permisos, iconos, nombre…) → compila un **APK nuevo** (perfil `preview`).
+
+`runtimeVersion: { "policy": "fingerprint" }` en `app.json` asegura que una OTA solo llega a los APK compatibles. Para activarlo: en [expo.dev](https://expo.dev) → proyecto → **GitHub** → conecta el repositorio (rama `main`). A mano: `npx eas-cli@latest workflow:run .eas/workflows/android-preview.yml`.
+
+En Vercel, la caché de Metro se guarda en `node_modules/.cache/metro` (que Vercel conserva entre builds, ver `metro.config.js`): el primer build tarda lo de siempre y los siguientes solo recompilan lo que cambió (en local: 224 s → 9 s).
 
 ### 0.4 Android (APK para descargar)
 

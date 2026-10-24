@@ -16,6 +16,8 @@ import {
 } from '@/features/editor';
 import { FormatBar } from '@/features/editor/components/format-bar';
 import { useAutosave } from '@/features/notes/hooks/use-autosave';
+import { CLIPBOARD_CLEAR_MS, copySecret } from '@/features/vault/clipboard';
+import { PasswordGeneratorSheet } from '@/features/vault/components/password-generator-sheet';
 import {
   decryptSecureNote,
   deleteSecureNote,
@@ -70,6 +72,16 @@ function SecureNoteEditor({
   /** Id con el que se guarda (una nota nueva lo recibe al guardarse por primera vez). */
   const savedId = useRef(noteId);
   const deleted = useRef(false);
+  const [generator, setGenerator] = useState(false);
+
+  const copy = async (text: string) => {
+    if (!text.trim()) {
+      showSnackbar(t('vault.selectToCopy'));
+      return;
+    }
+    await copySecret(text);
+    showSnackbar(t('vault.copied', { seconds: CLIPBOARD_CLEAR_MS / 1000 }));
+  };
 
   const flush = useAutosave({ title, doc }, async (value) => {
     if (deleted.current) return;
@@ -127,6 +139,7 @@ function SecureNoteEditor({
             placeholder={t('vault.bodyPlaceholder')}
             autoFocus={!noteId}
             onFormatChange={setFormat}
+            onSelectionText={(text) => void copy(text)}
           />
         </ScrollView>
         <View
@@ -134,9 +147,36 @@ function SecureNoteEditor({
             styles.toolbar,
             { borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, spacing.xs) },
           ]}>
-          <FormatBar state={format} onFormat={(action) => editorRef.current?.format(action)} />
+          <View style={styles.toolbarRow}>
+            <IconButton
+              icon="copy"
+              accessibilityLabel={t('vault.copy')}
+              onPress={() => editorRef.current?.requestSelection?.()}
+              testID="secure-note-copy"
+            />
+            <IconButton
+              icon="key"
+              accessibilityLabel={t('vault.generator')}
+              onPress={() => setGenerator(true)}
+              testID="secure-note-generator"
+            />
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View style={styles.root}>
+              <FormatBar state={format} onFormat={(action) => editorRef.current?.format(action)} />
+            </View>
+          </View>
         </View>
       </KeyboardAvoider>
+      <PasswordGeneratorSheet
+        visible={generator}
+        onClose={() => setGenerator(false)}
+        onCopy={(password) => void copy(password)}
+        onInsert={(password) => {
+          setGenerator(false);
+          // Tras cerrar la hoja: el editor recupera el foco y el cursor donde estaba.
+          setTimeout(() => editorRef.current?.insertText?.(password), 350);
+        }}
+      />
     </View>
   );
 }
@@ -153,6 +193,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   title: { paddingVertical: spacing.xs },
+  toolbarRow: { flexDirection: 'row', alignItems: 'center', paddingLeft: spacing.xs },
+  divider: { width: StyleSheet.hairlineWidth, height: 24, marginHorizontal: spacing.xs },
   toolbar: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: spacing.xs,

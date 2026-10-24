@@ -20,6 +20,7 @@ export function AccountSection() {
   const account = useSyncStore((s) => s.account);
   const status = useSyncStore((s) => s.status);
   const lastSyncedAt = useSyncStore((s) => s.lastSyncedAt);
+  const realtime = useSyncStore((s) => s.realtime);
   const now = useNow();
   const [busy, setBusy] = useState(false);
 
@@ -126,6 +127,14 @@ export function AccountSection() {
         </Text>
         {status === 'syncing' ? <ActivityIndicator color={colors.primary} /> : null}
       </View>
+      <View style={styles.row}>
+        <View
+          style={[styles.dot, { backgroundColor: realtime ? colors.success : colors.textMuted }]}
+        />
+        <Text variant="caption" tone="secondary" style={styles.label}>
+          {realtime ? t('account.realtimeOn') : t('account.realtimeOff')}
+        </Text>
+      </View>
       <View style={styles.buttons}>
         <Button
           title={t('account.syncNow')}
@@ -150,6 +159,7 @@ const styles = StyleSheet.create({
   block: { gap: spacing.sm, padding: spacing.xs, paddingBottom: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.sm },
   label: { flex: 1, gap: spacing.xxs },
+  dot: { width: 8, height: 8, borderRadius: 4, marginHorizontal: 6 },
   delete: { alignSelf: 'flex-start' },
   buttons: {
     flexDirection: 'row',
