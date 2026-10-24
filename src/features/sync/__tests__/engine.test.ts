@@ -17,7 +17,13 @@ type ServerRow = {
 };
 
 class FakeServer {
-  rows = new Map<string, ServerRow>();
+  /** Filas por usuario: como RLS, cada sesión solo ve y escribe las suyas. */
+  byUser = new Map<string, Map<string, ServerRow>>();
+  user = 'user-1';
+  get rows(): Map<string, ServerRow> {
+    if (!this.byUser.has(this.user)) this.byUser.set(this.user, new Map());
+    return this.byUser.get(this.user)!;
+  }
   files = new Map<string, string>();
   seq = 0;
 
@@ -69,7 +75,9 @@ jest.mock('../files', () => ({
 }));
 jest.mock('../supabase', () => ({
   getSupabase: () => ({
-    auth: { getSession: async () => ({ data: { session: { user: { id: 'user-1' } } } }) },
+    auth: {
+      getSession: async () => ({ data: { session: { user: { id: mockServer.user } } } }),
+    },
     rpc: async (_name: string, { changes }: { changes: Omit<ServerRow, 'seq'>[] }) => {
       return { error: mockServer.push(changes) };
     },
@@ -131,7 +139,8 @@ const addNote = (d: Device, id: string, title: string, updatedAt: number, folder
     .run(id, title, folderId ?? null, 'a0', updatedAt, updatedAt);
 
 beforeEach(() => {
-  mockServer.rows.clear();
+  mockServer.byUser.clear();
+  mockServer.user = 'user-1';
   mockServer.files.clear();
   mockServer.seq = 0;
 });
@@ -306,5 +315,38 @@ describe('sincronización entre dos dispositivos', () => {
 
     await sync(a);
     expect(all(a, 'SELECT id, title FROM notes')).toEqual([{ id: 'n1', title: 'hola' }]);
+  });
+
+  it('dos cuentas en el mismo dispositivo: cada una ve solo sus notas', async () => {
+    const phone = await device();
+    // A entra y crea una nota.
+    mockServer.user = 'user-a';
+    addNote(phone, 'na', 'nota de A', 10);
+    await sync(phone);
+
+    // B ya tiene una nota en su cuenta (desde otro dispositivo).
+    mockServer.user = 'user-b';
+    const other = await device();
+    addNote(other, 'nb', 'nota de B', 11);
+    await sync(other);
+
+    // A cierra sesión en el teléfono y entra B.
+    mockServer.user = 'user-a';
+    mockCurrent = phone;
+    await wipeLocalData('user-a');
+    mockServer.user = 'user-b';
+    await sync(phone);
+
+    expect(all(phone, 'SELECT id, title FROM notes')).toEqual([{ id: 'nb', title: 'nota de B' }]);
+    expect(mockServer.live('notes').map((r) => r.row_id)).toEqual(['nb']);
+    mockServer.user = 'user-a';
+    expect(mockServer.live('notes').map((r) => r.row_id)).toEqual(['na']);
+
+    // B cierra sesión y vuelve A: recupera su nota y no ve la de B.
+    mockServer.user = 'user-b';
+    await wipeLocalData('user-b');
+    mockServer.user = 'user-a';
+    await sync(phone);
+    expect(all(phone, 'SELECT id, title FROM notes')).toEqual([{ id: 'na', title: 'nota de A' }]);
   });
 });

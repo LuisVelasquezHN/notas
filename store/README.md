@@ -39,6 +39,17 @@ No hace falta ningún módulo nativo ni la huella SHA-1: en el móvil se abre el
 
 > **Netlify** también sirve: el adaptador es `expo-server/adapter/netlify` (ver la guía de Expo "API routes → Netlify"). Está preparado solo Vercel para no mantener dos configuraciones.
 
+### 0.5 Automatizado: APK u OTA en cada push a `main`
+
+`.eas/workflows/android-preview.yml` calcula el _fingerprint_ (huella de todo lo nativo) y:
+
+- si ya existe un APK con ese fingerprint → publica una **actualización OTA** (1–2 min) que la app instalada descarga sola al abrirse;
+- si cambió algo nativo (módulos, permisos, iconos, nombre…) → compila un **APK nuevo** (perfil `preview`).
+
+`runtimeVersion: { "policy": "fingerprint" }` en `app.json` asegura que una OTA solo llega a los APK compatibles. Para activarlo: en [expo.dev](https://expo.dev) → proyecto → **GitHub** → conecta el repositorio (rama `main`). A mano: `npx eas-cli@latest workflow:run .eas/workflows/android-preview.yml`.
+
+En Vercel, la caché de Metro se guarda en `node_modules/.cache/metro` (que Vercel conserva entre builds, ver `metro.config.js`): el primer build tarda lo de siempre y los siguientes solo recompilan lo que cambió (en local: 224 s → 9 s).
+
 ### 0.4 Android (APK para descargar)
 
 1. `npx eas-cli@latest login` y `npx eas-cli@latest init` (cuenta gratuita de Expo).
