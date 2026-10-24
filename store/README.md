@@ -11,7 +11,7 @@ Todo es gratis para empezar (planes gratuitos de Supabase, Vercel y Expo). Orden
 1. Crea un proyecto en [supabase.com](https://supabase.com) (plan Free: 500 MB de base de datos y 1 GB de ficheros). Elige una región cercana (p. ej. `eu-west`).
 2. **SQL Editor** → pega y ejecuta `supabase/migrations/20261020000000_sync.sql`. Crea la tabla `sync_rows` con seguridad por usuario (RLS), las funciones `push_changes` y `delete_account` y el bucket privado `attachments`.
    Después ejecuta también `supabase/migrations/20261021000000_hardening.sql` (refuerzo de seguridad: solo las tablas de la app, filas de 1 MB como máximo, 50 000 filas por cuenta y ficheros de 25 MB como máximo, solo imágenes y audio).
-   Y después `supabase/migrations/20261022000000_secure_notes.sql` (admite las tablas de las notas seguras; sin él, quedan en el dispositivo y se suben en cuanto se ejecute).
+   Y después `supabase/migrations/20261023000000_realtime.sql` (sincronización en tiempo real: en Ajustes → Cuenta aparece "En tiempo real" cuando funciona) y `supabase/migrations/20261022000000_secure_notes.sql` (admite las tablas de las notas seguras; sin él, quedan en el dispositivo y se suben en cuanto se ejecute).
    - **Authentication → Sign In / Providers → Email: desactívalo.** Viene activado por defecto y permitiría crear cuentas con email y contraseña por la API aunque la app solo use Google.
 3. **Project Settings → API**: copia la _Project URL_ y la clave _publishable_ (o _anon_). Son públicas por diseño: la seguridad la ponen las políticas RLS.
 4. Copia `.env.example` a `.env.local` y rellena `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` para desarrollo.

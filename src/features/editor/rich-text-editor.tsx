@@ -28,6 +28,7 @@ export function RichTextEditor({
   onFormatChange,
   onFocusChange,
   onCaret,
+  onSelectionText,
 }: EditorAdapterProps) {
   const { colors, scheme } = useTheme();
   const { t } = useTranslation();
@@ -70,6 +71,7 @@ export function RichTextEditor({
         onFormatChange={(state) => onFormatChange?.(state)}
         onFocusChange={(focused) => onFocusChange?.(focused)}
         onCaret={(bottom) => onCaret?.(bottom)}
+        onSelectionText={(text) => onSelectionText?.(text)}
       />
     </View>
   );

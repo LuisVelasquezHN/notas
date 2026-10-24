@@ -40,6 +40,8 @@ type JSONValue = Parameters<DOMImperativeFactory[string]>[number];
 export interface TipTapHandle extends DOMImperativeFactory {
   format: (command: JSONValue) => void;
   focus: () => void;
+  insertText: (text: JSONValue) => void;
+  requestSelection: () => void;
 }
 
 export type TipTapTheme = {
@@ -69,6 +71,8 @@ type Props = {
   onFocusChange: (focused: boolean) => Promise<void> | void;
   /** Parte inferior del cursor, en px desde el borde superior del editor (para hacer scroll). */
   onCaret: (bottom: number) => Promise<void> | void;
+  /** Texto seleccionado, cuando se pide con `requestSelection` (los métodos no devuelven nada). */
+  onSelectionText: (text: string) => Promise<void> | void;
 };
 
 /** "Importante": texto destacado (negrita en rojo sobre fondo suave). Se guarda como marca propia. */
@@ -101,13 +105,14 @@ export default function TipTapDom({
   onFormatChange,
   onFocusChange,
   onCaret,
+  onSelectionText,
 }: Props) {
   const lastEmitted = useRef(JSON.stringify(content));
   const lastFormat = useRef<FormatState>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const callbacks = useRef({ onChange, onFormatChange, onFocusChange, onCaret });
+  const callbacks = useRef({ onChange, onFormatChange, onFocusChange, onCaret, onSelectionText });
   useEffect(() => {
-    callbacks.current = { onChange, onFormatChange, onFocusChange, onCaret };
+    callbacks.current = { onChange, onFormatChange, onFocusChange, onCaret, onSelectionText };
   });
 
   const emitNow = (editor: Editor) => {
@@ -214,6 +219,17 @@ export default function TipTapDom({
       },
       focus: () => {
         editor?.commands.focus();
+      },
+      insertText: (text: JSONValue) => {
+        // Como nodo de texto: con una cadena, TipTap la interpretaría como HTML.
+        if (editor && typeof text === 'string' && text) {
+          editor.chain().focus().insertContent({ type: 'text', text }).run();
+        }
+      },
+      requestSelection: () => {
+        if (!editor) return;
+        const { from, to } = editor.state.selection;
+        void callbacks.current.onSelectionText(editor.state.doc.textBetween(from, to, '\n'));
       },
     }),
     [editor],
