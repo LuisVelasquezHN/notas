@@ -3,8 +3,11 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
-import { forgetAccount, hasPendingChanges, syncNow, wipeLocalData } from './engine';
+import { buildBackup } from '@/features/backup/backup';
+
+import { clearLocalData, forgetAccount, hasPendingChanges, syncNow, wipeLocalData } from './engine';
 import { deleteAllAttachments } from './files';
+import { setPendingImport } from './pending-import';
 import type { Account } from './store';
 import { getSupabase } from './supabase';
 
@@ -78,9 +81,9 @@ export async function signInWithGoogle(): Promise<SignInResult> {
 export type SignOutResult = 'ok' | 'pending';
 
 /**
- * Cierra la sesión y quita los datos de la cuenta de este dispositivo (siguen en la cuenta).
- * Antes se sube lo pendiente: si no se puede (sin conexión), no se cierra y devuelve `'pending'`
- * para no perder nada.
+ * Cierra la sesión y vacía la base de datos local de la cuenta (los datos siguen en la nube y
+ * vuelven al entrar). Después la app pasa a la base de datos sin cuenta (`AuthRuntime`). Antes se
+ * sube lo pendiente: si no se puede (sin conexión), no se cierra y devuelve `'pending'`.
  */
 export async function signOut(): Promise<SignOutResult> {
   const supabase = getSupabase();
@@ -88,24 +91,28 @@ export async function signOut(): Promise<SignOutResult> {
   const userId = data.session?.user.id;
   await syncNow();
   if (await hasPendingChanges()) return 'pending';
-  await supabase.auth.signOut();
+  // Primero se vacía (con la base de datos de la cuenta aún abierta) y luego se cierra la sesión.
   if (userId) await wipeLocalData(userId);
+  await supabase.auth.signOut();
   return 'ok';
 }
 
 /**
- * Elimina la cuenta y su copia en el servidor (ficheros, datos y usuario). Las notas se quedan en
- * el dispositivo; si después se entra con otra cuenta, se suben a ella.
+ * Elimina la cuenta y su copia en el servidor (ficheros, datos y usuario). Las notas del
+ * dispositivo no se pierden: pasan a la base de datos sin cuenta.
  */
 export async function deleteAccount(): Promise<void> {
   const supabase = getSupabase();
   const { data } = await supabase.auth.getSession();
   const userId = data.session?.user.id;
   if (!userId) return;
+  const local = await buildBackup();
   await deleteAllAttachments(userId);
   const { error } = await supabase.rpc('delete_account');
   if (error) throw error;
+  await clearLocalData();
   forgetAccount(userId);
-  // El usuario ya no existe: se cierra solo la sesión local.
+  setPendingImport(local);
+  // El usuario ya no existe: se cierra solo la sesión local (y se pasa a la base sin cuenta).
   await supabase.auth.signOut({ scope: 'local' });
 }

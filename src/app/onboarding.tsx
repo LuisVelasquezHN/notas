@@ -12,7 +12,8 @@ import {
 import { useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Chip, Icon, Text, type IconName } from '@/components/ui';
+import { AppLogo, Button, Chip, Icon, Text, type IconName } from '@/components/ui';
+import { APP_NAME } from '@/lib/app-info';
 import { useNotificationPermission } from '@/features/reminders/hooks/use-notification-permission';
 import { LANGUAGES, LANGUAGE_NAMES, type LanguagePreference } from '@/i18n';
 import { capabilities } from '@/lib/capabilities';
@@ -81,9 +82,16 @@ export default function OnboardingScreen() {
             importantForAccessibility={index === page ? 'auto' : 'no-hide-descendants'}
             accessibilityElementsHidden={index !== page}>
             <View style={styles.pageInner}>
-              <View style={[styles.badge, { backgroundColor: colors.surfaceMuted }]}>
-                <Icon name={item.icon} size={44} color={colors.primary} />
-              </View>
+              {item.key === 'welcome' ? (
+                <View style={styles.brand}>
+                  <AppLogo size={96} />
+                  <Text variant="heading">{APP_NAME}</Text>
+                </View>
+              ) : (
+                <View style={[styles.badge, { backgroundColor: colors.surfaceMuted }]}>
+                  <Icon name={item.icon} size={44} color={colors.primary} />
+                </View>
+              )}
               <Text variant="title" style={styles.center}>
                 {t(`onboarding.${item.key}.title`)}
               </Text>
@@ -174,6 +182,7 @@ function NotificationsPrompt() {
 }
 
 const styles = StyleSheet.create({
+  brand: { alignItems: 'center', gap: spacing.xs },
   root: { flex: 1 },
   top: { minHeight: 52, alignItems: 'flex-end', paddingHorizontal: spacing.md },
   pages: { flex: 1 },

@@ -37,6 +37,11 @@ export type EditorAdapterProps = {
   onCaret?: (bottom: number) => void;
   /** Respuesta a `requestSelection` (cadena vacía si no hay nada seleccionado). */
   onSelectionText?: (text: string) => void;
+  /**
+   * Alto máximo del editor (iOS/Android): con más contenido, el editor se desplaza por dentro en
+   * vez de crecer (normalmente, el alto visible de la pantalla).
+   */
+  maxHeight?: number;
 };
 
 export type EditorAdapter = ComponentType<EditorAdapterProps>;

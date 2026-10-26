@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 
-import { Button, Chip, Icon, Screen, Text, type IconName } from '@/components/ui';
+import { AppLogo, Button, Chip, Icon, Screen, Text, type IconName } from '@/components/ui';
 import { exportBackup, importBackupFromFile } from '@/features/backup/actions';
 import { InstallSection } from '@/features/install/components/install-section';
 import { useNotificationPermission } from '@/features/reminders/hooks/use-notification-permission';
@@ -16,15 +16,18 @@ import { LANGUAGES, LANGUAGE_NAMES, type LanguagePreference } from '@/i18n';
 import { APP_NAME, AUTHOR_NAME, AUTHOR_URL } from '@/lib/app-info';
 import { capabilities } from '@/lib/capabilities';
 import { useSettingsStore, type LockAfter, type ThemePreference } from '@/stores/settings-store';
-import { radius, spacing, useTheme } from '@/theme';
+import { ACCENTS, ACCENT_NAMES, radius, spacing, useTheme, type EditorTextSize } from '@/theme';
 
 const THEME_OPTIONS: ThemePreference[] = ['system', 'light', 'dark'];
 const LOCK_AFTER_OPTIONS: LockAfter[] = ['immediately', 'oneMinute', 'fiveMinutes'];
+const TEXT_SIZE_OPTIONS: EditorTextSize[] = ['small', 'normal', 'large', 'xlarge'];
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
+  const editorTextSize = useSettingsStore((s) => s.editorTextSize);
+  const setEditorTextSize = useSettingsStore((s) => s.setEditorTextSize);
   const language = useSettingsStore((s) => s.language);
   const setLanguage = useSettingsStore((s) => s.setLanguage);
   const setOnboarded = useSettingsStore((s) => s.setOnboarded);
@@ -57,6 +60,22 @@ export default function SettingsScreen() {
             />
           ))}
         </ChipGroup>
+        <AccentPicker />
+        <View style={styles.subRow}>
+          <Text variant="caption" tone="secondary">
+            {t('settings.editorTextSize')}
+          </Text>
+          <ChipGroup label={t('settings.editorTextSize')}>
+            {TEXT_SIZE_OPTIONS.map((option) => (
+              <Chip
+                key={option}
+                label={t(`settings.textSizes.${option}`)}
+                selected={editorTextSize === option}
+                onPress={() => setEditorTextSize(option)}
+              />
+            ))}
+          </ChipGroup>
+        </View>
       </Section>
 
       <Section title={t('settings.language')}>
@@ -116,6 +135,7 @@ export default function SettingsScreen() {
       </Section>
 
       <View style={styles.footer}>
+        <AppLogo size={40} />
         <Text variant="caption" tone="muted">
           {APP_NAME} · {t('settings.version', { version: Constants.expoConfig?.version ?? '—' })}
         </Text>
@@ -131,6 +151,50 @@ export default function SettingsScreen() {
         </Text>
       </View>
     </Screen>
+  );
+}
+
+/** Color de acento: botones, selección, cursor, pestañas. */
+function AccentPicker() {
+  const { t } = useTranslation();
+  const { scheme, colors } = useTheme();
+  const accent = useSettingsStore((s) => s.accent);
+  const setAccent = useSettingsStore((s) => s.setAccent);
+  return (
+    <View style={styles.subRow}>
+      <Text variant="caption" tone="secondary">
+        {t('settings.accent')}
+      </Text>
+      <View
+        accessibilityRole="radiogroup"
+        accessibilityLabel={t('settings.accent')}
+        style={styles.chips}>
+        {ACCENT_NAMES.map((name) => {
+          const selected = accent === name;
+          const color = scheme === 'dark' ? ACCENTS[name].dark : ACCENTS[name].light;
+          return (
+            <Pressable
+              key={name}
+              accessibilityRole="radio"
+              accessibilityLabel={t(`settings.accents.${name}`)}
+              aria-checked={selected}
+              onPress={() => setAccent(name)}
+              style={[
+                styles.accent,
+                { backgroundColor: color, borderColor: selected ? colors.text : 'transparent' },
+              ]}>
+              {selected ? (
+                <Icon
+                  name="check"
+                  size={16}
+                  color={scheme === 'dark' ? ACCENTS[name].onDark : ACCENTS[name].onLight}
+                />
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -346,5 +410,13 @@ const styles = StyleSheet.create({
   rowLabel: { flex: 1, gap: spacing.xxs },
   subRow: { gap: spacing.xs, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
   note: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
+  accent: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   footer: { alignItems: 'center', gap: spacing.xxs, marginTop: spacing.lg },
 });

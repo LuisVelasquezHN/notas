@@ -73,6 +73,8 @@ type Props = {
   onCaret: (bottom: number) => Promise<void> | void;
   /** Texto seleccionado, cuando se pide con `requestSelection` (los métodos no devuelven nada). */
   onSelectionText: (text: string) => Promise<void> | void;
+  /** Alto del contenido en px (en la webview, para que la pantalla le dé el tamaño justo). */
+  onHeight: (height: number) => Promise<void> | void;
 };
 
 /** "Importante": texto destacado (negrita en rojo sobre fondo suave). Se guarda como marca propia. */
@@ -90,8 +92,10 @@ const Important = Mark.create({
   },
 });
 
+const IN_WEBVIEW = Boolean(process.env.EXPO_DOM_HOST_OS);
+
 /** En la webview cada cambio cruza el puente: se agrupan las pulsaciones seguidas. */
-const EMIT_DELAY = process.env.EXPO_DOM_HOST_OS ? 150 : 0;
+const EMIT_DELAY = IN_WEBVIEW ? 150 : 0;
 
 export default function TipTapDom({
   ref,
@@ -106,14 +110,30 @@ export default function TipTapDom({
   onFocusChange,
   onCaret,
   onSelectionText,
+  onHeight,
 }: Props) {
   const lastEmitted = useRef(JSON.stringify(content));
   const lastFormat = useRef<FormatState>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const callbacks = useRef({ onChange, onFormatChange, onFocusChange, onCaret, onSelectionText });
-  useEffect(() => {
-    callbacks.current = { onChange, onFormatChange, onFocusChange, onCaret, onSelectionText };
+  const callbacks = useRef({
+    onChange,
+    onFormatChange,
+    onFocusChange,
+    onCaret,
+    onSelectionText,
+    onHeight,
   });
+  useEffect(() => {
+    callbacks.current = {
+      onChange,
+      onFormatChange,
+      onFocusChange,
+      onCaret,
+      onSelectionText,
+      onHeight,
+    };
+  });
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const emitNow = (editor: Editor) => {
     if (timer.current) clearTimeout(timer.current);
@@ -134,7 +154,9 @@ export default function TipTapDom({
     if (editor.isFocused) {
       try {
         const coords = editor.view.coordsAtPos(editor.state.selection.head);
-        const top = editor.view.dom.getBoundingClientRect().top;
+        // En la webview, respecto a lo visible de la webview (puede desplazarse por dentro); en
+        // web, respecto al principio del editor.
+        const top = IN_WEBVIEW ? 0 : editor.view.dom.getBoundingClientRect().top;
         void callbacks.current.onCaret(Math.round(coords.bottom - top));
       } catch {
         // Posición fuera del documento durante una transacción: se ignora.
@@ -202,6 +224,25 @@ export default function TipTapDom({
     editor?.setEditable(editable);
   }, [editor, editable]);
 
+  // Alto real del contenido: lo mide el propio editor (la medición automática de la webview se
+  // quedaba corta y, en Android, una webview más alta que la pantalla se dibuja en blanco).
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let last = 0;
+    const report = () => {
+      const height = Math.ceil(el.getBoundingClientRect().height);
+      if (height !== last) {
+        last = height;
+        void callbacks.current.onHeight(height);
+      }
+    };
+    const observer = new ResizeObserver(report);
+    observer.observe(el);
+    report();
+    return () => observer.disconnect();
+  }, [editor]);
+
   useEffect(
     () => () => {
       if (editor && timer.current) emitNow(editor);
@@ -236,7 +277,7 @@ export default function TipTapDom({
   );
 
   return (
-    <>
+    <div ref={rootRef}>
       <style>{css(theme)}</style>
       <EditorContent
         editor={editor}
@@ -246,7 +287,7 @@ export default function TipTapDom({
           if (editor && e.target === e.currentTarget) editor.commands.focus('end');
         }}
       />
-    </>
+    </div>
   );
 }
 

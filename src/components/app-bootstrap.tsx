@@ -6,10 +6,15 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui';
 import { openDatabase, type Database } from '@/db';
+import type { DataScope } from '@/db/scope';
 import { ensureSearchIndex } from '@/db/search-index';
 import { acquireDatabaseLock } from '@/db/tab-lock';
 import { purgeAttachments } from '@/features/attachments/repository';
 import { purgeExpiredTrash } from '@/features/notes/repository';
+import { resolveInitialScope } from '@/features/sync/account-scope';
+import { useAuthRuntime } from '@/features/sync/components/auth-runtime';
+import { applyPendingImport } from '@/features/sync/pending-import';
+import { useSyncStore } from '@/features/sync/store';
 import { ensureSyncTracking } from '@/features/sync/tracking';
 import { syncLanguageWithSettings } from '@/i18n/sync';
 import { capabilities } from '@/lib/capabilities';
@@ -25,16 +30,21 @@ import migrations from '../../drizzle/migrations';
  * Prepara todo lo necesario antes de renderizar la app:
  * 0. en web, espera a que ninguna otra pestaña tenga abierta la base de datos,
  * 1. abre el almacén de preferencias, hidrata los ajustes y aplica el idioma elegido,
- * 2. abre la base de datos,
- * 3. aplica las migraciones pendientes,
+ * 2. averigua si hay sesión y con ella qué base de datos local usar (una por cuenta, otra sin
+ *    cuenta, ver `db/scope.ts`); después atiende los cambios de sesión (`useAuthRuntime`),
+ * 3. abre esa base de datos y aplica las migraciones pendientes,
  * 4. prepara el índice de búsqueda (solo nativo) y el seguimiento de cambios para sincronizar,
- *    purga la papelera caducada y los ficheros de adjuntos que ya no se usan.
+ *    importa lo que venga de otra base de datos, purga la papelera caducada y los ficheros de
+ *    adjuntos que ya no se usan.
+ * Al cambiar de cuenta, la parte de la base de datos (y la app debajo) se vuelve a montar.
  */
 export function AppBootstrap({ children }: { children: ReactNode }) {
-  const [db, setDb] = useState<Database | null>(null);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [otherTab, setOtherTab] = useState(false);
   const hydrated = useHydrated();
+  const scope = useSyncStore((s) => s.scope);
+  useAuthRuntime(ready);
 
   useEffect(() => {
     (async () => {
@@ -47,13 +57,41 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
       if (capabilities.biometrics && useSettingsStore.getState().appLock) {
         useSecurityStore.getState().lockApp();
       }
-      setDb(await openDatabase());
+      const initial = await resolveInitialScope();
+      useSyncStore.getState().setSession(initial.account, initial.scope);
+      setReady(true);
     })().catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))));
   }, []);
 
   if (!hydrated) return null;
   if (error) return <BootError error={error} />;
   if (otherTab) return <BootOtherTab />;
+  if (!ready || !scope) return <BootLoading />;
+  return (
+    <ScopedDatabase key={scope} scope={scope}>
+      {children}
+    </ScopedDatabase>
+  );
+}
+
+/** Base de datos de un ámbito (cuenta o sin cuenta): la abre y, con ella lista, monta la app. */
+function ScopedDatabase({ scope, children }: { scope: DataScope; children: ReactNode }) {
+  const [db, setDb] = useState<Database | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    openDatabase(scope)
+      .then((opened) => {
+        if (!cancelled) setDb(opened);
+      })
+      .catch((e: unknown) => setError(e instanceof Error ? e : new Error(String(e))));
+    return () => {
+      cancelled = true;
+    };
+  }, [scope]);
+
+  if (error) return <BootError error={error} />;
   if (!db) return <BootLoading />;
   return <Migrations db={db}>{children}</Migrations>;
 }
@@ -82,6 +120,8 @@ function Migrations({ db, children }: { db: Database; children: ReactNode }) {
     (async () => {
       await ensureSearchIndex(db);
       await ensureSyncTracking(db);
+      // Notas que vienen de otra base de datos (p. ej. las de sin cuenta al entrar en una).
+      await applyPendingImport();
       await purgeExpiredTrash();
       // Limpieza de ficheros: si falla, la app arranca igual.
       await purgeAttachments().catch((e: unknown) => console.warn('Adjuntos: error al purgar', e));

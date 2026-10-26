@@ -2,10 +2,9 @@ import { addDatabaseChangeListener } from 'expo-sqlite';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
-import { accountFromSession } from '../auth';
 import { lastSyncedAt, syncIfPending, syncNow } from '../engine';
 import { useSyncStore } from '../store';
-import { getSupabase, isSyncConfigured } from '../supabase';
+import { getSupabase } from '../supabase';
 import { SYNC_TABLES } from '../tables';
 
 const SYNCED_TABLES = new Set<string>(Object.values(SYNC_TABLES).map((t) => t.name));
@@ -29,23 +28,11 @@ export function SyncRuntime() {
   const accountId = useSyncStore((s) => s.account?.id);
   const realtime = useSyncStore((s) => s.realtime);
 
+  // La sesión (y con ella la base de datos local) la gestiona `AuthRuntime`; este componente se
+  // monta con la base de datos de la cuenta ya abierta.
   useEffect(() => {
-    if (!isSyncConfigured) {
-      useSyncStore.getState().setAccount(null);
-      return;
-    }
-    const supabase = getSupabase();
-    const apply = (session: Parameters<typeof accountFromSession>[0]) => {
-      const next = accountFromSession(session);
-      const store = useSyncStore.getState();
-      if (store.account !== undefined && store.account?.id === next?.id) return;
-      store.setAccount(next);
-      if (next) store.setStatus('idle', lastSyncedAt(next.id) ?? undefined);
-    };
-    void supabase.auth.getSession().then(({ data }) => apply(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => apply(session));
-    return () => data.subscription.unsubscribe();
-  }, []);
+    if (accountId) useSyncStore.getState().setStatus('idle', lastSyncedAt(accountId) ?? undefined);
+  }, [accountId]);
 
   useEffect(() => {
     if (!accountId) return;

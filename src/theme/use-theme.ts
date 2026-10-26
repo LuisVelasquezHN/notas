@@ -2,7 +2,9 @@ import { useColorScheme } from 'react-native';
 
 import { useSettingsStore } from '@/stores/settings-store';
 
-import { noteColors, palette, type ColorScheme, type NoteColor } from './tokens';
+import { useMemo } from 'react';
+
+import { ACCENTS, noteColors, palette, type ColorScheme, type NoteColor } from './tokens';
 
 export function useColorSchemeName(): ColorScheme {
   const system = useColorScheme();
@@ -13,9 +15,18 @@ export function useColorSchemeName(): ColorScheme {
 
 export function useTheme() {
   const scheme = useColorSchemeName();
+  const accentName = useSettingsStore((s) => s.accent);
+  const colors = useMemo(() => {
+    const accent = ACCENTS[accentName] ?? ACCENTS.amber;
+    return {
+      ...palette[scheme],
+      primary: scheme === 'dark' ? accent.dark : accent.light,
+      onPrimary: scheme === 'dark' ? accent.onDark : accent.onLight,
+    };
+  }, [scheme, accentName]);
   return {
     scheme,
-    colors: palette[scheme],
+    colors,
     noteColor: (token: NoteColor) => noteColors[scheme][token],
   };
 }

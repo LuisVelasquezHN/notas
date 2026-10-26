@@ -744,6 +744,12 @@ const es = {
       error: 'No se pudo sincronizar. Se reintentará solo.',
     },
     syncNow: 'Sincronizar ahora',
+    moveGuestTitle: '¿Pasar tus notas a esta cuenta?',
+    moveGuestMessage_one:
+      'Hay {{count}} nota en este dispositivo creada sin cuenta. ¿Quieres pasarla a {{email}}? Si no, se queda aquí, solo para el uso sin cuenta.',
+    moveGuestMessage_other:
+      'Hay {{count}} notas en este dispositivo creadas sin cuenta. ¿Quieres pasarlas a {{email}}? Si no, se quedan aquí, solo para el uso sin cuenta.',
+    moveGuestAction: 'Pasarlas a la cuenta',
     realtimeOn: 'En tiempo real: los cambios de tus otros dispositivos llegan al momento',
     realtimeOff: 'Sin tiempo real: se comprueba cada minuto',
     signOut: 'Cerrar sesión',
@@ -756,7 +762,7 @@ const es = {
     deleteAccount: 'Eliminar la cuenta',
     deleteTitle: '¿Eliminar la cuenta?',
     deleteMessage:
-      'Se borrarán la cuenta y la copia de tus notas en el servidor. Las notas de este dispositivo se quedan aquí; en tus otros dispositivos también, pero dejarán de sincronizarse.',
+      'Se borrarán la cuenta y la copia de tus notas en el servidor. Las notas de este dispositivo se quedan aquí, como notas sin cuenta.',
     deleteConfirm: 'Eliminar',
     deleted: 'Cuenta eliminada',
     deleteFailed: 'No se pudo eliminar la cuenta. Comprueba la conexión e inténtalo de nuevo.',
@@ -780,6 +786,18 @@ const es = {
     },
     language: 'Idioma',
     languageSystem: 'Sistema',
+    accent: 'Color de acento',
+    accents: {
+      amber: 'Ámbar',
+      blue: 'Azul',
+      green: 'Verde',
+      purple: 'Morado',
+      pink: 'Rosa',
+      orange: 'Naranja',
+      teal: 'Turquesa',
+    },
+    editorTextSize: 'Tamaño del texto en las notas',
+    textSizes: { small: 'Pequeño', normal: 'Normal', large: 'Grande', xlarge: 'Muy grande' },
     security: 'Seguridad',
     appLock: 'Bloquear la app',
     appLockHint: {

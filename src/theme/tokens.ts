@@ -32,6 +32,33 @@ export const palette = {
 } as const;
 
 export type ColorScheme = keyof typeof palette;
+
+/**
+ * Colores de acento (Ajustes → Apariencia): sustituyen a `primary` y `onPrimary` en botones,
+ * selección, cursor, pestañas… El ámbar es el de la marca (por defecto).
+ */
+export const ACCENTS = {
+  amber: { light: '#E0A100', dark: '#F5B91F', onLight: '#1C1C1A', onDark: '#1C1C1A' },
+  blue: { light: '#1F6FD1', dark: '#5AA2FF', onLight: '#FFFFFF', onDark: '#0E1726' },
+  green: { light: '#2E8A4F', dark: '#5BC285', onLight: '#FFFFFF', onDark: '#0F1F15' },
+  purple: { light: '#7B3FC4', dark: '#B48CF2', onLight: '#FFFFFF', onDark: '#1A1026' },
+  pink: { light: '#C2185B', dark: '#FF7AB0', onLight: '#FFFFFF', onDark: '#26101A' },
+  orange: { light: '#D9631E', dark: '#FF9A5A', onLight: '#FFFFFF', onDark: '#26150A' },
+  teal: { light: '#0F8A86', dark: '#4FD1C5', onLight: '#FFFFFF', onDark: '#0A1F1E' },
+} as const;
+
+export type AccentName = keyof typeof ACCENTS;
+export const ACCENT_NAMES = Object.keys(ACCENTS) as AccentName[];
+
+/** Tamaño del texto en el editor de notas (Ajustes → Apariencia). */
+export const EDITOR_TEXT_SIZES = {
+  small: { fontSize: 15, lineHeight: 21 },
+  normal: { fontSize: 16, lineHeight: 22 },
+  large: { fontSize: 18, lineHeight: 26 },
+  xlarge: { fontSize: 21, lineHeight: 30 },
+} as const;
+
+export type EditorTextSize = keyof typeof EDITOR_TEXT_SIZES;
 export type ThemeColors = { [K in keyof (typeof palette)['light']]: string };
 
 /**
