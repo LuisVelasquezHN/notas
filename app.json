@@ -107,7 +107,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"]
+      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"],
+      "allowBackup": false
     },
     "web": {
       "output": "server",

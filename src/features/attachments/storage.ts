@@ -1,15 +1,19 @@
 import { Directory, File, Paths } from 'expo-file-system';
 
+import { activeScope, attachmentsDirName } from '@/db/scope';
+
 /**
- * Ficheros de los adjuntos (iOS y Android). Se guardan en `Documents/attachments/` y en la base de
- * datos solo se guarda la ruta **relativa** (`attachments/<id>.<ext>`): en iOS la ruta absoluta del
- * contenedor cambia entre instalaciones y actualizaciones.
+ * Ficheros de los adjuntos (iOS y Android). Se guardan en `Documents/attachments/` (cada cuenta en
+ * su subcarpeta, ver `db/scope.ts`) y en la base de datos solo se guarda la ruta **relativa**
+ * (`attachments/<cuenta>/<id>.<ext>`): en iOS la ruta absoluta del contenedor cambia entre
+ * instalaciones y actualizaciones.
  */
 
-const DIR_NAME = 'attachments';
+/** Carpeta del ámbito activo (la base de datos abierta). */
+const dirName = () => attachmentsDirName(activeScope());
 
 function directory() {
-  const dir = new Directory(Paths.document, DIR_NAME);
+  const dir = new Directory(Paths.document, dirName());
   if (!dir.exists) dir.create({ intermediates: true, idempotent: true });
   return dir;
 }
@@ -26,7 +30,7 @@ export async function storeFile(
   const target = new File(directory(), name);
   if (move) source.move(target);
   else source.copy(target);
-  return { localUri: `${DIR_NAME}/${name}`, size: target.size || null };
+  return { localUri: `${dirName()}/${name}`, size: target.size || null };
 }
 
 /** Contenido de un adjunto en base64 (copias de seguridad, imágenes del PDF). */
@@ -44,7 +48,7 @@ export async function storeBase64(
   if (target.exists) target.delete();
   target.create();
   target.write(base64, { encoding: 'base64' });
-  return { localUri: `${DIR_NAME}/${name}`, size: target.size || null };
+  return { localUri: `${dirName()}/${name}`, size: target.size || null };
 }
 
 /** URI que entienden `expo-image` y `expo-audio`. */
@@ -58,11 +62,13 @@ export function resolveUri(localUri: string): string {
  * capturas canceladas…). Varias filas pueden compartir fichero (duplicar una nota no lo copia).
  */
 export function deleteUnreferencedFiles(referenced: Set<string>): number {
-  const dir = new Directory(Paths.document, DIR_NAME);
+  const name = dirName();
+  const dir = new Directory(Paths.document, name);
   if (!dir.exists) return 0;
   let deleted = 0;
+  // Solo ficheros: las subcarpetas de la carpeta de invitado son las de las cuentas.
   for (const entry of dir.list()) {
-    if (entry instanceof File && !referenced.has(`${DIR_NAME}/${entry.name}`)) {
+    if (entry instanceof File && !referenced.has(`${name}/${entry.name}`)) {
       entry.delete();
       deleted++;
     }

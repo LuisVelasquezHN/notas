@@ -107,6 +107,8 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
   // Seguir el cursor del editor enriquecido (en nativo vive en una webview sin scroll propio).
   const scrollY = useRef(0);
   const viewportHeight = useRef(0);
+  /** Alto visible: el editor no crece más (se desplaza por dentro, ver `RichTextEditor`). */
+  const [viewport, setViewport] = useState(0);
   const editorY = useRef(0);
   const followCaret = (bottom: number) => {
     const caret = editorY.current + bottom + CARET_MARGIN;
@@ -194,7 +196,10 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
           ref={scrollRef}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          onLayout={(e) => (viewportHeight.current = e.nativeEvent.layout.height)}
+          onLayout={(e) => {
+            viewportHeight.current = e.nativeEvent.layout.height;
+            setViewport(e.nativeEvent.layout.height);
+          }}
           onScroll={(e) => (scrollY.current = e.nativeEvent.contentOffset.y)}
           scrollEventThrottle={32}
           contentContainerStyle={[
@@ -251,6 +256,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
                 autoFocus={!note.title && !note.contentText && !autoRecord}
                 onFormatChange={setFormatState}
                 onCaret={followCaret}
+                maxHeight={viewport || undefined}
               />
             </View>
           ) : (

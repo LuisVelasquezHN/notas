@@ -11,3 +11,4 @@ export * from './snackbar';
 export * from './text';
 export * from './text-field';
 export * from './keyboard-avoider';
+export * from './app-logo';

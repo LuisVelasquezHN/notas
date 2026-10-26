@@ -1,9 +1,9 @@
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
-import { EmptyState, IconButton, Screen, Text } from '@/components/ui';
+import { AppLogo, EmptyState, IconButton, Screen, Text } from '@/components/ui';
 import { ListControls } from '@/features/notes/components/list-controls';
 import { NewNoteButtons } from '@/features/notes/components/new-note-buttons';
 import { NoteList } from '@/features/notes/components/note-list';
@@ -20,7 +20,11 @@ export default function NotesScreen() {
   return (
     <Screen contentStyle={styles.screen}>
       <View style={styles.header}>
-        <Text variant="largeTitle">{t('notes.title')}</Text>
+        <View style={styles.titleRow}>
+          {/* En web el logo ya está en la barra de arriba. */}
+          {Platform.OS !== 'web' ? <AppLogo size={34} /> : null}
+          <Text variant="largeTitle">{t('notes.title')}</Text>
+        </View>
         <View style={styles.headerActions}>
           <IconButton
             icon="search"
@@ -47,6 +51,7 @@ export default function NotesScreen() {
 }
 
 const styles = StyleSheet.create({
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   screen: { paddingHorizontal: 0 },
   header: {
     flexDirection: 'row',

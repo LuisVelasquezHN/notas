@@ -53,7 +53,8 @@ const PUSH_BATCH = 200;
 const ID_CHUNK = 500;
 
 const kv = {
-  user: 'sync.userId',
+  /** La base de datos de esta cuenta ya se preparó (todo apuntado para subir, cursor a 0). */
+  prepared: (userId: string) => `sync.prepared.${userId}`,
   cursor: (userId: string) => `sync.cursor.${userId}`,
   lastSync: (userId: string) => `sync.lastSyncedAt.${userId}`,
 };
@@ -114,8 +115,11 @@ export async function hasPendingChanges(): Promise<boolean> {
 export function forgetAccount(userId: string) {
   Storage.removeItemSync(kv.cursor(userId));
   Storage.removeItemSync(kv.lastSync(userId));
-  if (Storage.getItemSync(kv.user) === userId) Storage.removeItemSync(kv.user);
+  Storage.removeItemSync(kv.prepared(userId));
 }
+
+/** Clave de la versión anterior (una sola base de datos): a quién pertenecían sus datos. */
+export const LEGACY_OWNER_KEY = 'sync.userId';
 
 /**
  * Quita del dispositivo todos los datos de la cuenta (al cerrar sesión): siguen en el servidor.
@@ -123,6 +127,16 @@ export function forgetAccount(userId: string) {
  * notas de la anterior. No se apunta nada para subir (no son borrados de verdad).
  */
 export async function wipeLocalData(userId: string): Promise<void> {
+  await clearLocalData();
+  forgetAccount(userId);
+}
+
+/**
+ * Vacía la base de datos abierta (y sus ficheros de adjuntos) sin apuntar nada para subir: no son
+ * borrados de verdad, los datos se quitan del dispositivo (cerrar sesión) o se han movido a otra
+ * base de datos (pasar las notas sin cuenta a una cuenta).
+ */
+export async function clearLocalData(): Promise<void> {
   // Notas seguras: se bloquean y se borran las claves guardadas para la biometría.
   lockVault();
   const vaultIds = await getDb().select({ id: vaults.id }).from(vaults);
@@ -134,9 +148,16 @@ export async function wipeLocalData(userId: string): Promise<void> {
     tx.delete(syncOutbox).run();
     setApplying(tx, false);
   });
-  forgetAccount(userId);
   // Ficheros de los adjuntos; las notificaciones se cancelan solas (el scheduler ve el cambio).
   await cleanupAfterDelete();
+}
+
+/** Cuántas notas (normales y seguras) hay en la base de datos abierta. */
+export async function localNoteCount(): Promise<number> {
+  const db = getDb();
+  const [a] = await db.select({ n: sql<number>`count(*)` }).from(SYNC_TABLES.notes.table);
+  const [b] = await db.select({ n: sql<number>`count(*)` }).from(SYNC_TABLES.secureNotes.table);
+  return Number(a?.n ?? 0) + Number(b?.n ?? 0);
 }
 
 /** Sincroniza solo si hay cambios locales sin subir (tras editar, al salir de la app). */
@@ -145,14 +166,14 @@ export async function syncIfPending(): Promise<void> {
 }
 
 /**
- * Primera pasada con una cuenta (o con otra distinta de la anterior): todo lo que hay en el
- * dispositivo se apunta para subir y se baja la cuenta entera.
+ * Primera pasada con la base de datos de una cuenta (nueva o vaciada): lo que tenga se apunta para
+ * subir (p. ej. notas pasadas desde el uso sin cuenta) y se baja la cuenta entera.
  */
 async function prepareAccount(userId: string) {
-  if (Storage.getItemSync(kv.user) === userId) return;
+  if (Storage.getItemSync(kv.prepared(userId)) === '1') return;
   await enqueueAll(getDb());
   Storage.setItemSync(kv.cursor(userId), '0');
-  Storage.setItemSync(kv.user, userId);
+  Storage.setItemSync(kv.prepared(userId), '1');
 }
 
 // ---------------------------------------------------------------------------------------------

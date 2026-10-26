@@ -73,6 +73,7 @@ function SecureNoteEditor({
   const savedId = useRef(noteId);
   const deleted = useRef(false);
   const [generator, setGenerator] = useState(false);
+  const [viewport, setViewport] = useState(0);
 
   const copy = async (text: string) => {
     if (!text.trim()) {
@@ -121,7 +122,10 @@ function SecureNoteEditor({
         }}
       />
       <KeyboardAvoider style={styles.root} offset={insets.top + 44}>
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.content}
+          onLayout={(e) => setViewport(e.nativeEvent.layout.height)}>
           <TextInput
             value={title}
             onChangeText={setTitle}
@@ -140,6 +144,7 @@ function SecureNoteEditor({
             autoFocus={!noteId}
             onFormatChange={setFormat}
             onSelectionText={(text) => void copy(text)}
+            maxHeight={viewport || undefined}
           />
         </ScrollView>
         <View

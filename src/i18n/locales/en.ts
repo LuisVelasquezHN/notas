@@ -739,6 +739,12 @@ const en: Catalog = {
       error: 'Couldn’t sync. It will retry on its own.',
     },
     syncNow: 'Sync now',
+    moveGuestTitle: 'Move your notes to this account?',
+    moveGuestMessage_one:
+      'There is {{count}} note on this device created without an account. Move it to {{email}}? Otherwise it stays here, only for use without an account.',
+    moveGuestMessage_other:
+      'There are {{count}} notes on this device created without an account. Move them to {{email}}? Otherwise they stay here, only for use without an account.',
+    moveGuestAction: 'Move to account',
     realtimeOn: 'Real time: changes from your other devices arrive instantly',
     realtimeOff: 'Not real time: checked every minute',
     signOut: 'Sign out',
@@ -750,7 +756,7 @@ const en: Catalog = {
     deleteAccount: 'Delete account',
     deleteTitle: 'Delete your account?',
     deleteMessage:
-      'Your account and the server copy of your notes will be deleted. The notes on this device stay here, and so do those on your other devices, but they will stop syncing.',
+      'Your account and the server copy of your notes will be deleted. The notes on this device stay here, as notes without an account.',
     deleteConfirm: 'Delete',
     deleted: 'Account deleted',
     deleteFailed: 'Couldn’t delete the account. Check your connection and try again.',
@@ -774,6 +780,18 @@ const en: Catalog = {
     },
     language: 'Language',
     languageSystem: 'System',
+    accent: 'Accent color',
+    accents: {
+      amber: 'Amber',
+      blue: 'Blue',
+      green: 'Green',
+      purple: 'Purple',
+      pink: 'Pink',
+      orange: 'Orange',
+      teal: 'Teal',
+    },
+    editorTextSize: 'Text size in notes',
+    textSizes: { small: 'Small', normal: 'Normal', large: 'Large', xlarge: 'Extra large' },
     security: 'Security',
     appLock: 'Lock the app',
     appLockHint: {

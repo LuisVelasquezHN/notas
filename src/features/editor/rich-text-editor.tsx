@@ -1,8 +1,9 @@
-import { useMemo, type Ref } from 'react';
+import { useMemo, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
-import { fonts, typography, useTheme } from '@/theme';
+import { useSettingsStore } from '@/stores/settings-store';
+import { EDITOR_TEXT_SIZES, fonts, useTheme } from '@/theme';
 
 import TipTapDom, { type TipTapHandle, type TipTapTheme } from './rich-text/tiptap-dom';
 import type { EditorAdapterProps } from './types';
@@ -15,7 +16,10 @@ const SYSTEM_FONT = '-apple-system, system-ui, Roboto, "Segoe UI", sans-serif';
 
 /**
  * Editor enriquecido (fase 4): TipTap en un DOM component. En iOS y Android vive en una webview
- * que crece con el contenido (`matchContents`), sin scroll propio: el scroll es el de la pantalla.
+ * del alto justo de su contenido (lo mide el propio editor, `onHeight`) y sin scroll propio: el
+ * scroll es el de la pantalla. Con `maxHeight`, si el contenido no cabe, la webview se queda en
+ * ese alto y se desplaza por dentro: una webview más alta que la pantalla se dibuja en blanco en
+ * Android y el final de las notas largas quedaba inalcanzable.
  */
 export function RichTextEditor({
   ref,
@@ -29,8 +33,12 @@ export function RichTextEditor({
   onFocusChange,
   onCaret,
   onSelectionText,
+  maxHeight,
 }: EditorAdapterProps) {
+  const [contentHeight, setContentHeight] = useState(MIN_HEIGHT);
   const { colors, scheme } = useTheme();
+  const textSize =
+    EDITOR_TEXT_SIZES[useSettingsStore((s) => s.editorTextSize)] ?? EDITOR_TEXT_SIZES.normal;
   const { t } = useTranslation();
   const theme = useMemo<TipTapTheme>(
     () => ({
@@ -40,23 +48,27 @@ export function RichTextEditor({
       primary: colors.primary,
       codeBackground: colors.surfaceMuted,
       fontFamily: WEB_FONT ?? SYSTEM_FONT,
-      fontSize: typography.body.fontSize,
-      lineHeight: typography.body.lineHeight,
+      fontSize: textSize.fontSize,
+      lineHeight: textSize.lineHeight,
       minHeight: MIN_HEIGHT,
     }),
-    [textColor, colors, scheme],
+    [textColor, colors, scheme, textSize],
   );
 
+  const native = Platform.OS !== 'web';
+  const limit = maxHeight && maxHeight > MIN_HEIGHT ? maxHeight : Infinity;
+  const overflow = native && contentHeight > limit;
+  const height = native ? Math.max(MIN_HEIGHT, Math.min(contentHeight, limit)) : undefined;
+
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, height !== undefined && { height }]}>
       <TipTapDom
         // `EditorHandle` es la misma forma, con el comando ya tipado.
         ref={ref as Ref<TipTapHandle> | undefined}
         dom={{
-          matchContents: true,
-          scrollEnabled: false,
-          style: styles.webview,
-          containerStyle: styles.webview,
+          scrollEnabled: overflow,
+          style: [styles.webview, height !== undefined && { height }],
+          containerStyle: [styles.webview, height !== undefined && { height }],
           // El teclado lo gestiona la pantalla.
           hideKeyboardAccessoryView: true,
           keyboardDisplayRequiresUserAction: false,
@@ -72,6 +84,7 @@ export function RichTextEditor({
         onFocusChange={(focused) => onFocusChange?.(focused)}
         onCaret={(bottom) => onCaret?.(bottom)}
         onSelectionText={(text) => onSelectionText?.(text)}
+        onHeight={setContentHeight}
       />
     </View>
   );

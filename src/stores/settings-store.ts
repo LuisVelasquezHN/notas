@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { LanguagePreference } from '@/i18n';
+import type { AccentName, EditorTextSize } from '@/theme/tokens';
 import { kvStorage } from '@/lib/kv-storage';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
@@ -18,6 +19,8 @@ export const LOCK_AFTER_MS: Record<LockAfter, number> = {
 
 type SettingsState = {
   theme: ThemePreference;
+  accent: AccentName;
+  editorTextSize: EditorTextSize;
   language: LanguagePreference;
   notesLayout: NotesLayout;
   notesSortBy: NotesSortBy;
@@ -29,6 +32,8 @@ type SettingsState = {
   /** Enviar informes de errores (sin contenido de las notas; ver `lib/monitoring`). */
   crashReports: boolean;
   setTheme: (theme: ThemePreference) => void;
+  setAccent: (accent: AccentName) => void;
+  setEditorTextSize: (size: EditorTextSize) => void;
   setLanguage: (language: LanguagePreference) => void;
   setNotesLayout: (layout: NotesLayout) => void;
   setNotesSortBy: (sortBy: NotesSortBy) => void;
@@ -46,6 +51,8 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       theme: 'system',
+      accent: 'amber',
+      editorTextSize: 'normal',
       language: 'system',
       notesLayout: 'grid',
       notesSortBy: 'updatedAt',
@@ -54,6 +61,8 @@ export const useSettingsStore = create<SettingsState>()(
       onboarded: false,
       crashReports: true,
       setTheme: (theme) => set({ theme }),
+      setAccent: (accent) => set({ accent }),
+      setEditorTextSize: (editorTextSize) => set({ editorTextSize }),
       setLanguage: (language) => set({ language }),
       setNotesLayout: (notesLayout) => set({ notesLayout }),
       setNotesSortBy: (notesSortBy) => set({ notesSortBy }),
