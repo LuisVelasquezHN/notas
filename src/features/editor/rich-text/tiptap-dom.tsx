@@ -1,16 +1,17 @@
 'use dom';
 
-import { Mark, mergeAttributes } from '@tiptap/core';
+import { Extension, Mark, Node, mergeAttributes } from '@tiptap/core';
 import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { Color, FontFamily, FontSize, TextStyle } from '@tiptap/extension-text-style';
 import { Placeholder } from '@tiptap/extensions';
+import { TextSelection } from '@tiptap/pm/state';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { useDOMImperativeHandle, type DOMImperativeFactory, type DOMProps } from 'expo/dom';
 import { useEffect, useRef, type Ref } from 'react';
 
-import type { EditorDoc } from '../doc';
+import { INLINE_IMAGE_NODE, type EditorDoc } from '../doc';
 import {
   parseFormatAction,
   sameFormatState,
@@ -41,8 +42,15 @@ export interface TipTapHandle extends DOMImperativeFactory {
   format: (command: JSONValue) => void;
   focus: () => void;
   insertText: (text: JSONValue) => void;
+  insertImages: (ids: JSONValue) => void;
   requestSelection: () => void;
 }
+
+/** Atajos que gestiona la pantalla (el historial de deshacer vive fuera del editor). */
+export type EditorShortcut = 'undo' | 'redo' | 'save';
+
+/** Imagen pegada o arrastrada al editor (web, y en la webview si el sistema lo permite). */
+export type DroppedImage = { dataUri: string; width: number; height: number };
 
 export type TipTapTheme = {
   scheme: 'light' | 'dark';
@@ -75,7 +83,78 @@ type Props = {
   onSelectionText: (text: string) => Promise<void> | void;
   /** Alto del contenido en px (en la webview, para que la pantalla le dé el tamaño justo). */
   onHeight: (height: number) => Promise<void> | void;
+  /** Contenido de las imágenes del texto (`id del adjunto → URI`, data URI en la webview). */
+  images: Record<string, string>;
+  onShortcut: (shortcut: EditorShortcut) => Promise<void> | void;
+  onImageFiles: (images: DroppedImage[]) => Promise<void> | void;
 };
+
+/** URI de cada imagen del texto (las actualiza el efecto de `images`). */
+const imageSources = new Map<string, string>();
+
+/**
+ * Imagen dentro del texto: un adjunto (`placement: 'inline'`) referenciado por su id. El
+ * documento solo guarda el id; el contenido llega por `images` (no cabe en el JSON de la nota).
+ */
+const AttachmentImage = Node.create({
+  name: INLINE_IMAGE_NODE,
+  group: 'block',
+  atom: true,
+  draggable: true,
+  selectable: true,
+  addAttributes() {
+    return { id: { default: null } };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'img[data-attachment-id]',
+        getAttrs: (el) => ({ id: (el as HTMLElement).getAttribute('data-attachment-id') }),
+      },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['img', { 'data-attachment-id': HTMLAttributes.id, class: 'lv-inline-image', alt: '' }];
+  },
+  addNodeView() {
+    return ({ node }) => {
+      const img = document.createElement('img');
+      img.className = 'lv-inline-image';
+      img.alt = '';
+      img.draggable = true;
+      img.dataset.attachmentId = String(node.attrs.id ?? '');
+      const src = imageSources.get(img.dataset.attachmentId);
+      if (src) img.src = src;
+      return { dom: img };
+    };
+  },
+});
+
+/** Lee imágenes (pegadas o soltadas) como data URI con sus dimensiones. */
+async function readImageFiles(files: FileList | null | undefined): Promise<DroppedImage[]> {
+  const images = Array.from(files ?? []).filter((f) => f.type.startsWith('image/'));
+  return Promise.all(
+    images.map(
+      (file) =>
+        new Promise<DroppedImage>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(reader.error);
+          reader.onload = () => {
+            const dataUri = String(reader.result);
+            const img = new Image();
+            img.onload = () =>
+              resolve({ dataUri, width: img.naturalWidth, height: img.naturalHeight });
+            img.onerror = () => resolve({ dataUri, width: 0, height: 0 });
+            img.src = dataUri;
+          };
+          reader.readAsDataURL(file);
+        }),
+    ),
+  );
+}
+
+const hasImageFiles = (files: FileList | null | undefined) =>
+  !!files?.length && Array.from(files).some((f) => f.type.startsWith('image/'));
 
 /** "Importante": texto destacado (negrita en rojo sobre fondo suave). Se guarda como marca propia. */
 const Important = Mark.create({
@@ -111,6 +190,9 @@ export default function TipTapDom({
   onCaret,
   onSelectionText,
   onHeight,
+  images,
+  onShortcut,
+  onImageFiles,
 }: Props) {
   const lastEmitted = useRef(JSON.stringify(content));
   const lastFormat = useRef<FormatState>({});
@@ -122,6 +204,8 @@ export default function TipTapDom({
     onCaret,
     onSelectionText,
     onHeight,
+    onShortcut,
+    onImageFiles,
   });
   useEffect(() => {
     callbacks.current = {
@@ -131,6 +215,8 @@ export default function TipTapDom({
       onCaret,
       onSelectionText,
       onHeight,
+      onShortcut,
+      onImageFiles,
     };
   });
   const rootRef = useRef<HTMLDivElement>(null);
@@ -171,6 +257,24 @@ export default function TipTapDom({
     autofocus: autoFocus ? 'end' : false,
     editorProps: {
       attributes: { role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },
+      // Imágenes pegadas o soltadas: se añaden como adjuntos y se insertan en el cursor.
+      handlePaste: (_view, event) => {
+        const files = event.clipboardData?.files;
+        if (!hasImageFiles(files)) return false;
+        void readImageFiles(files).then((imgs) => callbacks.current.onImageFiles(imgs));
+        return true;
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        const files = (event as DragEvent).dataTransfer?.files;
+        if (moved || !hasImageFiles(files)) return false;
+        const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        if (pos) {
+          view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, pos.pos)));
+        }
+        event.preventDefault();
+        void readImageFiles(files).then((imgs) => callbacks.current.onImageFiles(imgs));
+        return true;
+      },
     },
     content,
     extensions: [
@@ -189,6 +293,8 @@ export default function TipTapDom({
       FontSize,
       Highlight.configure({ multicolor: true }),
       Important,
+      AttachmentImage,
+      Shortcuts,
       Placeholder.configure({ placeholder }),
     ],
     onUpdate: ({ editor }) => {
@@ -223,6 +329,22 @@ export default function TipTapDom({
   useEffect(() => {
     editor?.setEditable(editable);
   }, [editor, editable]);
+
+  useEffect(() => {
+    if (!editor) return;
+    shortcutHandlers.set(editor, (s) => void callbacks.current.onShortcut(s));
+  }, [editor]);
+
+  // Contenido de las imágenes del texto: se guarda para los nodos nuevos y se actualiza en los ya
+  // pintados (al descargarse de la nube, al deshacer…).
+  useEffect(() => {
+    imageSources.clear();
+    for (const [id, src] of Object.entries(images)) imageSources.set(id, src);
+    document.querySelectorAll<HTMLImageElement>('img[data-attachment-id]').forEach((img) => {
+      const src = imageSources.get(img.dataset.attachmentId ?? '');
+      if (src && img.getAttribute('src') !== src) img.src = src;
+    });
+  }, [images]);
 
   // Alto real del contenido: lo mide el propio editor (la medición automática de la webview se
   // quedaba corta y, en Android, una webview más alta que la pantalla se dibuja en blanco).
@@ -261,6 +383,20 @@ export default function TipTapDom({
       focus: () => {
         editor?.commands.focus();
       },
+      insertImages: (ids: JSONValue) => {
+        if (!editor || !Array.isArray(ids)) return;
+        const nodes = ids
+          .filter((id): id is string => typeof id === 'string')
+          .map((id) => ({ type: INLINE_IMAGE_NODE, attrs: { id } }));
+        // Tras la imagen, un párrafo para seguir escribiendo.
+        if (nodes.length) {
+          editor
+            .chain()
+            .focus()
+            .insertContent([...nodes, { type: 'paragraph' }])
+            .run();
+        }
+      },
       insertText: (text: JSONValue) => {
         // Como nodo de texto: con una cadena, TipTap la interpretaría como HTML.
         if (editor && typeof text === 'string' && text) {
@@ -290,6 +426,38 @@ export default function TipTapDom({
     </div>
   );
 }
+
+/**
+ * Atajos de teclado (también con teclado físico en el móvil). Deshacer/rehacer van al historial de
+ * la pantalla (título + contenido); los de formato que no trae TipTap, aquí.
+ */
+/** Manejador de atajos de cada editor (lo registra el componente, que conoce las props). */
+const shortcutHandlers = new WeakMap<object, (s: EditorShortcut) => void>();
+
+const Shortcuts = Extension.create({
+  name: 'lvShortcuts',
+  // Antes que los de las extensiones (p. ej. Mod-Shift-h del resaltado sin color).
+  priority: 1000,
+  addKeyboardShortcuts() {
+    const run = (s: EditorShortcut) => () => {
+      shortcutHandlers.get(this.editor)?.(s);
+      return true;
+    };
+    return {
+      'Mod-z': run('undo'),
+      'Mod-Shift-z': run('redo'),
+      'Mod-y': run('redo'),
+      'Mod-s': run('save'),
+      'Mod-Shift-e': () => this.editor.chain().focus().toggleMark('important').run(),
+      'Mod-Shift-h': () =>
+        this.editor
+          .chain()
+          .focus()
+          .toggleHighlight({ color: styleVar('highlight', 'yellow') })
+          .run(),
+    };
+  },
+});
 
 function formatState(editor: Editor): FormatState {
   return {
@@ -428,6 +596,18 @@ body { -webkit-text-size-adjust: 100%; }
 .notas-editor .ProseMirror pre code { background: none; padding: 0; }
 .notas-editor .ProseMirror a { color: ${t.primary}; }
 .notas-editor .ProseMirror mark { color: inherit; border-radius: 3px; padding: 0 0.1em; }
+.notas-editor .ProseMirror img.lv-inline-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  min-height: 48px;
+  margin: 0.4em 0;
+  border-radius: 10px;
+  background: ${t.codeBackground};
+}
+.notas-editor .ProseMirror img.lv-inline-image.ProseMirror-selectednode {
+  outline: 3px solid ${t.primary};
+}
 .notas-editor .ProseMirror .lv-important {
   color: var(--lv-important-fg);
   background: var(--lv-important-bg);

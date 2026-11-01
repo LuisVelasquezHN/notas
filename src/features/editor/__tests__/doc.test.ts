@@ -1,4 +1,11 @@
-import { docToText, parseDoc, serializeDoc, textToDoc } from '../doc';
+import {
+  docToText,
+  inlineImageIds,
+  parseDoc,
+  remapInlineImages,
+  serializeDoc,
+  textToDoc,
+} from '../doc';
 
 describe('doc', () => {
   it.each(['', 'hola', 'línea 1\nlínea 2', '\n\nhueco\n\n', 'fin\n'])(
@@ -59,5 +66,37 @@ describe('doc', () => {
   it('serializa y vuelve a leer', () => {
     const doc = textToDoc('x\ny');
     expect(parseDoc(serializeDoc(doc))).toEqual(doc);
+  });
+});
+
+describe('imágenes en el texto', () => {
+  const doc = {
+    type: 'doc' as const,
+    content: [
+      { type: 'paragraph', content: [{ type: 'text' as const, text: 'antes' }] },
+      { type: 'attachmentImage', attrs: { id: 'a1' } },
+      {
+        type: 'blockquote',
+        content: [{ type: 'attachmentImage', attrs: { id: 'a2' } }],
+      },
+    ],
+  };
+
+  it('lista los ids de los adjuntos del texto (también anidados)', () => {
+    expect([...inlineImageIds(doc)].sort()).toEqual(['a1', 'a2']);
+    expect(inlineImageIds({ type: 'doc', content: [] }).size).toBe(0);
+  });
+
+  it('al duplicar, apunta a los adjuntos nuevos sin tocar el original', () => {
+    const copy = remapInlineImages(
+      doc,
+      new Map([
+        ['a1', 'b1'],
+        ['a2', 'b2'],
+      ]),
+    );
+    expect([...inlineImageIds(copy)].sort()).toEqual(['b1', 'b2']);
+    expect([...inlineImageIds(doc)].sort()).toEqual(['a1', 'a2']);
+    expect(docToText(copy)).toBe(docToText(doc));
   });
 });

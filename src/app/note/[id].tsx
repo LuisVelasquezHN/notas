@@ -16,13 +16,22 @@ import {
   Text,
 } from '@/components/ui';
 import type { Note } from '@/db';
+import { addInlineImages } from '@/features/attachments/actions';
 import { AttachSheet } from '@/features/attachments/components/attach-sheet';
+import { useInlineImageSources } from '@/features/attachments/hooks/use-inline-images';
 import { AudioList } from '@/features/attachments/components/audio-list';
 import { ImageGallery } from '@/features/attachments/components/image-gallery';
 import { VoiceRecorderSheet } from '@/features/attachments/components/voice-recorder-sheet';
 import { noteAttachmentsQuery } from '@/features/attachments/repository';
 import { ChecklistEditor } from '@/features/checklist/components/checklist-editor';
-import { Editor, editorCapabilities, type EditorHandle, type FormatState } from '@/features/editor';
+import {
+  Editor,
+  docToText,
+  editorCapabilities,
+  type EditorHandle,
+  type EditorShortcut,
+  type FormatState,
+} from '@/features/editor';
 import * as actions from '@/features/notes/actions';
 import {
   NoteActionsSheet,
@@ -47,6 +56,9 @@ import { consumeWebEnter } from '@/lib/keyboard';
 import { useAutoGrow } from '@/lib/use-auto-grow';
 import { useKeyboardVisible } from '@/lib/use-keyboard-visible';
 import { useNow } from '@/lib/use-now';
+import { useShortcuts } from '@/lib/use-shortcuts';
+import { countWords } from '@/lib/words';
+import { showSnackbar } from '@/stores/snackbar-store';
 import { useSecurityStore } from '@/stores/security-store';
 import { MAX_CONTENT_WIDTH, fonts, radius, spacing, typography, useTheme } from '@/theme';
 
@@ -89,7 +101,13 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
   const titleAutoGrow = useAutoGrow();
   const { draft, setTitle, setDoc, undo, redo, canUndo, canRedo } = useNoteDraft(note);
   const { data: attachmentRows } = useLiveQuery(noteAttachmentsQuery(note.id), [note.id]);
-  const images = useMemo(() => attachmentRows.filter((a) => a.kind === 'image'), [attachmentRows]);
+  // Las imágenes del texto no van en la galería de arriba (portada).
+  const images = useMemo(
+    () => attachmentRows.filter((a) => a.kind === 'image' && a.placement !== 'inline'),
+    [attachmentRows],
+  );
+  const inlineImages = useInlineImageSources(note.id);
+  const words = useMemo(() => countWords(docToText(draft.doc)), [draft.doc]);
   const audios = useMemo(() => attachmentRows.filter((a) => a.kind === 'audio'), [attachmentRows]);
 
   const inTrash = note.deletedAt !== null;
@@ -130,6 +148,25 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
         if (!inTrash) void discardIfEmpty(note.id);
       },
     },
+  );
+
+  /** Atajos dentro del editor (con teclado, también en el móvil) y fuera (web, `useShortcuts`). */
+  const handleShortcut = (shortcut: EditorShortcut) => {
+    if (shortcut === 'undo') undo();
+    else if (shortcut === 'redo') redo();
+    else void flush().then(() => showSnackbar(t('editor.saved')));
+  };
+  useShortcuts(
+    {
+      'mod+z': () => handleShortcut('undo'),
+      'mod+shift+z': () => handleShortcut('redo'),
+      'mod+y': () => handleShortcut('redo'),
+      'mod+s': () => handleShortcut('save'),
+      escape: () => {
+        if (router.canGoBack()) router.back();
+      },
+    },
+    editable && !menu && !attachOpen && !recording,
   );
 
   const openMenu = (page: NoteActionsPage = 'main') => {
@@ -257,6 +294,13 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
                 onFormatChange={setFormatState}
                 onCaret={followCaret}
                 maxHeight={viewport || undefined}
+                images={inlineImages}
+                onShortcut={handleShortcut}
+                onImageFiles={(files) => {
+                  void addInlineImages(note.id, files).then((rows) =>
+                    editorRef.current?.insertImages?.(rows.map((r) => r.id)),
+                  );
+                }}
               />
             </View>
           ) : (
@@ -301,6 +345,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
 
           <Text variant="caption" tone="muted" style={styles.meta}>
             {t('editor.edited', { when: formatRelativeDate(note.updatedAt, now, t).toLowerCase() })}
+            {isText ? ` · ${t('editor.words', { count: words })}` : ''}
           </Text>
         </Animated.ScrollView>
 
@@ -335,6 +380,11 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
         visible={attachOpen}
         onClose={() => setAttachOpen(false)}
         onRecord={() => setRecording(true)}
+        onInlineImages={
+          isText && editorCapabilities.richText
+            ? (rows) => editorRef.current?.insertImages?.(rows.map((r) => r.id))
+            : undefined
+        }
       />
       <VoiceRecorderSheet
         noteId={note.id}

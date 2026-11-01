@@ -9,6 +9,7 @@ import TipTapDom, { type TipTapHandle, type TipTapTheme } from './rich-text/tipt
 import type { EditorAdapterProps } from './types';
 
 const MIN_HEIGHT = 240;
+const NO_IMAGES: Record<string, string> = {};
 
 /** Fuente de la webview: la del sistema (en web, la misma que el resto de la app). */
 const WEB_FONT = process.env.EXPO_OS === 'web' ? fonts.sans : undefined;
@@ -34,6 +35,9 @@ export function RichTextEditor({
   onCaret,
   onSelectionText,
   maxHeight,
+  images,
+  onShortcut,
+  onImageFiles,
 }: EditorAdapterProps) {
   const [contentHeight, setContentHeight] = useState(MIN_HEIGHT);
   const { colors, scheme } = useTheme();
@@ -85,6 +89,9 @@ export function RichTextEditor({
         onCaret={(bottom) => onCaret?.(bottom)}
         onSelectionText={(text) => onSelectionText?.(text)}
         onHeight={setContentHeight}
+        images={images ?? NO_IMAGES}
+        onShortcut={(shortcut) => onShortcut?.(shortcut)}
+        onImageFiles={(files) => onImageFiles?.(files)}
       />
     </View>
   );

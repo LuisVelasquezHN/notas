@@ -119,6 +119,7 @@ const ICONS = {
   highlight: { ios: 'highlighter', android: 'ink_highlighter', web: 'ink_highlighter' },
   fontFamily: { ios: 'textformat.alt', android: 'font_download', web: 'font_download' },
   fontSize: { ios: 'textformat.size', android: 'format_size', web: 'format_size' },
+  keyboard: { ios: 'keyboard', android: 'keyboard', web: 'keyboard' },
   vault: { ios: 'lock.shield', android: 'shield_lock', web: 'shield_lock' },
   key: { ios: 'key', android: 'key', web: 'key' },
   noColor: { ios: 'circle.slash', android: 'format_color_reset', web: 'format_color_reset' },

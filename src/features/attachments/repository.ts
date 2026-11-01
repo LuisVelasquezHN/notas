@@ -1,13 +1,20 @@
 import { and, asc, eq, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 
 import { getDb } from '@/db/client';
-import { attachments, notes, type Attachment, type AttachmentKind } from '@/db/schema';
+import {
+  attachments,
+  notes,
+  type Attachment,
+  type AttachmentKind,
+  type AttachmentPlacement,
+} from '@/db/schema';
+import { inlineImageIds, type EditorDoc } from '@/features/editor/doc';
 import { DAY_MS } from '@/lib/dates';
 import { uuidv7 } from '@/lib/ids';
 import { sortKeyAfter } from '@/lib/sort-key';
 
 import { fileExtension } from './mime';
-import { deleteUnreferencedFiles, storeFile } from './storage';
+import { deleteUnreferencedFiles, storeBase64, storeFile } from './storage';
 
 /** Adjuntos visibles de una nota, en su orden. */
 export function noteAttachmentsQuery(noteId: string) {
@@ -16,6 +23,17 @@ export function noteAttachmentsQuery(noteId: string) {
     .from(attachments)
     .where(and(eq(attachments.noteId, noteId), isNull(attachments.deletedAt)))
     .orderBy(asc(attachments.sortKey));
+}
+
+/**
+ * Imágenes del texto de una nota, también las borradas: al deshacer, el nodo vuelve y su imagen
+ * tiene que seguir disponible (el fichero no se purga hasta un día después).
+ */
+export function inlineImagesQuery(noteId: string) {
+  return getDb()
+    .select({ id: attachments.id, localUri: attachments.localUri, mime: attachments.mime })
+    .from(attachments)
+    .where(and(eq(attachments.noteId, noteId), eq(attachments.placement, 'inline')));
 }
 
 /** Primera imagen de cada nota (miniatura de la tarjeta): una fila por nota. */
@@ -71,7 +89,12 @@ export type NewAttachmentInput = {
   durationMs?: number | null;
   /** El fichero de origen es temporal (grabación): se mueve en vez de copiarse. */
   temporary?: boolean;
+  /** Imágenes: arriba de la nota (por defecto) o dentro del texto. */
+  placement?: AttachmentPlacement;
 };
+
+/** Imagen que llega como data URI (pegada o arrastrada al editor). */
+const DATA_URI = /^data:([^;,]+)?(;base64)?,/;
 
 /** Guarda los ficheros y añade los adjuntos al final de la nota. */
 export async function addAttachments(noteId: string, inputs: NewAttachmentInput[]) {
@@ -82,15 +105,18 @@ export async function addAttachments(noteId: string, inputs: NewAttachmentInput[
   for (const input of inputs) {
     const now = Date.now();
     const id = uuidv7(now);
-    const stored = await storeFile(input.uri, `${id}.${fileExtension(input.mime, input.uri)}`, {
-      move: input.temporary,
-      mime: input.mime,
-    });
+    const name = `${id}.${fileExtension(input.mime, input.uri)}`;
+    const dataUri = DATA_URI.exec(input.uri);
+    const stored =
+      dataUri && process.env.EXPO_OS !== 'web'
+        ? await storeBase64(name, input.uri.slice(dataUri[0].length), input.mime ?? null)
+        : await storeFile(input.uri, name, { move: input.temporary, mime: input.mime });
     sortKey = sortKeyAfter(sortKey);
     rows.push({
       id,
       noteId,
       kind: input.kind,
+      placement: input.placement ?? 'cover',
       localUri: stored.localUri,
       mime: input.mime ?? null,
       size: stored.size,
@@ -128,21 +154,50 @@ export async function restoreAttachment(id: string) {
     .where(eq(attachments.id, id));
 }
 
-/** Copia las filas de adjuntos de una nota a otra (duplicar). Comparten fichero. */
-export async function copyAttachments(fromNoteId: string, toNoteId: string, now = Date.now()) {
+/**
+ * Copia las filas de adjuntos de una nota a otra (duplicar). Comparten fichero. Devuelve los ids
+ * nuevos (`id antiguo → id nuevo`) para actualizar las imágenes del texto de la copia.
+ */
+export async function copyAttachments(
+  fromNoteId: string,
+  toNoteId: string,
+  now = Date.now(),
+): Promise<Map<string, string>> {
   const rows = await noteAttachmentsQuery(fromNoteId);
-  if (rows.length === 0) return;
+  const ids = new Map<string, string>();
+  if (rows.length === 0) return ids;
   await getDb()
     .insert(attachments)
     .values(
-      rows.map((row) => ({
-        ...row,
-        id: uuidv7(now),
-        noteId: toNoteId,
-        createdAt: now,
-        updatedAt: now,
-      })),
+      rows.map((row) => {
+        const id = uuidv7(now);
+        ids.set(row.id, id);
+        return { ...row, id, noteId: toNoteId, createdAt: now, updatedAt: now };
+      }),
     );
+  return ids;
+}
+
+/**
+ * Las imágenes del texto son adjuntos `inline`: los que ya no están en el documento se marcan
+ * como borrados (el fichero se purga más adelante) y los que vuelven a estar (deshacer) se
+ * recuperan. Se llama al guardar el contenido de la nota.
+ */
+export async function syncInlineImages(noteId: string, doc: EditorDoc) {
+  const referenced = inlineImageIds(doc);
+  const rows = await getDb()
+    .select({ id: attachments.id, deletedAt: attachments.deletedAt })
+    .from(attachments)
+    .where(and(eq(attachments.noteId, noteId), eq(attachments.placement, 'inline')));
+  const now = Date.now();
+  for (const row of rows) {
+    const inDoc = referenced.has(row.id);
+    if (inDoc === (row.deletedAt === null)) continue;
+    await getDb()
+      .update(attachments)
+      .set({ deletedAt: inDoc ? null : now, updatedAt: now })
+      .where(eq(attachments.id, row.id));
+  }
 }
 
 /** ¿La nota tiene algún adjunto visible? (Una nota nueva con solo una foto no está vacía.) */

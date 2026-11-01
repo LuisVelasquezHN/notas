@@ -29,6 +29,7 @@ import {
 import {
   docToText,
   parseDoc,
+  remapInlineImages,
   serializeDoc,
   textToDoc,
   type EditorDoc,
@@ -37,6 +38,7 @@ import {
   cleanupAfterDelete,
   copyAttachments,
   hasAttachments,
+  syncInlineImages,
 } from '@/features/attachments/repository';
 import { modifiedSince, type NoteFilter } from '@/features/filters/filter';
 import { buildFtsMatch, likePattern, searchTerms } from '@/features/search/query';
@@ -311,6 +313,8 @@ export async function saveNoteContent(id: string, title: string, doc: EditorDoc)
       updatedAt: Date.now(),
     })
     .where(and(eq(notes.id, id), eq(notes.type, 'text')));
+  // Imágenes que han salido del texto (o vuelto, al deshacer).
+  await syncInlineImages(id, doc);
 }
 
 export function setPinned(ids: string[], pinned: boolean) {
@@ -444,7 +448,15 @@ export async function duplicateNote(id: string) {
         .run();
     }
   });
-  await copyAttachments(id, copyId, now);
+  const ids = await copyAttachments(id, copyId, now);
+  // Las imágenes del texto de la copia apuntan a sus propios adjuntos.
+  if (source.contentJson && ids.size > 0) {
+    const doc = remapInlineImages(parseDoc(source.contentJson), ids);
+    await db
+      .update(notes)
+      .set({ contentJson: serializeDoc(doc) })
+      .where(eq(notes.id, copyId));
+  }
   return copyId;
 }
 

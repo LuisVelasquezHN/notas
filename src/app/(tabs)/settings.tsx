@@ -7,6 +7,7 @@ import { Linking, Platform, Pressable, StyleSheet, Switch, View } from 'react-na
 import { AppLogo, Button, Chip, Icon, Screen, Text, type IconName } from '@/components/ui';
 import { exportBackup, importBackupFromFile } from '@/features/backup/actions';
 import { InstallSection } from '@/features/install/components/install-section';
+import { useShortcutsHelp } from '@/features/shortcuts/store';
 import { useNotificationPermission } from '@/features/reminders/hooks/use-notification-permission';
 import { confirmIdentity } from '@/features/security/actions';
 import { authenticate, getAuthSupport, type BiometryKind } from '@/features/security/auth';
@@ -127,6 +128,14 @@ export default function SettingsScreen() {
       </Section>
 
       <Section title={t('settings.help')}>
+        {Platform.OS === 'web' ? (
+          <ActionRow
+            icon="keyboard"
+            label={t('shortcuts.open')}
+            hint="?"
+            onPress={() => useShortcutsHelp.getState().setOpen(true)}
+          />
+        ) : null}
         <ActionRow
           icon="sparkles"
           label={t('settings.showOnboarding')}

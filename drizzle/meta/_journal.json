@@ -22,6 +22,13 @@
       "when": 1792646333582,
       "tag": "0002_secure_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793508689628,
+      "tag": "0003_inline_images",
+      "breakpoints": true
     }
   ]
 }

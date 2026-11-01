@@ -33,7 +33,7 @@ No hace falta ningún módulo nativo ni la huella SHA-1: en el móvil se abre el
 ### 0.3 Web en Vercel (y app de escritorio)
 
 1. En [vercel.com](https://vercel.com) → _Add New → Project_ → importa el repositorio de GitHub. `vercel.json` ya lo configura todo (compila con `expo export -p web`, sirve `dist/client` y las páginas con la función `api/index.ts`, y pone las cabeceras COOP/COEP que necesita SQLite).
-2. **Settings → Environment Variables** (Production y Preview): `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` y, cuando lo tengas, `EXPO_PUBLIC_ANDROID_APK_URL`. Se incrustan al compilar: tras cambiarlas, vuelve a desplegar.
+2. **Settings → Environment Variables** (Production y Preview): `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Se incrustan al compilar: tras cambiarlas, vuelve a desplegar.
 3. Cada push a `main` despliega en producción; el resto de ramas, una vista previa. Si el dominio no es `notes-lavg.vercel.app`, cámbialo en `store.config.json`, en las fichas de Google Play y en las URL de Supabase y Google.
 4. **Escritorio:** la web es instalable (PWA, `public/manifest.json`). En Chrome o Edge (Windows, macOS, Linux) aparece "Instalar Notas" en la barra de direcciones y en Ajustes → Descargar la app; en Safari (macOS), Archivo → "Añadir al Dock". Se abre en su propia ventana y funciona con su propia base de datos local, sincronizada con la cuenta.
 
@@ -42,6 +42,8 @@ No hace falta ningún módulo nativo ni la huella SHA-1: en el móvil se abre el
 ### 0.5 Automatizado: APK u OTA en cada push a `main`
 
 `.eas/workflows/android-preview.yml` calcula el _fingerprint_ (huella de todo lo nativo) y:
+
+- cada APK nuevo se publica como **release de GitHub** (`scripts/publish-apk-release.mjs`); el enlace fijo `https://github.com/LuisVelasquezHN/notas/releases/latest/download/lv-notes.apk` (el del botón "App para Android" de la web) lleva siempre al último. Necesita un token de GitHub (fine-grained, solo este repositorio, permiso **Contents: Read and write**) guardado en EAS: `npx eas-cli@latest env:create --environment preview --name GITHUB_RELEASES_TOKEN --value <token> --visibility secret`;
 
 - si ya existe un APK con ese fingerprint → publica una **actualización OTA** (1–2 min) que la app instalada descarga sola al abrirse;
 - si cambió algo nativo (módulos, permisos, iconos, nombre…) → compila un **APK nuevo** (perfil `preview`).
@@ -58,7 +60,7 @@ En Vercel, la caché de Metro se guarda en `node_modules/.cache/metro` (que Verc
    npx eas-cli@latest env:create --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value https://<tu-proyecto>.supabase.co
    ```
    (y lo mismo con `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, y para `production`).
-3. Compila el APK: `npx eas-cli@latest build -p android --profile preview`. Al terminar, la página de la build tiene el enlace y un QR para instalarlo (hay que permitir "instalar apps de origen desconocido"). Pon ese enlace en `EXPO_PUBLIC_ANDROID_APK_URL` en Vercel para ofrecerlo desde la web.
+3. Compila el APK: `npx eas-cli@latest build -p android --profile preview`. Al terminar, la página de la build tiene el enlace y un QR para instalarlo (hay que permitir "instalar apps de origen desconocido").
 4. Para Google Play, sigue §1 y §2 (perfil `production`, `.aab`).
 5. **Cambio de identificador (22-10):** la app pasó de `com.novotechn.notas` a `com.lavg.notas`. Android la trata como otra app: EAS crea un keystore nuevo en la primera build y hay que desinstalar el APK anterior (las notas sincronizadas vuelven al entrar con Google; las que solo estaban en el teléfono, no: haz antes una copia desde Ajustes → Datos).
 

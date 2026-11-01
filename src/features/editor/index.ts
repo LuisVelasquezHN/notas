@@ -3,7 +3,13 @@ import type { EditorAdapter, EditorCapabilities } from './types';
 
 export * from './doc';
 export * from './format';
-export type { EditorAdapter, EditorAdapterProps, EditorHandle } from './types';
+export type {
+  DroppedImage,
+  EditorAdapter,
+  EditorAdapterProps,
+  EditorHandle,
+  EditorShortcut,
+} from './types';
 
 /**
  * Editor activo: TipTap (fase 4). El de texto plano (`PlainTextEditor`) sigue disponible tras la

@@ -73,3 +73,41 @@ export function parseDoc(json: string | null | undefined): EditorDoc {
 export function serializeDoc(doc: EditorDoc): string {
   return JSON.stringify(doc);
 }
+
+/** Nodo de imagen dentro del texto: apunta a un adjunto `inline` por su id. */
+export const INLINE_IMAGE_NODE = 'attachmentImage';
+
+function walk(nodes: (DocNode | TextNode)[] | undefined, visit: (node: DocNode) => void) {
+  for (const node of nodes ?? []) {
+    if (node.type === 'text') continue;
+    visit(node as DocNode);
+    walk((node as DocNode).content, visit);
+  }
+}
+
+/** Ids de los adjuntos que aparecen como imagen en el texto. */
+export function inlineImageIds(doc: EditorDoc): Set<string> {
+  const ids = new Set<string>();
+  walk(doc.content, (node) => {
+    const id = node.attrs?.id;
+    if (node.type === INLINE_IMAGE_NODE && typeof id === 'string') ids.add(id);
+  });
+  return ids;
+}
+
+/** Copia del documento con las imágenes del texto apuntando a otros adjuntos (duplicar). */
+export function remapInlineImages(doc: EditorDoc, ids: Map<string, string>): EditorDoc {
+  const map = (nodes: (DocNode | TextNode)[] | undefined): (DocNode | TextNode)[] | undefined =>
+    nodes?.map((node) => {
+      if (node.type === 'text') return node;
+      const n = node as DocNode;
+      const id = n.attrs?.id;
+      const next: DocNode = { ...n, content: map(n.content) as DocNode['content'] };
+      if (n.content === undefined) delete next.content;
+      if (n.type === INLINE_IMAGE_NODE && typeof id === 'string' && ids.has(id)) {
+        next.attrs = { ...n.attrs, id: ids.get(id) };
+      }
+      return next;
+    });
+  return { type: 'doc', content: (map(doc.content) ?? []) as DocNode[] };
+}

@@ -18,6 +18,7 @@ import '@/features/reminders/background';
 import { QuickActionsRuntime } from '@/features/quick-actions/quick-actions-runtime';
 import { ReminderRuntime } from '@/features/reminders/components/reminder-runtime';
 import { AppLockGate } from '@/features/security/components/app-lock-gate';
+import { GlobalShortcuts } from '@/features/shortcuts/components/global-shortcuts';
 import { SyncRuntime } from '@/features/sync/components/sync-runtime';
 import { VaultRuntime } from '@/features/vault/components/vault-runtime';
 // En web, escucha desde el arranque si el navegador ofrece instalar la app (PWA).
@@ -95,6 +96,7 @@ function RootLayout() {
             <QuickActionsRuntime />
             <SyncRuntime />
             <VaultRuntime />
+            <GlobalShortcuts />
             <SnackbarHost />
             <AppLockGate />
           </AppBootstrap>
