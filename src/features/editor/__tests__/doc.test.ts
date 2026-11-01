@@ -1,6 +1,7 @@
 import {
   docToText,
   inlineImageIds,
+  linkedNoteIds,
   parseDoc,
   remapInlineImages,
   serializeDoc,
@@ -98,5 +99,28 @@ describe('imágenes en el texto', () => {
     expect([...inlineImageIds(copy)].sort()).toEqual(['b1', 'b2']);
     expect([...inlineImageIds(doc)].sort()).toEqual(['a1', 'a2']);
     expect(docToText(copy)).toBe(docToText(doc));
+  });
+});
+
+describe('enlaces a notas', () => {
+  const linked = {
+    type: 'doc' as const,
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Ver ' },
+          { type: 'noteLink', attrs: { id: 'n2', title: 'Receta' } },
+        ],
+      },
+    ],
+  };
+
+  it('el título del enlace forma parte del texto (búsqueda y vista previa)', () => {
+    expect(docToText(linked)).toBe('Ver Receta');
+  });
+
+  it('lista las notas enlazadas', () => {
+    expect([...linkedNoteIds(linked)]).toEqual(['n2']);
   });
 });

@@ -1,5 +1,8 @@
 import {
   INLINE_IMAGE_NODE,
+  NOTE_LINK_NODE,
+  isImageSize,
+  noteLinkTitle,
   docToText,
   type DocNode,
   type EditorDoc,
@@ -47,6 +50,8 @@ function inlineMarkdown(nodes: Node[] | undefined): string {
   return (nodes ?? [])
     .map((node) => {
       if (node.type === 'hardBreak') return '  \n';
+      if (node.type === NOTE_LINK_NODE)
+        return `[[${escapeMarkdown(noteLinkTitle(node as DocNode))}]]`;
       if (node.type !== 'text') return inlineMarkdown((node as DocNode).content);
       const text = node.text ?? '';
       const marks = (node as TextNode).marks ?? [];
@@ -204,6 +209,9 @@ function inlineHtml(nodes: Node[] | undefined): string {
   return (nodes ?? [])
     .map((node) => {
       if (node.type === 'hardBreak') return '<br>';
+      if (node.type === NOTE_LINK_NODE) {
+        return `<span class="note-link">${escapeHtml(noteLinkTitle(node as DocNode))}</span>`;
+      }
       if (node.type !== 'text') return inlineHtml((node as DocNode).content);
       let out = escapeHtml(node.text ?? '');
       for (const mark of (node as TextNode).marks ?? []) {
@@ -248,7 +256,7 @@ function blockHtml(node: DocNode): string {
       const src = inlineImageSources[String(node.attrs?.id ?? '')];
       // Solo data URI de imagen (las genera la app): nada que pueda inyectar HTML.
       return src && /^data:image\/[a-z+.-]+;base64,[A-Za-z0-9+/=]+$/i.test(src)
-        ? `<img class="inline" src="${src}">`
+        ? `<img class="inline${isImageSize(node.attrs?.size) && node.attrs.size !== 'full' ? ` ${node.attrs.size}` : ''}" src="${src}">`
         : '';
     }
     default:
@@ -275,6 +283,9 @@ const STYLES = `
   .images { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
   .images img { max-width: 100%; max-height: 360px; border-radius: 6px; }
   img.inline { display: block; max-width: 100%; max-height: 520px; margin: 8px 0; border-radius: 6px; }
+  img.inline.small { width: 35%; margin: 8px auto; }
+  img.inline.medium { width: 60%; margin: 8px auto; }
+  .note-link { color: #1F6FD1; }
   .tags { margin-top: 24px; color: #666; font-size: 10pt; }
 `;
 

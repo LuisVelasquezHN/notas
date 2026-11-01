@@ -1,17 +1,24 @@
 'use dom';
 
-import { Extension, Mark, Node, mergeAttributes } from '@tiptap/core';
+import { Extension, InputRule, Mark, Node, mergeAttributes } from '@tiptap/core';
 import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { Color, FontFamily, FontSize, TextStyle } from '@tiptap/extension-text-style';
 import { Placeholder } from '@tiptap/extensions';
-import { TextSelection } from '@tiptap/pm/state';
+import { NodeSelection, TextSelection } from '@tiptap/pm/state';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { useDOMImperativeHandle, type DOMImperativeFactory, type DOMProps } from 'expo/dom';
 import { useEffect, useRef, type Ref } from 'react';
 
-import { INLINE_IMAGE_NODE, type EditorDoc } from '../doc';
+import {
+  INLINE_IMAGE_NODE,
+  MAX_NOTE_LINK_TITLE,
+  NOTE_LINK_NODE,
+  isImageSize,
+  type EditorDoc,
+  type ImageSize,
+} from '../doc';
 import {
   parseFormatAction,
   sameFormatState,
@@ -43,11 +50,12 @@ export interface TipTapHandle extends DOMImperativeFactory {
   focus: () => void;
   insertText: (text: JSONValue) => void;
   insertImages: (ids: JSONValue) => void;
+  insertNoteLink: (id: JSONValue, title: JSONValue) => void;
   requestSelection: () => void;
 }
 
 /** Atajos que gestiona la pantalla (el historial de deshacer vive fuera del editor). */
-export type EditorShortcut = 'undo' | 'redo' | 'save';
+export type EditorShortcut = 'undo' | 'redo' | 'save' | 'reading';
 
 /** Imagen pegada o arrastrada al editor (web, y en la webview si el sistema lo permite). */
 export type DroppedImage = { dataUri: string; width: number; height: number };
@@ -87,6 +95,12 @@ type Props = {
   images: Record<string, string>;
   onShortcut: (shortcut: EditorShortcut) => Promise<void> | void;
   onImageFiles: (images: DroppedImage[]) => Promise<void> | void;
+  /** Abrir a pantalla completa una imagen del texto (tocarla ya seleccionada, o en lectura). */
+  onOpenImage: (id: string) => Promise<void> | void;
+  /** Tocar un enlace a otra nota. */
+  onOpenNote: (id: string) => Promise<void> | void;
+  /** Se ha escrito `[[`: la pantalla muestra el buscador de notas (y llama a `insertNoteLink`). */
+  onLinkRequest: () => Promise<void> | void;
 };
 
 /** URI de cada imagen del texto (las actualiza el efecto de `images`). */
@@ -103,7 +117,15 @@ const AttachmentImage = Node.create({
   draggable: true,
   selectable: true,
   addAttributes() {
-    return { id: { default: null } };
+    return {
+      id: { default: null },
+      // Las imágenes de notas anteriores no lo tienen: tamaño completo.
+      size: {
+        default: 'full',
+        parseHTML: (el) => sizeOf(el.getAttribute('data-size')),
+        renderHTML: (attrs) => ({ 'data-size': sizeOf(attrs.size) }),
+      },
+    };
   },
   parseHTML() {
     return [
@@ -114,7 +136,15 @@ const AttachmentImage = Node.create({
     ];
   },
   renderHTML({ HTMLAttributes }) {
-    return ['img', { 'data-attachment-id': HTMLAttributes.id, class: 'lv-inline-image', alt: '' }];
+    return [
+      'img',
+      {
+        'data-attachment-id': HTMLAttributes.id,
+        'data-size': HTMLAttributes['data-size'],
+        class: 'lv-inline-image',
+        alt: '',
+      },
+    ];
   },
   addNodeView() {
     return ({ node }) => {
@@ -123,10 +153,78 @@ const AttachmentImage = Node.create({
       img.alt = '';
       img.draggable = true;
       img.dataset.attachmentId = String(node.attrs.id ?? '');
+      img.dataset.size = sizeOf(node.attrs.size);
       const src = imageSources.get(img.dataset.attachmentId);
       if (src) img.src = src;
       return { dom: img };
     };
+  },
+});
+
+/**
+ * Tras insertar algo elegido en una hoja (enlace, contraseña…): al cerrarse la hoja, el navegador
+ * devuelve el foco al editor y el cursor saltaba al principio. Se vuelve a dejar donde estaba.
+ */
+function keepCaret(editor: Editor, at: number = editor.state.selection.to) {
+  const restore = () => {
+    if (!editor.isDestroyed) editor.commands.focus(at);
+  };
+  restore();
+  // El foco vuelve al terminar la animación de cierre: se recoloca justo después.
+  const onFocus = () => setTimeout(restore, 0);
+  const dom = editor.view.dom;
+  dom.addEventListener('focus', onFocus, { once: true });
+  setTimeout(() => dom.removeEventListener('focus', onFocus), 1500);
+}
+
+const sizeOf = (value: unknown): ImageSize => (isImageSize(value) ? value : 'full');
+
+/**
+ * Enlace a otra nota: una "pastilla" con su título. Se crea escribiendo `[[` (la pantalla muestra
+ * un buscador de notas) y tocarla abre la nota.
+ */
+const NoteLink = Node.create({
+  name: NOTE_LINK_NODE,
+  group: 'inline',
+  inline: true,
+  atom: true,
+  selectable: true,
+  addAttributes() {
+    return { id: { default: null }, title: { default: '' } };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'span[data-note-link]',
+        getAttrs: (el) => ({
+          id: (el as HTMLElement).getAttribute('data-note-link'),
+          title: (el as HTMLElement).textContent ?? '',
+        }),
+      },
+    ];
+  },
+  renderHTML({ node }) {
+    return [
+      'span',
+      { 'data-note-link': node.attrs.id, class: 'lv-note-link', role: 'link' },
+      String(node.attrs.title ?? ''),
+    ];
+  },
+  renderText({ node }) {
+    return String(node.attrs.title ?? '');
+  },
+  addInputRules() {
+    return [
+      new InputRule({
+        find: /\[\[$/,
+        handler: ({ state, range }) => {
+          state.tr.delete(range.from, range.to);
+          // Al volver de la hoja, el enlace va aquí (el cursor puede haberse movido al perder el foco).
+          linkPositions.set(this.editor, range.from);
+          hostHandlers.get(this.editor)?.linkRequest();
+        },
+      }),
+    ];
   },
 });
 
@@ -193,6 +291,9 @@ export default function TipTapDom({
   images,
   onShortcut,
   onImageFiles,
+  onOpenImage,
+  onOpenNote,
+  onLinkRequest,
 }: Props) {
   const lastEmitted = useRef(JSON.stringify(content));
   const lastFormat = useRef<FormatState>({});
@@ -206,6 +307,9 @@ export default function TipTapDom({
     onHeight,
     onShortcut,
     onImageFiles,
+    onOpenImage,
+    onOpenNote,
+    onLinkRequest,
   });
   useEffect(() => {
     callbacks.current = {
@@ -217,6 +321,9 @@ export default function TipTapDom({
       onHeight,
       onShortcut,
       onImageFiles,
+      onOpenImage,
+      onOpenNote,
+      onLinkRequest,
     };
   });
   const rootRef = useRef<HTMLDivElement>(null);
@@ -257,6 +364,23 @@ export default function TipTapDom({
     autofocus: autoFocus ? 'end' : false,
     editorProps: {
       attributes: { role: 'textbox', 'aria-multiline': 'true', 'aria-label': label },
+      // Imagen del texto: el primer toque la selecciona (tamaño, mover) y el segundo la abre; en
+      // lectura, el primero. Un enlace a otra nota se abre siempre.
+      handleClickOn: (view, _pos, node, nodePos, _event, direct) => {
+        if (!direct) return false;
+        if (node.type.name === NOTE_LINK_NODE && typeof node.attrs.id === 'string') {
+          void callbacks.current.onOpenNote(node.attrs.id);
+          return true;
+        }
+        if (node.type.name !== INLINE_IMAGE_NODE || typeof node.attrs.id !== 'string') return false;
+        const { selection } = view.state;
+        const selected = selection instanceof NodeSelection && selection.from === nodePos;
+        if (!view.editable || selected) {
+          void callbacks.current.onOpenImage(node.attrs.id);
+          return true;
+        }
+        return false;
+      },
       // Imágenes pegadas o soltadas: se añaden como adjuntos y se insertan en el cursor.
       handlePaste: (_view, event) => {
         const files = event.clipboardData?.files;
@@ -294,6 +418,7 @@ export default function TipTapDom({
       Highlight.configure({ multicolor: true }),
       Important,
       AttachmentImage,
+      NoteLink,
       Shortcuts,
       Placeholder.configure({ placeholder }),
     ],
@@ -332,7 +457,10 @@ export default function TipTapDom({
 
   useEffect(() => {
     if (!editor) return;
-    shortcutHandlers.set(editor, (s) => void callbacks.current.onShortcut(s));
+    hostHandlers.set(editor, {
+      shortcut: (s) => void callbacks.current.onShortcut(s),
+      linkRequest: () => void callbacks.current.onLinkRequest(),
+    });
   }, [editor]);
 
   // Contenido de las imágenes del texto: se guarda para los nodos nuevos y se actualiza en los ya
@@ -390,17 +518,38 @@ export default function TipTapDom({
           .map((id) => ({ type: INLINE_IMAGE_NODE, attrs: { id } }));
         // Tras la imagen, un párrafo para seguir escribiendo.
         if (nodes.length) {
+          // En la selección guardada: al volver de una hoja, `focus()` la movería al principio.
+          const { from, to } = editor.state.selection;
           editor
             .chain()
-            .focus()
-            .insertContent([...nodes, { type: 'paragraph' }])
+            .insertContentAt({ from, to }, [...nodes, { type: 'paragraph' }])
             .run();
+          keepCaret(editor);
         }
+      },
+      insertNoteLink: (id: JSONValue, title: JSONValue) => {
+        if (!editor || typeof id !== 'string' || !id) return;
+        const text = typeof title === 'string' ? title.slice(0, MAX_NOTE_LINK_TITLE) : '';
+        const size = editor.state.doc.content.size;
+        const saved = linkPositions.get(editor);
+        linkPositions.delete(editor);
+        const at = Math.min(saved ?? editor.state.selection.from, size);
+        editor
+          .chain()
+          .insertContentAt(at, [
+            { type: NOTE_LINK_NODE, attrs: { id, title: text } },
+            { type: 'text', text: ' ' },
+          ])
+          .run();
+        // Tras el enlace (1) y el espacio (1).
+        keepCaret(editor, Math.min(at + 2, editor.state.doc.content.size));
       },
       insertText: (text: JSONValue) => {
         // Como nodo de texto: con una cadena, TipTap la interpretaría como HTML.
         if (editor && typeof text === 'string' && text) {
-          editor.chain().focus().insertContent({ type: 'text', text }).run();
+          const { from, to } = editor.state.selection;
+          editor.chain().insertContentAt({ from, to }, { type: 'text', text }).run();
+          keepCaret(editor, from + text.length);
         }
       },
       requestSelection: () => {
@@ -431,8 +580,14 @@ export default function TipTapDom({
  * Atajos de teclado (también con teclado físico en el móvil). Deshacer/rehacer van al historial de
  * la pantalla (título + contenido); los de formato que no trae TipTap, aquí.
  */
-/** Manejador de atajos de cada editor (lo registra el componente, que conoce las props). */
-const shortcutHandlers = new WeakMap<object, (s: EditorShortcut) => void>();
+/**
+ * Lo que las extensiones piden a la pantalla, por editor (lo registra el componente, que conoce
+ * las props).
+ */
+type HostHandlers = { shortcut: (s: EditorShortcut) => void; linkRequest: () => void };
+const hostHandlers = new WeakMap<object, HostHandlers>();
+/** Dónde se escribió `[[` en cada editor (ahí se inserta el enlace elegido). */
+const linkPositions = new WeakMap<object, number>();
 
 const Shortcuts = Extension.create({
   name: 'lvShortcuts',
@@ -440,7 +595,7 @@ const Shortcuts = Extension.create({
   priority: 1000,
   addKeyboardShortcuts() {
     const run = (s: EditorShortcut) => () => {
-      shortcutHandlers.get(this.editor)?.(s);
+      hostHandlers.get(this.editor)?.shortcut(s);
       return true;
     };
     return {
@@ -448,6 +603,7 @@ const Shortcuts = Extension.create({
       'Mod-Shift-z': run('redo'),
       'Mod-y': run('redo'),
       'Mod-s': run('save'),
+      'Alt-r': run('reading'),
       'Mod-Shift-e': () => this.editor.chain().focus().toggleMark('important').run(),
       'Mod-Shift-h': () =>
         this.editor
@@ -489,11 +645,21 @@ function formatState(editor: Editor): FormatState {
     taskList: editor.isActive('taskList'),
     blockquote: editor.isActive('blockquote'),
     code: editor.isActive('code'),
+    imageSize: selectedImageSize(editor),
   };
+}
+
+function selectedImageSize(editor: Editor): ImageSize | null {
+  const { selection } = editor.state;
+  if (!(selection instanceof NodeSelection)) return null;
+  return selection.node.type.name === INLINE_IMAGE_NODE ? sizeOf(selection.node.attrs.size) : null;
 }
 
 function applyFormat(editor: Editor, command: FormatAction) {
   const chain = editor.chain().focus();
+  if (typeof command === 'object' && 'imageSize' in command) {
+    return chain.updateAttributes(INLINE_IMAGE_NODE, { size: command.imageSize }).run();
+  }
   if (typeof command === 'object') {
     const { style, value } = command;
     switch (style) {
@@ -605,9 +771,31 @@ body { -webkit-text-size-adjust: 100%; }
   border-radius: 10px;
   background: ${t.codeBackground};
 }
+.notas-editor .ProseMirror img.lv-inline-image[data-size="small"] { width: 35%; margin: 0.4em auto; }
+.notas-editor .ProseMirror img.lv-inline-image[data-size="medium"] { width: 60%; margin: 0.4em auto; }
 .notas-editor .ProseMirror img.lv-inline-image.ProseMirror-selectednode {
   outline: 3px solid ${t.primary};
 }
+.notas-editor .ProseMirror[contenteditable="false"] img.lv-inline-image { cursor: zoom-in; }
+.notas-editor .ProseMirror .lv-note-link {
+  color: ${t.text};
+  text-decoration-color: ${t.primary};
+  background: ${t.codeBackground};
+  border-radius: 6px;
+  padding: 0.05em 0.35em;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.notas-editor .ProseMirror .lv-note-link::before {
+  content: "↗";
+  display: inline-block;
+  margin-right: 0.25em;
+  color: ${t.primary};
+}
+.notas-editor .ProseMirror .lv-note-link.ProseMirror-selectednode { outline: 2px solid ${t.primary}; }
 .notas-editor .ProseMirror .lv-important {
   color: var(--lv-important-fg);
   background: var(--lv-important-bg);

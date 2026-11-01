@@ -15,6 +15,7 @@ import {
 type PasswordGeneratorSheetProps = {
   visible: boolean;
   onClose: () => void;
+  onDismiss?: () => void;
   onInsert: (password: string) => void;
   onCopy: (password: string) => void;
 };
@@ -23,6 +24,7 @@ type PasswordGeneratorSheetProps = {
 export function PasswordGeneratorSheet({
   visible,
   onClose,
+  onDismiss,
   onInsert,
   onCopy,
 }: PasswordGeneratorSheetProps) {
@@ -50,7 +52,7 @@ export function PasswordGeneratorSheet({
   );
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={t('vault.generator')}>
+    <Sheet visible={visible} onClose={onClose} onDismiss={onDismiss} title={t('vault.generator')}>
       <View style={styles.body}>
         <View style={[styles.preview, { backgroundColor: colors.surfaceMuted }]}>
           {/* Sin `selectable`: se copia con el botón, que la borra del portapapeles después. */}

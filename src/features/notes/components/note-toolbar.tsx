@@ -40,13 +40,16 @@ export function NoteToolbar({
         { backgroundColor: background, borderTopColor: colors.border, paddingBottom: bottomInset },
       ]}>
       <View style={styles.inner}>
-        {format?.open ? (
+        {/* Con una imagen del texto seleccionada se muestra su tamaño aunque el formato esté cerrado. */}
+        {format?.open || format?.state.imageSize ? (
           <>
-            <IconButton
-              icon="close"
-              accessibilityLabel={t('format.close')}
-              onPress={format.onToggle}
-            />
+            {format.open ? (
+              <IconButton
+                icon="close"
+                accessibilityLabel={t('format.close')}
+                onPress={format.onToggle}
+              />
+            ) : null}
             <View style={styles.formats}>
               <FormatBar state={format.state} onFormat={format.onFormat} />
             </View>

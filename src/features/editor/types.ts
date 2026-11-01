@@ -13,9 +13,11 @@ export type EditorHandle = {
   requestSelection?: () => void;
   /** Inserta en el cursor imágenes del texto (ids de adjuntos `inline`). */
   insertImages?: (ids: string[]) => void;
+  /** Inserta en el cursor un enlace a otra nota (tras `onLinkRequest`). */
+  insertNoteLink?: (id: string, title: string) => void;
 };
 
-export type EditorShortcut = 'undo' | 'redo' | 'save';
+export type EditorShortcut = 'undo' | 'redo' | 'save' | 'reading';
 export type DroppedImage = { dataUri: string; width: number; height: number };
 
 /**
@@ -53,6 +55,12 @@ export type EditorAdapterProps = {
   onShortcut?: (shortcut: EditorShortcut) => void;
   /** Imágenes pegadas o soltadas en el editor. */
   onImageFiles?: (images: DroppedImage[]) => void;
+  /** Abrir una imagen del texto a pantalla completa. */
+  onOpenImage?: (id: string) => void;
+  /** Tocar un enlace a otra nota. */
+  onOpenNote?: (id: string) => void;
+  /** Se ha escrito `[[`: elegir la nota que enlazar. */
+  onLinkRequest?: () => void;
 };
 
 export type EditorAdapter = ComponentType<EditorAdapterProps>;

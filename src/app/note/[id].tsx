@@ -2,7 +2,7 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { useAnimatedRef } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,6 +21,7 @@ import { AttachSheet } from '@/features/attachments/components/attach-sheet';
 import { useInlineImageSources } from '@/features/attachments/hooks/use-inline-images';
 import { AudioList } from '@/features/attachments/components/audio-list';
 import { ImageGallery } from '@/features/attachments/components/image-gallery';
+import { ImageViewer } from '@/features/attachments/components/image-viewer';
 import { VoiceRecorderSheet } from '@/features/attachments/components/voice-recorder-sheet';
 import { noteAttachmentsQuery } from '@/features/attachments/repository';
 import { ChecklistEditor } from '@/features/checklist/components/checklist-editor';
@@ -37,7 +38,9 @@ import {
   NoteActionsSheet,
   type NoteActionsPage,
 } from '@/features/notes/components/note-actions-sheet';
+import { NoteLinkSheet } from '@/features/notes/components/note-link-sheet';
 import { NoteToolbar } from '@/features/notes/components/note-toolbar';
+import { VersionHistorySheet } from '@/features/notes/components/version-history-sheet';
 import { useAutosave } from '@/features/notes/hooks/use-autosave';
 import { useNoteDraft, type NoteDraft } from '@/features/notes/hooks/use-note-draft';
 import {
@@ -72,6 +75,8 @@ export default function NoteScreen() {
   const { data, updatedAt } = useLiveQuery(noteQuery(id), [id]);
   const note = data[0];
   const unlocked = useSecurityStore((s) => (note ? s.unlockedNoteIds.includes(note.id) : false));
+  /** Al restaurar una versión: el editor se vuelve a montar cuando llega el contenido restaurado. */
+  const [restoredAt, setRestoredAt] = useState(0);
 
   if (!note) {
     return (
@@ -84,11 +89,28 @@ export default function NoteScreen() {
   }
   // Bloqueada: no se monta el editor (ni se lee el contenido) hasta verificar.
   if (note.isLocked && !unlocked) return <LockedNote note={note} />;
-  // Al convertir texto ↔ checklist se vuelve a montar el editor con el contenido nuevo.
-  return <NoteEditor key={`${note.id}:${note.type}`} note={note} autoRecord={record === '1'} />;
+  if (note.updatedAt < restoredAt) return <Screen edges={[]}>{null}</Screen>;
+  // Al convertir texto ↔ checklist (o restaurar una versión) se vuelve a montar el editor con el
+  // contenido nuevo.
+  return (
+    <NoteEditor
+      key={`${note.id}:${note.type}:${restoredAt}`}
+      note={note}
+      autoRecord={record === '1'}
+      onRestored={setRestoredAt}
+    />
+  );
 }
 
-function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
+function NoteEditor({
+  note,
+  autoRecord,
+  onRestored,
+}: {
+  note: Note;
+  autoRecord: boolean;
+  onRestored: (updatedAt: number) => void;
+}) {
   const { colors, noteColor } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -107,11 +129,18 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
     [attachmentRows],
   );
   const inlineImages = useInlineImageSources(note.id);
+  const inlineRows = useMemo(
+    () => attachmentRows.filter((a) => a.kind === 'image' && a.placement === 'inline'),
+    [attachmentRows],
+  );
+  const [openInline, setOpenInline] = useState<number | null>(null);
   const words = useMemo(() => countWords(docToText(draft.doc)), [draft.doc]);
   const audios = useMemo(() => attachmentRows.filter((a) => a.kind === 'audio'), [attachmentRows]);
 
   const inTrash = note.deletedAt !== null;
-  const editable = !inTrash;
+  /** Modo lectura: sin teclado ni barras, imágenes y enlaces se abren con un toque. */
+  const [reading, setReading] = useState(false);
+  const editable = !inTrash && !reading;
   const isText = note.type === 'text';
   const background = noteColor(note.color);
 
@@ -119,6 +148,17 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
   const [recording, setRecording] = useState(autoRecord && editable);
   const [formatOpen, setFormatOpen] = useState(false);
   const [formatState, setFormatState] = useState<FormatState>({});
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [linkPicker, setLinkPicker] = useState(false);
+  /** Nota elegida para enlazar: se inserta cuando la hoja termina de cerrarse. */
+  const pendingLink = useRef<Note | null>(null);
+  const insertPendingLink = () => {
+    const target = pendingLink.current;
+    pendingLink.current = null;
+    if (target) {
+      editorRef.current?.insertNoteLink?.(target.id, target.title.trim() || t('card.untitled'));
+    }
+  };
   const editorRef = useRef<EditorHandle>(null);
   const keyboardVisible = useKeyboardVisible();
 
@@ -154,6 +194,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
   const handleShortcut = (shortcut: EditorShortcut) => {
     if (shortcut === 'undo') undo();
     else if (shortcut === 'redo') redo();
+    else if (shortcut === 'reading') toggleReading();
     else void flush().then(() => showSnackbar(t('editor.saved')));
   };
   useShortcuts(
@@ -162,12 +203,30 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
       'mod+shift+z': () => handleShortcut('redo'),
       'mod+y': () => handleShortcut('redo'),
       'mod+s': () => handleShortcut('save'),
+    },
+    editable && !menu && !attachOpen && !recording,
+  );
+  const sheetOpen =
+    !!menu || attachOpen || recording || historyOpen || linkPicker || openInline !== null;
+  const toggleReading = () => {
+    void flush();
+    setFormatOpen(false);
+    setReading((r) => !r);
+  };
+  useShortcuts(
+    {
+      'alt+r': toggleReading,
       escape: () => {
         if (router.canGoBack()) router.back();
       },
     },
-    editable && !menu && !attachOpen && !recording,
+    !inTrash && !sheetOpen,
   );
+
+  const openLinkedNote = (id: string) => {
+    void flush();
+    router.push({ pathname: '/note/[id]', params: { id } });
+  };
 
   const openMenu = (page: NoteActionsPage = 'main') => {
     void flush();
@@ -201,7 +260,16 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
                   />
                 </>
               ) : null}
-              {editable ? (
+              {!inTrash ? (
+                <IconButton
+                  icon={reading ? 'edit' : 'reading'}
+                  accessibilityLabel={reading ? t('editor.editMode') : t('editor.readingMode')}
+                  aria-selected={reading}
+                  onPress={toggleReading}
+                  testID="reading-mode"
+                />
+              ) : null}
+              {!inTrash ? (
                 <IconButton
                   icon={reminder ? 'bellFill' : 'bell'}
                   accessibilityLabel={
@@ -210,7 +278,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
                   onPress={() => openMenu('reminder')}
                 />
               ) : null}
-              {editable ? (
+              {!inTrash ? (
                 <IconButton
                   icon={note.isPinned ? 'pinFill' : 'pin'}
                   accessibilityLabel={note.isPinned ? t('editor.unpin') : t('editor.pin')}
@@ -301,6 +369,12 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
                     editorRef.current?.insertImages?.(rows.map((r) => r.id)),
                   );
                 }}
+                onOpenImage={(id) => {
+                  const index = inlineRows.findIndex((a) => a.id === id);
+                  if (index !== -1) setOpenInline(index);
+                }}
+                onOpenNote={openLinkedNote}
+                onLinkRequest={() => setLinkPicker(true)}
               />
             </View>
           ) : (
@@ -385,6 +459,37 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
             ? (rows) => editorRef.current?.insertImages?.(rows.map((r) => r.id))
             : undefined
         }
+        onNoteLink={isText && editorCapabilities.richText ? () => setLinkPicker(true) : undefined}
+      />
+      <NoteLinkSheet
+        visible={linkPicker}
+        currentNoteId={note.id}
+        onClose={() => setLinkPicker(false)}
+        // Con la hoja ya cerrada (mientras se cierra, en web retiene el foco): el editor lo recupera
+        // con el cursor tras el enlace. Android no avisa del cierre.
+        onDismiss={insertPendingLink}
+        onPick={(target) => {
+          pendingLink.current = target;
+          setLinkPicker(false);
+          if (Platform.OS === 'android') setTimeout(insertPendingLink, 350);
+        }}
+      />
+      {isText ? (
+        <VersionHistorySheet
+          noteId={note.id}
+          visible={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          flush={flush}
+          onRestored={onRestored}
+        />
+      ) : null}
+      <ImageViewer
+        key={`inline-${openInline ?? 'closed'}`}
+        images={inlineRows}
+        index={openInline}
+        // Se quitan del texto (y se deshacen) desde el propio editor.
+        editable={false}
+        onClose={() => setOpenInline(null)}
       />
       <VoiceRecorderSheet
         noteId={note.id}
@@ -397,6 +502,7 @@ function NoteEditor({ note, autoRecord }: { note: Note; autoRecord: boolean }) {
         notes={menu ? [note] : null}
         initialPage={menu ?? 'main'}
         showPin={false}
+        onHistory={isText ? () => setHistoryOpen(true) : undefined}
         onClose={() => setMenu(null)}
         onRemoved={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         onDuplicated={(copyId) =>

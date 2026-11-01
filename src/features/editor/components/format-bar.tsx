@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text, type IconName } from '@/components/ui';
 import { radius, spacing, useTheme } from '@/theme';
 
+import { IMAGE_SIZES, type ImageSize } from '../doc';
 import {
   FONT_FAMILIES,
   FONT_SIZES,
@@ -45,6 +46,12 @@ const TOGGLES_AFTER: ToggleButton[] = [
   { command: 'clear', icon: 'formatClear' },
 ];
 
+const IMAGE_SIZE_ICONS: Record<ImageSize, IconName> = {
+  small: 'photoSmall',
+  medium: 'photoMedium',
+  full: 'photoFull',
+};
+
 /** Tamaño de la letra de muestra en el selector de tamaño. */
 const SIZE_PREVIEW = { small: 13, normal: 16, large: 20, xlarge: 24 } as const;
 
@@ -82,6 +89,42 @@ export function FormatBar({ state, onFormat }: FormatBarProps) {
       </BarButton>
     );
   };
+
+  // Imagen del texto seleccionada: su tamaño (la barra vuelve al soltarla).
+  if (state.imageSize) {
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="always"
+        contentContainerStyle={styles.row}>
+        <Text variant="label" tone="secondary" style={styles.groupLabel}>
+          {t('format.imageSize')}
+        </Text>
+        {IMAGE_SIZES.map((size) => {
+          const selected = state.imageSize === size;
+          return (
+            <BarButton
+              key={size}
+              label={t(`format.imageSizes.${size}`)}
+              active={selected}
+              onPress={() => onFormat({ imageSize: size })}>
+              <View style={styles.sizeOption}>
+                <Icon
+                  name={IMAGE_SIZE_ICONS[size]}
+                  size={18}
+                  color={selected ? colors.onPrimary : colors.text}
+                />
+                <Text variant="label" style={{ color: selected ? colors.onPrimary : colors.text }}>
+                  {t(`format.imageSizes.${size}`)}
+                </Text>
+              </View>
+            </BarButton>
+          );
+        })}
+      </ScrollView>
+    );
+  }
 
   if (panel) {
     const apply = (value: string | null) => {
@@ -253,6 +296,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  groupLabel: { paddingHorizontal: spacing.xs },
+  sizeOption: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   swatch: {
     width: 26,
     height: 26,

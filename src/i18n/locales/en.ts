@@ -112,6 +112,8 @@ const en: Catalog = {
   format: {
     open: 'Text formatting',
     close: 'Close formatting',
+    imageSize: 'Size',
+    imageSizes: { small: 'Small', medium: 'Medium', full: 'Full' },
     heading1: 'Heading',
     heading2: 'Subheading',
     bold: 'Bold',
@@ -221,6 +223,24 @@ const en: Catalog = {
     selectAll: 'Select all',
     deselectAll: 'Deselect all',
   },
+  noteLinks: {
+    title: 'Link a note',
+    add: 'Link to another note',
+    placeholder: 'Search for a note',
+    noResults: 'No notes match.',
+    empty: 'There are no other notes yet.',
+  },
+  versions: {
+    title: 'Version history',
+    hint: 'A copy is saved every few minutes of editing (on this device). Tap one to go back to it.',
+    empty: 'No earlier versions yet. They will appear as you edit the note.',
+    restoreTitle: 'Restore this version?',
+    restoreMessage:
+      'The note will go back to how it was on {{when}}. What is there now is saved in the history.',
+    restore: 'Restore',
+    restored: 'Version restored',
+    a11yVersion: 'Version from {{when}}',
+  },
   noteActions: {
     selected_one: '{{count}} note selected',
     selected_other: '{{count}} notes selected',
@@ -278,6 +298,8 @@ const en: Catalog = {
     words_one: '{{count}} word',
     words_other: '{{count}} words',
     saved: 'Saved',
+    readingMode: 'Reading mode',
+    editMode: 'Edit',
   },
   folders: {
     title: 'Folders',
@@ -342,6 +364,10 @@ const en: Catalog = {
     noResultsFor: 'No notes contain “{{search}}” with these filters.',
     noResultsFilters: 'No notes match these filters.',
     idle: 'Search notes',
+    recent: 'Recent',
+    clearRecent: 'Clear',
+    searchFor: 'Search “{{search}}”',
+    removeRecent: 'Remove “{{search}}” from recent',
     idleHint:
       'Search by title, content or list items, or combine filters by type, color, tag, folder and date.',
   },
@@ -757,6 +783,8 @@ const en: Catalog = {
       taskList: 'Checkboxes',
       blockquote: 'Quote',
       code: 'Code',
+      reading: 'Reading mode / edit',
+      noteLink: 'Link another note',
     },
   },
   account: {

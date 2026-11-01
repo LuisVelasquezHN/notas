@@ -38,6 +38,9 @@ export function RichTextEditor({
   images,
   onShortcut,
   onImageFiles,
+  onOpenImage,
+  onOpenNote,
+  onLinkRequest,
 }: EditorAdapterProps) {
   const [contentHeight, setContentHeight] = useState(MIN_HEIGHT);
   const { colors, scheme } = useTheme();
@@ -92,6 +95,9 @@ export function RichTextEditor({
         images={images ?? NO_IMAGES}
         onShortcut={(shortcut) => onShortcut?.(shortcut)}
         onImageFiles={(files) => onImageFiles?.(files)}
+        onOpenImage={(id) => onOpenImage?.(id)}
+        onOpenNote={(id) => onOpenNote?.(id)}
+        onLinkRequest={() => onLinkRequest?.()}
       />
     </View>
   );

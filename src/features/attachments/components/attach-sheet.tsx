@@ -12,6 +12,8 @@ type AttachSheetProps = {
   onRecord: () => void;
   /** Notas de texto: también se pueden poner imágenes dentro del texto, donde está el cursor. */
   onInlineImages?: (rows: Attachment[]) => void;
+  /** Notas de texto: enlace a otra nota (como al escribir `[[`). */
+  onNoteLink?: () => void;
 };
 
 /** "Añadir": imágenes (en el texto o como portada, arriba) o nota de voz. */
@@ -21,6 +23,7 @@ export function AttachSheet({
   onClose,
   onRecord,
   onInlineImages,
+  onNoteLink,
 }: AttachSheetProps) {
   const { t } = useTranslation();
   // En web el selector de ficheros debe abrirse en el mismo toque: sin esperar al cierre.
@@ -61,6 +64,9 @@ export function AttachSheet({
         onPress={() => run(() => void pickImages(noteId, 'library'))}
       />
       <SheetItem icon="mic" label={t('attachments.recordVoice')} onPress={() => run(onRecord)} />
+      {onNoteLink ? (
+        <SheetItem icon="link" label={t('noteLinks.add')} onPress={() => run(onNoteLink)} />
+      ) : null}
     </Sheet>
   );
 }

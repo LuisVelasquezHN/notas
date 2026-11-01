@@ -43,12 +43,15 @@ export function docToText(doc: EditorDoc | null | undefined): string {
   return doc.content.map(nodeText).join('\n');
 }
 
+const INLINE_NODES = new Set(['text', 'hardBreak', 'noteLink']);
+
 function nodeText(node: DocNode | TextNode): string {
   if (node.type === 'text') return node.text ?? '';
   if (node.type === 'hardBreak') return '\n';
+  if (node.type === NOTE_LINK_NODE) return noteLinkTitle(node as DocNode);
   const children: (DocNode | TextNode)[] = (node as DocNode).content ?? [];
   // Bloques anidados (listas, citas…) en líneas separadas; texto en línea, concatenado.
-  const isBlockContainer = children.some((c) => c.type !== 'text' && c.type !== 'hardBreak');
+  const isBlockContainer = children.some((c) => !INLINE_NODES.has(c.type));
   return children.map(nodeText).join(isBlockContainer ? '\n' : '');
 }
 
@@ -76,6 +79,32 @@ export function serializeDoc(doc: EditorDoc): string {
 
 /** Nodo de imagen dentro del texto: apunta a un adjunto `inline` por su id. */
 export const INLINE_IMAGE_NODE = 'attachmentImage';
+
+/** Tamaños de una imagen del texto (respecto al ancho de la nota). */
+export const IMAGE_SIZES = ['small', 'medium', 'full'] as const;
+export type ImageSize = (typeof IMAGE_SIZES)[number];
+
+export const isImageSize = (value: unknown): value is ImageSize =>
+  typeof value === 'string' && (IMAGE_SIZES as readonly string[]).includes(value);
+
+/** Enlace a otra nota (`[[`): guarda su id y el título que tenía al enlazarla. */
+export const NOTE_LINK_NODE = 'noteLink';
+export const MAX_NOTE_LINK_TITLE = 120;
+
+export function noteLinkTitle(node: DocNode): string {
+  const title = node.attrs?.title;
+  return typeof title === 'string' ? title.slice(0, MAX_NOTE_LINK_TITLE) : '';
+}
+
+/** Ids de las notas enlazadas desde el documento. */
+export function linkedNoteIds(doc: EditorDoc): Set<string> {
+  const ids = new Set<string>();
+  walk(doc.content, (node) => {
+    const id = node.attrs?.id;
+    if (node.type === NOTE_LINK_NODE && typeof id === 'string') ids.add(id);
+  });
+  return ids;
+}
 
 function walk(nodes: (DocNode | TextNode)[] | undefined, visit: (node: DocNode) => void) {
   for (const node of nodes ?? []) {

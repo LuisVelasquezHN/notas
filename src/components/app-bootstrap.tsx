@@ -19,6 +19,7 @@ import { ensureSyncTracking } from '@/features/sync/tracking';
 import { syncLanguageWithSettings } from '@/i18n/sync';
 import { capabilities } from '@/lib/capabilities';
 import { reportError } from '@/lib/monitoring';
+import { useRecentSearches } from '@/features/search/recent-store';
 import { warmUpKvStorage } from '@/lib/kv-storage';
 import { useSecurityStore } from '@/stores/security-store';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -52,6 +53,7 @@ export function AppBootstrap({ children }: { children: ReactNode }) {
       setOtherTab(false);
       await warmUpKvStorage();
       await useSettingsStore.persist.rehydrate();
+      await useRecentSearches.persist.rehydrate();
       syncLanguageWithSettings();
       // Con el bloqueo activado, la app arranca bloqueada (ver `AppLockGate`).
       if (capabilities.biometrics && useSettingsStore.getState().appLock) {

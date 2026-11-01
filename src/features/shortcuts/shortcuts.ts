@@ -16,6 +16,8 @@ export const EDITOR_SHORTCUTS = [
   { keys: ['mod', 'Z'], label: 'undo' },
   { keys: ['mod', 'shift', 'Z'], label: 'redo' },
   { keys: ['mod', 'S'], label: 'save' },
+  { keys: ['alt', 'R'], label: 'reading' },
+  { keys: ['[', '['], label: 'noteLink' },
   { keys: ['mod', 'B'], label: 'bold' },
   { keys: ['mod', 'I'], label: 'italic' },
   { keys: ['mod', 'U'], label: 'underline' },

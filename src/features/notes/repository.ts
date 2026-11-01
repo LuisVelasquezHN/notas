@@ -49,6 +49,8 @@ import { sortKeyBefore, sortKeyForMove, sortKeysBetween } from '@/lib/sort-key';
 import type { NotesSortBy } from '@/stores/settings-store';
 import type { NoteColor } from '@/theme/tokens';
 
+import { snapshotNote } from './versions';
+
 export type NoteScope = 'active' | 'archived' | 'trash';
 
 export type NotesFilter = {
@@ -304,6 +306,8 @@ export async function updateNotes(ids: string[], patch: NotePatch) {
  * en checklist mientras tanto, un autoguardado tardío no pisa su contenido.
  */
 export async function saveNoteContent(id: string, title: string, doc: EditorDoc) {
+  // Lo que había, al historial de versiones (si hace rato de la última).
+  await snapshotNote(id);
   await getDb()
     .update(notes)
     .set({

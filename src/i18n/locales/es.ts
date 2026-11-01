@@ -113,6 +113,8 @@ const es = {
   format: {
     open: 'Formato de texto',
     close: 'Cerrar formato',
+    imageSize: 'Tamaño',
+    imageSizes: { small: 'Pequeña', medium: 'Mediana', full: 'Completa' },
     heading1: 'Título',
     heading2: 'Subtítulo',
     bold: 'Negrita',
@@ -222,6 +224,24 @@ const es = {
     selectAll: 'Seleccionar todo',
     deselectAll: 'Deseleccionar todo',
   },
+  noteLinks: {
+    title: 'Enlazar una nota',
+    add: 'Enlace a otra nota',
+    placeholder: 'Buscar una nota',
+    noResults: 'Ninguna nota coincide.',
+    empty: 'Todavía no hay otras notas.',
+  },
+  versions: {
+    title: 'Historial de versiones',
+    hint: 'Se guarda una copia cada pocos minutos de edición (en este dispositivo). Toca una para volver a ella.',
+    empty: 'Aún no hay versiones anteriores. Aparecerán mientras editas la nota.',
+    restoreTitle: '¿Restaurar esta versión?',
+    restoreMessage:
+      'La nota volverá a como estaba el {{when}}. Lo que hay ahora se guarda en el historial.',
+    restore: 'Restaurar',
+    restored: 'Versión restaurada',
+    a11yVersion: 'Versión del {{when}}',
+  },
   noteActions: {
     selected_one: '{{count}} nota seleccionada',
     selected_other: '{{count}} notas seleccionadas',
@@ -279,6 +299,8 @@ const es = {
     words_one: '{{count}} palabra',
     words_other: '{{count}} palabras',
     saved: 'Guardado',
+    readingMode: 'Modo lectura',
+    editMode: 'Editar',
   },
   folders: {
     title: 'Carpetas',
@@ -344,6 +366,10 @@ const es = {
     noResultsFor: 'No hay notas que contengan «{{search}}» con estos filtros.',
     noResultsFilters: 'Ninguna nota cumple estos filtros.',
     idle: 'Buscar notas',
+    recent: 'Recientes',
+    clearRecent: 'Borrar',
+    searchFor: 'Buscar «{{search}}»',
+    removeRecent: 'Quitar «{{search}}» de recientes',
     idleHint:
       'Busca por título, contenido o elementos de una lista, o combina filtros por tipo, color, etiqueta, carpeta y fecha.',
   },
@@ -762,6 +788,8 @@ const es = {
       taskList: 'Casillas',
       blockquote: 'Cita',
       code: 'Código',
+      reading: 'Modo lectura / editar',
+      noteLink: 'Enlazar otra nota',
     },
   },
   account: {

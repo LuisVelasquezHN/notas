@@ -44,6 +44,8 @@ type NoteActionsSheetProps = {
   onDone?: () => void;
   /** Abre directamente una página (p. ej. las etiquetas desde el editor). */
   initialPage?: Page;
+  /** Historial de versiones (solo desde el editor de una nota de texto). */
+  onHistory?: () => void;
 };
 
 /**
@@ -58,6 +60,7 @@ export function NoteActionsSheet({
   onDone,
   showPin = true,
   initialPage = 'main',
+  onHistory,
 }: NoteActionsSheetProps) {
   const { t } = useTranslation();
   const [pageState, setPage] = useState<Page | null>(null);
@@ -169,6 +172,16 @@ export function NoteActionsSheet({
                     if (id) onDuplicated?.(id);
                   })}
                 />
+                {onHistory && single.type === 'text' ? (
+                  <SheetItem
+                    icon="history"
+                    label={t('versions.title')}
+                    onPress={() => {
+                      close();
+                      afterSheetClose(onHistory);
+                    }}
+                  />
+                ) : null}
                 {canExport ? (
                   <SheetItem
                     icon="share"
