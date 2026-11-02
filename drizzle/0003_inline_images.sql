@@ -1,0 +1,1 @@
+ALTER TABLE `attachments` ADD `placement` text DEFAULT 'cover' NOT NULL;

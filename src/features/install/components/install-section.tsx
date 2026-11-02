@@ -3,12 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon, Text, type IconName } from '@/components/ui';
+import { ANDROID_APK_URL } from '@/lib/app-info';
 import { radius, spacing, useTheme } from '@/theme';
 
 import { useInstallPrompt } from '../install-prompt';
-
-/** Enlace al instalador de Android (APK de EAS Build). Sin la variable no se muestra. */
-const ANDROID_APK_URL = process.env.EXPO_PUBLIC_ANDROID_APK_URL;
 
 /**
  * Ajustes → Descargar la app (solo en web): el APK de Android y la instalación de la web como app

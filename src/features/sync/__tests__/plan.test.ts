@@ -257,6 +257,7 @@ describe('planPull', () => {
       id: 'a1',
       noteId: 'n1',
       kind: 'image',
+      placement: 'cover',
       localUri: 'attachments/a1.jpg',
       mime: 'image/jpeg',
       size: 10,

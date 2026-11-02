@@ -1,3 +1,5 @@
+import { isImageSize, type ImageSize } from './doc';
+
 /**
  * Formatos del editor enriquecido. Lo comparten el DOM component de TipTap (que los aplica) y la
  * barra de formato nativa (que los muestra): solo valores serializables, sin dependencias.
@@ -43,7 +45,10 @@ export type StyleAction =
   | { style: 'fontFamily'; value: FontFamilyName | null }
   | { style: 'fontSize'; value: FontSizeName | null };
 
-export type FormatAction = FormatCommand | StyleAction;
+/** Tamaño de la imagen del texto seleccionada. */
+export type ImageSizeAction = { imageSize: ImageSize };
+
+export type FormatAction = FormatCommand | StyleAction | ImageSizeAction;
 
 /** Formatos activos en la selección actual (`clear` no tiene estado). */
 export type FormatState = Partial<Record<Exclude<FormatCommand, 'clear'>, boolean>> & {
@@ -51,6 +56,8 @@ export type FormatState = Partial<Record<Exclude<FormatCommand, 'clear'>, boolea
   highlight?: HighlightColor | null;
   fontFamily?: FontFamilyName | null;
   fontSize?: FontSizeName | null;
+  /** Con una imagen del texto seleccionada, su tamaño (si no, `null`). */
+  imageSize?: ImageSize | null;
 };
 
 const STYLE_KINDS: StyleKind[] = ['textColor', 'highlight', 'fontFamily', 'fontSize'];
@@ -58,7 +65,8 @@ const STYLE_KINDS: StyleKind[] = ['textColor', 'highlight', 'fontFamily', 'fontS
 export function sameFormatState(a: FormatState, b: FormatState): boolean {
   return (
     FORMAT_COMMANDS.every((c) => c === 'clear' || !!a[c] === !!b[c]) &&
-    STYLE_KINDS.every((k) => (a[k] ?? null) === (b[k] ?? null))
+    STYLE_KINDS.every((k) => (a[k] ?? null) === (b[k] ?? null)) &&
+    (a.imageSize ?? null) === (b.imageSize ?? null)
   );
 }
 
@@ -75,6 +83,10 @@ export function parseFormatAction(value: unknown): FormatAction | null {
     return (FORMAT_COMMANDS as readonly string[]).includes(value) ? (value as FormatCommand) : null;
   }
   if (typeof value !== 'object' || value === null) return null;
+  if ('imageSize' in value) {
+    const { imageSize } = value as { imageSize: unknown };
+    return isImageSize(imageSize) ? { imageSize } : null;
+  }
   const { style, value: v } = value as { style?: unknown; value?: unknown };
   if (typeof style !== 'string' || !(STYLE_KINDS as string[]).includes(style)) return null;
   if (v !== null && (typeof v !== 'string' || !VALUES[style as StyleKind].includes(v))) return null;

@@ -30,6 +30,8 @@ type NoteListProps = {
   ListEmptyComponent?: ReactElement | null;
   /** Texto inferior de cada tarjeta. */
   meta?: (note: Note) => string | undefined;
+  /** Palabras buscadas (búsqueda): se resaltan en las tarjetas. */
+  highlight?: string[];
   /**
    * La lista sigue el orden de las preferencias: con "Manual" se puede arrastrar.
    * (No en búsqueda ni papelera, que tienen su propio orden.)
@@ -66,6 +68,7 @@ export function NoteList({
   ListHeaderComponent,
   ListEmptyComponent,
   meta,
+  highlight,
   reorderable = false,
 }: NoteListProps) {
   const columns = useGridColumns();
@@ -161,6 +164,7 @@ export function NoteList({
       now={now}
       meta={meta?.(note)}
       compact={!grid}
+      highlight={highlight}
       selected={selectedIds.has(note.id)}
       onPress={interactive ? () => tap(note) : undefined}
       onLongPress={interactive ? () => toggleSelection(note.id) : undefined}
@@ -207,6 +211,7 @@ export function NoteList({
           attachmentsByNote,
           now,
           selectedIds,
+          highlight,
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"

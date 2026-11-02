@@ -188,7 +188,8 @@
           "faceIDPermission": "LV Notes usa Face ID para desbloquear la app, las notas bloqueadas y las notas seguras."
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

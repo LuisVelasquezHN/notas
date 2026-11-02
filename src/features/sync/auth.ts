@@ -3,7 +3,9 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
+import { scopeForAccount } from '@/db/scope';
 import { buildBackup } from '@/features/backup/backup';
+import { useRecentSearches } from '@/features/search/recent-store';
 
 import { clearLocalData, forgetAccount, hasPendingChanges, syncNow, wipeLocalData } from './engine';
 import { deleteAllAttachments } from './files';
@@ -92,7 +94,10 @@ export async function signOut(): Promise<SignOutResult> {
   await syncNow();
   if (await hasPendingChanges()) return 'pending';
   // Primero se vacía (con la base de datos de la cuenta aún abierta) y luego se cierra la sesión.
-  if (userId) await wipeLocalData(userId);
+  if (userId) {
+    await wipeLocalData(userId);
+    useRecentSearches.getState().clear(scopeForAccount(userId));
+  }
   await supabase.auth.signOut();
   return 'ok';
 }
@@ -112,6 +117,7 @@ export async function deleteAccount(): Promise<void> {
   if (error) throw error;
   await clearLocalData();
   forgetAccount(userId);
+  useRecentSearches.getState().clear(scopeForAccount(userId));
   setPendingImport(local);
   // El usuario ya no existe: se cierra solo la sesión local (y se pasa a la base sin cuenta).
   await supabase.auth.signOut({ scope: 'local' });

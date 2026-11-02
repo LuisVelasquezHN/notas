@@ -11,7 +11,14 @@ export type EditorHandle = {
   insertText?: (text: string) => void;
   /** Entrega el texto seleccionado por `onSelectionText`. Solo el editor enriquecido. */
   requestSelection?: () => void;
+  /** Inserta en el cursor imágenes del texto (ids de adjuntos `inline`). */
+  insertImages?: (ids: string[]) => void;
+  /** Inserta en el cursor un enlace a otra nota (tras `onLinkRequest`). */
+  insertNoteLink?: (id: string, title: string) => void;
 };
+
+export type EditorShortcut = 'undo' | 'redo' | 'save' | 'reading';
+export type DroppedImage = { dataUri: string; width: number; height: number };
 
 /**
  * Contrato del editor de contenido (PLAN.md, decisión 4). Lo implementa TipTap (fase 4); el
@@ -42,6 +49,18 @@ export type EditorAdapterProps = {
    * vez de crecer (normalmente, el alto visible de la pantalla).
    */
   maxHeight?: number;
+  /** Contenido de las imágenes del texto: `id del adjunto → URI` (data URI en iOS/Android). */
+  images?: Record<string, string>;
+  /** Atajos de teclado que gestiona la pantalla (deshacer, rehacer, guardar). */
+  onShortcut?: (shortcut: EditorShortcut) => void;
+  /** Imágenes pegadas o soltadas en el editor. */
+  onImageFiles?: (images: DroppedImage[]) => void;
+  /** Abrir una imagen del texto a pantalla completa. */
+  onOpenImage?: (id: string) => void;
+  /** Tocar un enlace a otra nota. */
+  onOpenNote?: (id: string) => void;
+  /** Se ha escrito `[[`: elegir la nota que enlazar. */
+  onLinkRequest?: () => void;
 };
 
 export type EditorAdapter = ComponentType<EditorAdapterProps>;

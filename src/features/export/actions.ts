@@ -31,11 +31,17 @@ async function collect(note: Note, withImages: boolean): Promise<ExportNote> {
         }))
       : undefined;
   let images: string[] | undefined;
+  let inlineImages: Record<string, string> | undefined;
   if (withImages) {
     const attachments = (await noteAttachmentsQuery(note.id)).filter((a) => a.kind === 'image');
-    images = await Promise.all(
-      attachments.map(
-        async (a) => `data:${a.mime ?? 'image/jpeg'};base64,${await readFileBase64(a.localUri)}`,
+    const dataUri = async (a: (typeof attachments)[number]) =>
+      `data:${a.mime ?? 'image/jpeg'};base64,${await readFileBase64(a.localUri)}`;
+    images = await Promise.all(attachments.filter((a) => a.placement !== 'inline').map(dataUri));
+    inlineImages = Object.fromEntries(
+      await Promise.all(
+        attachments
+          .filter((a) => a.placement === 'inline')
+          .map(async (a) => [a.id, await dataUri(a)] as const),
       ),
     );
   }
@@ -45,6 +51,7 @@ async function collect(note: Note, withImages: boolean): Promise<ExportNote> {
     items,
     tags,
     images,
+    inlineImages,
   };
 }
 

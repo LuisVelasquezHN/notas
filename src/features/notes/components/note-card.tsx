@@ -8,6 +8,8 @@ import type { AttachmentCounts } from '@/features/attachments/repository';
 import { resolveUri } from '@/features/attachments/storage';
 import type { ChecklistPreviewItem } from '@/features/checklist/repository';
 import { ReminderChip } from '@/features/reminders/components/reminder-chip';
+import { HighlightedText } from '@/features/search/components/highlighted-text';
+import { matchSnippet } from '@/features/search/highlight';
 import { TagPill } from '@/features/tags/components/tag-pill';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -36,6 +38,8 @@ type NoteCardProps = {
   /** Línea inferior (fecha, días en la papelera…). */
   meta?: string;
   compact?: boolean;
+  /** Palabras buscadas: se resaltan y la vista previa empieza en la primera coincidencia. */
+  highlight?: string[];
   /** Marcada en selección múltiple. */
   selected?: boolean;
   /** Sin `onPress` la tarjeta no gestiona toques (p. ej. dentro de la lista reordenable). */
@@ -53,6 +57,7 @@ export function NoteCard({
   now,
   meta,
   compact = false,
+  highlight,
   selected = false,
   onPress,
   onLongPress,
@@ -128,9 +133,13 @@ export function NoteCard({
 
       {hasTitle || note.isPinned || note.isFavorite || locked || selected ? (
         <View style={styles.header}>
-          <Text variant="bodyStrong" numberOfLines={2} style={styles.title}>
+          <HighlightedText
+            variant="bodyStrong"
+            numberOfLines={2}
+            style={styles.title}
+            terms={highlight}>
             {note.title}
-          </Text>
+          </HighlightedText>
           {note.isFavorite ? <Icon name="starFill" size={14} color={colors.primary} /> : null}
           {locked ? <Icon name="lock" size={14} color={colors.textSecondary} /> : null}
           {note.isPinned ? <Icon name="pinFill" size={14} color={colors.textSecondary} /> : null}
@@ -151,12 +160,13 @@ export function NoteCard({
                 size={14}
                 color={colors.textSecondary}
               />
-              <Text
+              <HighlightedText
                 tone={item.isChecked ? 'muted' : 'secondary'}
                 numberOfLines={1}
-                style={[styles.itemText, item.isChecked && styles.checked]}>
+                style={[styles.itemText, item.isChecked && styles.checked]}
+                terms={highlight}>
                 {item.text || ' '}
-              </Text>
+              </HighlightedText>
             </View>
           ))}
           {footer ? (
@@ -166,9 +176,11 @@ export function NoteCard({
           ) : null}
         </View>
       ) : note.contentText.trim() ? (
-        <Text tone="secondary" numberOfLines={compact ? 3 : 8}>
-          {note.contentText.trim()}
-        </Text>
+        <HighlightedText tone="secondary" numberOfLines={compact ? 3 : 8} terms={highlight}>
+          {highlight?.length
+            ? matchSnippet(note.contentText.trim(), highlight)
+            : note.contentText.trim()}
+        </HighlightedText>
       ) : null}
 
       {isEmpty ? (

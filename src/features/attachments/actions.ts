@@ -1,11 +1,12 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Linking, Platform } from 'react-native';
 
-import type { Attachment } from '@/db/schema';
+import type { Attachment, AttachmentPlacement } from '@/db/schema';
 import { t } from '@/i18n';
 import { confirm } from '@/lib/confirm';
 import { showSnackbar, showUndo } from '@/stores/snackbar-store';
 
+import { downscaleForInline } from './downscale';
 import { addAttachments, removeAttachment, restoreAttachment } from './repository';
 
 /** Calidad JPEG de las fotos: suficiente para notas y bastante más ligera que el original. */
@@ -14,15 +15,20 @@ const PHOTO_QUALITY = 0.8;
 export type ImageSource = 'camera' | 'library';
 
 /**
- * Pide una o varias imágenes (cámara o galería) y las adjunta a la nota.
+ * Pide una o varias imágenes (cámara o galería) y las adjunta a la nota: arriba (portada) o dentro
+ * del texto. Devuelve las filas creadas (para insertar en el texto las `inline`).
  * Debe llamarse directamente desde un toque (en web el selector lo exige).
  */
-export async function pickImages(noteId: string, source: ImageSource) {
+export async function pickImages(
+  noteId: string,
+  source: ImageSource,
+  placement: AttachmentPlacement = 'cover',
+): Promise<Attachment[]> {
   if (source === 'camera' && Platform.OS !== 'web') {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
       await permissionDenied('camera', permission.canAskAgain);
-      return 0;
+      return [];
     }
   }
   const options: ImagePicker.ImagePickerOptions = {
@@ -35,24 +41,52 @@ export async function pickImages(noteId: string, source: ImageSource) {
     source === 'camera'
       ? await ImagePicker.launchCameraAsync(options)
       : await ImagePicker.launchImageLibraryAsync(options);
-  if (result.canceled || !result.assets?.length) return 0;
+  if (result.canceled || !result.assets?.length) return [];
 
   try {
-    const rows = await addAttachments(
-      noteId,
-      result.assets.map((asset) => ({
-        kind: 'image' as const,
-        uri: asset.uri,
-        mime: asset.mimeType ?? 'image/jpeg',
-        width: asset.width,
-        height: asset.height,
-      })),
+    const images = await Promise.all(
+      result.assets.map(async (asset) => {
+        const image = {
+          uri: asset.uri,
+          width: asset.width,
+          height: asset.height,
+          mime: asset.mimeType ?? 'image/jpeg',
+        };
+        return placement === 'inline' ? downscaleForInline(image) : image;
+      }),
     );
-    return rows.length;
+    return await addAttachments(
+      noteId,
+      images.map((image) => ({ kind: 'image' as const, ...image, placement })),
+    );
   } catch (e) {
     console.warn('Adjuntos: no se pudo guardar la imagen', e);
     showSnackbar(t('attachments.imageSaveFailed'));
-    return 0;
+    return [];
+  }
+}
+
+/** Imágenes pegadas o arrastradas al editor (data URI): se añaden dentro del texto. */
+export async function addInlineImages(
+  noteId: string,
+  images: { dataUri: string; width: number; height: number }[],
+): Promise<Attachment[]> {
+  try {
+    return await addAttachments(
+      noteId,
+      images.map((image) => ({
+        kind: 'image' as const,
+        uri: image.dataUri,
+        mime: /^data:([^;,]+)/.exec(image.dataUri)?.[1] ?? 'image/jpeg',
+        width: image.width,
+        height: image.height,
+        placement: 'inline' as const,
+      })),
+    );
+  } catch (e) {
+    console.warn('Adjuntos: no se pudo guardar la imagen', e);
+    showSnackbar(t('attachments.imageSaveFailed'));
+    return [];
   }
 }
 

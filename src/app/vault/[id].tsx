@@ -3,7 +3,7 @@ import { Redirect, Stack, router, useLocalSearchParams } from 'expo-router';
 import { usePreventCapture } from '@/lib/use-prevent-capture';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IconButton, KeyboardAvoider } from '@/components/ui';
@@ -73,6 +73,13 @@ function SecureNoteEditor({
   const savedId = useRef(noteId);
   const deleted = useRef(false);
   const [generator, setGenerator] = useState(false);
+  /** Contraseña que insertar cuando la hoja termine de cerrarse. */
+  const pendingInsert = useRef<string | null>(null);
+  const insertPending = () => {
+    const password = pendingInsert.current;
+    pendingInsert.current = null;
+    if (password) editorRef.current?.insertText?.(password);
+  };
   const [viewport, setViewport] = useState(0);
 
   const copy = async (text: string) => {
@@ -176,10 +183,12 @@ function SecureNoteEditor({
         visible={generator}
         onClose={() => setGenerator(false)}
         onCopy={(password) => void copy(password)}
+        // Con la hoja ya cerrada: el editor recupera el foco y el cursor (Android no avisa).
+        onDismiss={insertPending}
         onInsert={(password) => {
+          pendingInsert.current = password;
           setGenerator(false);
-          // Tras cerrar la hoja: el editor recupera el foco y el cursor donde estaba.
-          setTimeout(() => editorRef.current?.insertText?.(password), 350);
+          if (Platform.OS === 'android') setTimeout(insertPending, 350);
         }}
       />
     </View>

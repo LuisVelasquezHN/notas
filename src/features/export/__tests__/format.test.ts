@@ -135,4 +135,30 @@ describe('exportar', () => {
     expect(exportFileName('Ideas: 2026/10', 'md', 'Nota')).toBe('Ideas 2026 10.md');
     expect(exportFileName('   ', 'pdf', 'Nota')).toBe('Nota.pdf');
   });
+
+  it('pone las imágenes del texto en su sitio y solo si son data URI de imagen', () => {
+    const png = 'data:image/png;base64,iVBORw0KGgo=';
+    const doc = {
+      type: 'doc',
+      content: [
+        p(text('antes')),
+        { type: 'attachmentImage', attrs: { id: 'a1' } },
+        { type: 'attachmentImage', attrs: { id: 'mala' } },
+        { type: 'attachmentImage', attrs: { id: 'falta' } },
+        p(text('después')),
+      ],
+    } as EditorDoc;
+    const html = noteToHtml(
+      {
+        title: '',
+        doc,
+        tags: [],
+        inlineImages: { a1: png, mala: 'data:image/png;base64,x" onerror="alert(1)' },
+      },
+      'es',
+    );
+    expect(html).toContain(`<p>antes</p><img class="inline" src="${png}"><p>después</p>`);
+    expect(html).not.toContain('onerror');
+    expect(docToMarkdown(doc)).toBe('antes\n\n[🖼]\n\n[🖼]\n\n[🖼]\n\ndespués');
+  });
 });

@@ -1,4 +1,13 @@
-import { docToText, type DocNode, type EditorDoc, type TextNode } from '@/features/editor/doc';
+import {
+  INLINE_IMAGE_NODE,
+  NOTE_LINK_NODE,
+  isImageSize,
+  noteLinkTitle,
+  docToText,
+  type DocNode,
+  type EditorDoc,
+  type TextNode,
+} from '@/features/editor/doc';
 import {
   STYLE_VALUES,
   tokenFromVar,
@@ -22,9 +31,14 @@ export type ExportNote = {
   /** Ítems en el orden en que se muestran (notas de lista). */
   items?: ExportItem[];
   tags: string[];
-  /** Imágenes como data URI (solo para el HTML/PDF). */
+  /** Imágenes de portada como data URI (solo para el HTML/PDF). */
   images?: string[];
+  /** Imágenes del texto: `id del adjunto → data URI` (solo para el HTML/PDF). */
+  inlineImages?: Record<string, string>;
 };
+
+/** Imágenes del texto del documento que se está convirtiendo a HTML (`noteToHtml`). */
+let inlineImageSources: Record<string, string> = {};
 
 type Node = DocNode | TextNode;
 
@@ -36,6 +50,8 @@ function inlineMarkdown(nodes: Node[] | undefined): string {
   return (nodes ?? [])
     .map((node) => {
       if (node.type === 'hardBreak') return '  \n';
+      if (node.type === NOTE_LINK_NODE)
+        return `[[${escapeMarkdown(noteLinkTitle(node as DocNode))}]]`;
       if (node.type !== 'text') return inlineMarkdown((node as DocNode).content);
       const text = node.text ?? '';
       const marks = (node as TextNode).marks ?? [];
@@ -103,6 +119,9 @@ function blockMarkdown(node: DocNode): string {
       return `\`\`\`\n${docToText({ type: 'doc', content: [node] })}\n\`\`\``;
     case 'horizontalRule':
       return '---';
+    case INLINE_IMAGE_NODE:
+      // El Markdown no lleva los ficheros: se marca dónde había una imagen.
+      return '[🖼]';
     default:
       return node.content ? inlineMarkdown(node.content) : '';
   }
@@ -190,6 +209,9 @@ function inlineHtml(nodes: Node[] | undefined): string {
   return (nodes ?? [])
     .map((node) => {
       if (node.type === 'hardBreak') return '<br>';
+      if (node.type === NOTE_LINK_NODE) {
+        return `<span class="note-link">${escapeHtml(noteLinkTitle(node as DocNode))}</span>`;
+      }
       if (node.type !== 'text') return inlineHtml((node as DocNode).content);
       let out = escapeHtml(node.text ?? '');
       for (const mark of (node as TextNode).marks ?? []) {
@@ -230,6 +252,13 @@ function blockHtml(node: DocNode): string {
       return `<pre><code>${escapeHtml(docToText({ type: 'doc', content: [node] }))}</code></pre>`;
     case 'horizontalRule':
       return '<hr>';
+    case INLINE_IMAGE_NODE: {
+      const src = inlineImageSources[String(node.attrs?.id ?? '')];
+      // Solo data URI de imagen (las genera la app): nada que pueda inyectar HTML.
+      return src && /^data:image\/[a-z+.-]+;base64,[A-Za-z0-9+/=]+$/i.test(src)
+        ? `<img class="inline${isImageSize(node.attrs?.size) && node.attrs.size !== 'full' ? ` ${node.attrs.size}` : ''}" src="${src}">`
+        : '';
+    }
     default:
       return node.content ? `<p>${inlineHtml(node.content)}</p>` : '';
   }
@@ -253,6 +282,10 @@ const STYLES = `
   ul.tasks .box { flex: none; }
   .images { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
   .images img { max-width: 100%; max-height: 360px; border-radius: 6px; }
+  img.inline { display: block; max-width: 100%; max-height: 520px; margin: 8px 0; border-radius: 6px; }
+  img.inline.small { width: 35%; margin: 8px auto; }
+  img.inline.medium { width: 60%; margin: 8px auto; }
+  .note-link { color: #1F6FD1; }
   .tags { margin-top: 24px; color: #666; font-size: 10pt; }
 `;
 
@@ -267,7 +300,9 @@ export function noteToHtml(note: ExportNote, lang: string): string {
         )
         .join('')}</ul>`
     : '';
+  inlineImageSources = note.inlineImages ?? {};
   const body = note.items ? items : note.doc ? note.doc.content.map(blockHtml).join('') : '';
+  inlineImageSources = {};
   const images = note.images?.length
     ? `<div class="images">${note.images.map((src) => `<img src="${src}">`).join('')}</div>`
     : '';

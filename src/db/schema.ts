@@ -35,6 +35,10 @@ export type ReminderStatus = (typeof REMINDER_STATUSES)[number];
 export const ATTACHMENT_KINDS = ['image', 'audio', 'file'] as const;
 export type AttachmentKind = (typeof ATTACHMENT_KINDS)[number];
 
+/** Dónde se muestra una imagen: arriba de la nota (portada) o dentro del texto. */
+export const ATTACHMENT_PLACEMENTS = ['cover', 'inline'] as const;
+export type AttachmentPlacement = (typeof ATTACHMENT_PLACEMENTS)[number];
+
 export const folders = sqliteTable(
   'folders',
   {
@@ -149,6 +153,11 @@ export const attachments = sqliteTable(
       .notNull()
       .references(() => notes.id, { onDelete: 'cascade' }),
     kind: text('kind', { enum: ATTACHMENT_KINDS }).notNull(),
+    /**
+     * `inline`: la imagen está dentro del texto (nodo `attachmentImage` del documento con este
+     * id); si sale del texto, el adjunto se marca como borrado (y vuelve al deshacer).
+     */
+    placement: text('placement', { enum: ATTACHMENT_PLACEMENTS }).notNull().default('cover'),
     localUri: text('local_uri').notNull(),
     mime: text('mime'),
     size: integer('size'),

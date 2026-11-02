@@ -24,13 +24,15 @@ type SheetProps = {
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  /** Al terminar de cerrarse (iOS y web; en Android no existe: usar `afterSheetClose`). */
+  onDismiss?: () => void;
 };
 
 /**
  * Hoja inferior modal. Usa `Modal` de React Native para funcionar igual en iOS, Android y web
  * sin añadir dependencias nativas.
  */
-export function Sheet({ visible, onClose, title, children }: SheetProps) {
+export function Sheet({ visible, onClose, title, children, onDismiss }: SheetProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -43,7 +45,8 @@ export function Sheet({ visible, onClose, title, children }: SheetProps) {
       visible={visible && !appLocked}
       transparent
       animationType={reduceMotion ? 'fade' : 'slide'}
-      onRequestClose={onClose}>
+      onRequestClose={onClose}
+      onDismiss={onDismiss}>
       {/* Las hojas con campos (carpeta, etiqueta…) suben con el teclado. */}
       <KeyboardAvoider style={styles.root}>
         <Pressable

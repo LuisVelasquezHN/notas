@@ -119,6 +119,7 @@ const ICONS = {
   highlight: { ios: 'highlighter', android: 'ink_highlighter', web: 'ink_highlighter' },
   fontFamily: { ios: 'textformat.alt', android: 'font_download', web: 'font_download' },
   fontSize: { ios: 'textformat.size', android: 'format_size', web: 'format_size' },
+  keyboard: { ios: 'keyboard', android: 'keyboard', web: 'keyboard' },
   vault: { ios: 'lock.shield', android: 'shield_lock', web: 'shield_lock' },
   key: { ios: 'key', android: 'key', web: 'key' },
   noColor: { ios: 'circle.slash', android: 'format_color_reset', web: 'format_color_reset' },
@@ -151,6 +152,12 @@ const ICONS = {
     web: 'logout',
   },
   download: { ios: 'arrow.down.circle', android: 'download', web: 'download' },
+  link: { ios: 'link', android: 'link', web: 'link' },
+  history: { ios: 'clock.arrow.circlepath', android: 'history', web: 'history' },
+  reading: { ios: 'book', android: 'chrome_reader_mode', web: 'chrome_reader_mode' },
+  photoSmall: { ios: 'photo', android: 'photo_size_select_small', web: 'photo_size_select_small' },
+  photoMedium: { ios: 'photo', android: 'photo_size_select_large', web: 'photo_size_select_large' },
+  photoFull: { ios: 'photo', android: 'photo_size_select_actual', web: 'photo_size_select_actual' },
 } satisfies Record<string, SymbolName>;
 
 export type IconName = keyof typeof ICONS;

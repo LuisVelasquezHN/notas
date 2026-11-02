@@ -3,8 +3,12 @@
 # - si ya hay un APK con ese fingerprint, solo se publica una actualización OTA (1–2 min) que la
 #   app instalada descarga sola al abrirse;
 # - si no (cambió algo nativo), se compila un APK nuevo (perfil preview).
+# - cada APK nuevo se publica como release de GitHub: el enlace fijo
+#   https://github.com/LuisVelasquezHN/notas/releases/latest/download/lv-notes.apk (el del botón
+#   "App para Android" de la web) lleva siempre al último.
 # `runtimeVersion: { policy: "fingerprint" }` en app.json garantiza que una OTA solo llega a los
-# APK compatibles. Requiere el repositorio de GitHub conectado al proyecto en expo.dev.
+# APK compatibles. Requiere el repositorio de GitHub conectado al proyecto en expo.dev y la
+# variable secreta GITHUB_RELEASES_TOKEN en el entorno preview de EAS (ver store/README.md §0.5).
 name: Android (APK de prueba)
 
 on:
@@ -47,3 +51,19 @@ jobs:
       platform: android
       channel: preview
       upload_sentry_sourcemaps: false
+
+  publish_apk:
+    name: Publicar el APK en GitHub
+    needs: [build_android]
+    environment: preview
+    steps:
+      - uses: eas/checkout
+      - uses: eas/download_build
+        id: download
+        with:
+          build_id: ${{ needs.build_android.outputs.build_id }}
+          extensions: [apk]
+      - name: Subir a GitHub Releases
+        env:
+          EAS_BUILD_ID_FOR_RELEASE: ${{ needs.build_android.outputs.build_id }}
+        run: node scripts/publish-apk-release.mjs "${{ steps.download.outputs.artifact_path }}"
